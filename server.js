@@ -170,7 +170,7 @@ wss.on('connection', (ws) => {
                 allUsers = users;
                 try { fs.writeFileSync(USERS_FILE, JSON.stringify(users)); } catch (e) {}
                 if (supabase) {
-                    supabase.from('users').upsert({ username: uname, profile: prof, updated_at: new Date().toISOString() }, { onConflict: 'username' }).then(({ error }) => {
+                    supabase.from('user').upsert({ username: uname, profile: prof }, { onConflict: 'username' }).then(({ error }) => {
                         if (error) console.error("❌ Supabase register_user:", error.message);
                     });
                 }
@@ -181,7 +181,7 @@ wss.on('connection', (ws) => {
             const query = String(data.query || '').trim().toLowerCase();
             const me = String(data.from || '').trim().toLowerCase();
             if (supabase) {
-                supabase.from('users').select('username, profile').ilike('username', `%${query}%`).then(({ data: rows, error }) => {
+                supabase.from('user').select('username, profile').ilike('username', `%${query}%`).then(({ data: rows, error }) => {
                     if (error) {
                         console.error("❌ Supabase search_user:", error.message);
                         ws.send(JSON.stringify({ type: 'search_result', matches: [] }));
