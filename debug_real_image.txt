@@ -1,0 +1,16 @@
+--- EXACT APPEND MESSAGE IMAGE BLOCK ---
+2351:    } else if (isImage) {
+2352-      const img = document.createElement('img'); 
+2353-      img.src = text; 
+2354-      img.style.cursor = 'pointer';
+2355-      newMsg.appendChild(img);
+2356-    } else if (isVoice || (text && text.startsWith('data:audio'))) {
+2357-      // Build Custom WhatsApp Player
+2358-      const playerDiv = document.createElement('div');
+2359-      playerDiv.className = 'wa-audio';
+2360-      
+2361-      const playBtn = document.createElement('div');
+--
+3397:    if (isImage) {
+3398-      const img = document.createElement('img'); img.src = text; newMsg.appendChild(img);
+3399-    } else if (isVoice) {

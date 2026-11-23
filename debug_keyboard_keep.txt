@@ -1,0 +1,38 @@
+--- 1. SEND BUTTON HTML ---
+1892:    <div class="send-btn" onclick="sendMessage()" id="send-btn" style="display:none;">➤</div>
+
+--- 2. SEND MESSAGE END ---
+2642:    input.value = '';
+2643-
+2644-    // 2. Save to local memory
+2645-    try {
+2646-        const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+2647-        savedMsgs.push({ text: text, type: 'sent', time: now, status: status, msgId: msgId, replyData: reply, bubbleColor: myProfile.bubbleColor || '#005c4b' });
+--
+3317:    if(input) input.value = '';
+3318-    
+3319-    const blur = document.getElementById('search-blur-overlay');
+3320-    if(blur) blur.style.display = 'none';
+3321-
+3322-    // Now run the original logic to open the chat
+--
+4327:      input.value = '';
+4328-      
+4329-      const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+4330-      savedMsgs.push({ text: text, type: 'sent', time: now, status: 'sent', msgId: msgId, replyData: currentReplyTo });
+4331-      localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+4332-      
+--
+4779:    input.value = '';
+4780-
+4781-    // 2. Save to phone storage
+4782-    try {
+4783-        const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+4784-        savedMsgs.push({ text: text, type: 'sent', time: now, status: status, msgId: msgId, replyData: reply });
+--
+4888:    input.value = '';
+4889-
+4890-    // 2. Save to local memory
+4891-    try {
+4892-        const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+4893-        savedMsgs.push({ text: text, type: 'sent', time: now, status: status, msgId: msgId, replyData: reply, bubbleColor: currentColor });

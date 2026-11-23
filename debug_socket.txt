@@ -1,0 +1,31 @@
+--- SOCKET SETUP ---
+2245:  let socket = new WebSocket('ws://' + location.host);
+2288:    const currentHandler = socket.onmessage;
+2312:        socket.onmessage = currentHandler;
+3145:  socket.onmessage = (event) => {
+3873:  const oldOnMessage = socket.onmessage;
+3874:  socket.onmessage = function(event) {
+4805:  const oldSocketStatus = socket.onmessage;
+4806:  socket.onmessage = function(event) {
+
+--- NEW MESSAGE HANDLER ---
+3340:      if (data.type === 'new_message') {
+3341-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+3342-        const senderId = (data.from || '').trim();
+3343-        
+3344-        if (data.senderProfile) {
+3345-            let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+3346-            profiles[senderId] = data.senderProfile;
+3347-            localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+3348-        }
+3349-        
+3350-        let saveText = data.text;
+3351-        if (data.isImage && !data.isVideo) {
+3352-            saveImgToDB(data.msgId, data.text);
+3353-            saveText = "img_ref_" + data.msgId;
+3354-        }
+3355-
+--
+3878:      if (data.type === 'new_message') {
+3879-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+3880-        const senderId = (data.from || '').trim();

@@ -1,0 +1,68 @@
+--- FILE INPUT ---
+1328:    <div class="attach-btn" onclick="document.getElementById('file-input').click()">📎</div>
+1329:    <input type="file" id="file-input" accept="image/*" style="display:none" onchange="handleImageUpload(event)">
+
+--- HANDLE IMAGE UPLOAD ---
+1850:  function handleImageUpload(event) {
+1851-    const file = event.target.files[0];
+1852-    if(!file) return;
+1853-    const to = activeChatId;
+1854-    const reader = new FileReader();
+1855-    reader.onload = function(e) {
+1856-      const img = new Image();
+1857-      img.onload = function() {
+1858-        const canvas = document.createElement('canvas');
+1859-        const MAX_WIDTH = 600; const MAX_HEIGHT = 600;
+1860-        let width = img.width; let height = img.height;
+1861-        if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } } 
+1862-        else { if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; } }
+1863-        canvas.width = width; canvas.height = height;
+1864-        const ctx = canvas.getContext('2d');
+1865-        ctx.drawImage(img, 0, 0, width, height);
+1866-        const base64Img = canvas.toDataURL('image/jpeg', 0.6); 
+1867-        const msgId = Date.now().toString();
+1868-        const reply = currentReplyTo;
+1869-        socket.send(JSON.stringify({ type: 'send_message', to: to, from: myBappId, text: base64Img, isImage: true, msgId: msgId, replyData: reply }));
+1870-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+1871-        appendMessage(base64Img, 'sent', now, 'sent', true, false, msgId, reply);
+1872-
+1873-        const rp = document.getElementById('reply-preview');
+1874-        if (rp) rp.style.display = 'none';
+1875-        currentReplyTo = null;
+1876-        if (window.replyState && activeChatId) delete window.replyState[activeChatId];
+1877-
+1878-        try {
+1879-            const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+1880-            savedMsgs.push({ text: base64Img, type: 'sent', time: now, isImage: true, status: 'sent' });
+1881-            localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+1882-            loadChatList();
+1883-            
+1884-            // Force clear the reply box
+1885-            document.getElementById('reply-preview').style.display = 'none';
+1886-            currentReplyTo = null;
+1887-            if (window.replyState) delete window.replyState[to];
+1888-            loadChatList();
+1889-        } catch(err) { alert("Phone memory is full!"); }
+1890-      };
+
+--- CLOSING BODY ---
+      const overlay = document.getElementById('panic-overlay');
+      overlay.style.display = 'flex';
+      setTimeout(() => overlay.style.display = 'none', 2000);
+    }
+  });
+</script>
+</body>
+
+
+
+
+
+
+
+
+
+
+
+
+</html>

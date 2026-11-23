@@ -1,0 +1,22 @@
+--- VOICE RECORDING LOGIC ---
+2263:        mediaRecorder.onstop = async () => {
+2264-          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+2265-          const reader = new FileReader();
+2266-          reader.readAsDataURL(audioBlob);
+2267-          reader.onloadend = () => {
+2268-            const base64Audio = reader.result;
+2269-            const to = activeChatId;
+2270-            const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+2271-
+2272-            // Send to server
+2273-            socket.send(JSON.stringify({ type: 'send_message', to: to, from: myBappId, text: base64Audio, isVoice: true }));
+2274-            
+2275-            // Append UI
+2276-            appendMessage(base64Audio, 'sent', now, 'sent', false, true);
+2277-            
+2278-            // Save to local storage
+2279-            const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+2280-            savedMsgs.push({ text: base64Audio, type: 'sent', time: now, isVoice: true, status: 'sent' });
+2281-            localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+2282-            
+2283-            // Update chat list preview

@@ -1,0 +1,265 @@
+const express = require('express');
+const http = require('http');
+const WebSocket = require('ws');
+const path = require('path');
+const fs = require('fs');
+
+const app = express();
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server, maxPayload: 150 * 1024 * 1024 });
+
+const DB_FILE = path.join(__dirname, 'offline_db.json');
+
+const STATUSES_FILE = path.join(__dirname, 'statuses.json');
+if (!fs.existsSync(STATUSES_FILE)) fs.writeFileSync(STATUSES_FILE, JSON.stringify([]));
+
+const USERS_FILE = path.join(__dirname, 'users.json');
+
+if (!fs.existsSync(DB_FILE)) fs.writeFileSync(DB_FILE, JSON.stringify({}));
+if (!fs.existsSync(USERS_FILE)) fs.writeFileSync(USERS_FILE, JSON.stringify({}));
+
+app.use(express.static(__dirname));
+
+server.listen(2222, () => {
+    console.log('\n=============================================');
+    console.log('BAPP running on http://localhost:2222');
+    console.log('=============================================\n');
+});
+
+const bappUsers = new Map();
+let allUsers = JSON.parse(fs.readFileSync(USERS_FILE));
+
+wss.on('connection', (ws) => {
+    ws.on('message', async (message) => {
+        const data = JSON.parse(message);
+
+        
+        if (data.type === 'get_statuses') {
+            let statuses = [];
+            try { statuses = JSON.parse(fs.readFileSync(STATUSES_FILE)); } catch(e) {}
+            // Clean up statuses older than 24 hours
+            const now = Date.now();
+            statuses = statuses.filter(s => now - s.timestamp < 24 * 60 * 60 * 1000);
+            fs.writeFileSync(STATUSES_FILE, JSON.stringify(statuses));
+            ws.send(JSON.stringify({ type: 'statuses_list', statuses: statuses }));
+        }
+
+        if (data.type === 'add_status') {
+            let statuses = JSON.parse(fs.readFileSync(STATUSES_FILE));
+            const newStatus = {
+                id: Date.now().toString(),
+                username: data.username,
+                text: data.text,
+                media: data.media,
+                views: [],
+                timestamp: Date.now()
+            };
+            statuses.push(newStatus);
+            fs.writeFileSync(STATUSES_FILE, JSON.stringify(statuses));
+            
+            // Broadcast to everyone (simulating a feed)
+            wss.clients.forEach(client => {
+                if (client.readyState === 1) {
+                    client.send(JSON.stringify({ type: 'new_status', status: newStatus }));
+                }
+            });
+        }
+
+        
+        if (data.type === 'view_status') {
+            let statuses = JSON.parse(fs.readFileSync(STATUSES_FILE));
+            let status = statuses.find(s => s.id === data.statusId);
+            if (status) {
+                if (!status.views) status.views = []; // Fix for old statuses
+                if (!status.views.includes(data.viewer)) {
+                    status.views.push(data.viewer);
+                    fs.writeFileSync(STATUSES_FILE, JSON.stringify(statuses));
+                }
+            }
+        }
+
+        if (data.type === 'register_user') {
+            const users = JSON.parse(fs.readFileSync(USERS_FILE));
+            users[data.username] = data.profile || { name: data.username };
+            allUsers = users;
+            fs.writeFileSync(USERS_FILE, JSON.stringify(users));
+            
+            bappUsers.set(data.username, ws);
+            console.log(`🟢 BAPP Connected: ${data.username}`);
+            ws.send(JSON.stringify({ type: 'register_success', username: data.username }));
+            
+            const db = JSON.parse(fs.readFileSync(DB_FILE));
+            if (db[data.username] && db[data.username].length > 0) {
+                const msgsToSend = db[data.username];
+                delete db[data.username];
+                try {
+                    fs.writeFileSync(DB_FILE, JSON.stringify(db));
+                } catch(e) { console.log("Failed to write to offline DB (maybe storage full?):", e); }
+                
+                // Send one by one with a 200ms delay
+                msgsToSend.forEach((msg, index) => {
+                    setTimeout(() => {
+                        if (ws.readyState === 1) {
+                            ws.send(JSON.stringify({ type: 'offline_messages', messages: [msg] }));
+                        }
+                    }, index * 200);
+                });
+            }
+        }
+
+        if (data.type === 'search_user') {
+            const users = JSON.parse(fs.readFileSync(USERS_FILE));
+            const query = data.query.toLowerCase();
+            const matches = Object.keys(users).filter(u => u.includes(query) && u !== data.from).map(u => ({ username: u, profile: users[u] }));
+            ws.send(JSON.stringify({ type: 'search_result', matches: matches }));
+        }
+
+        
+        if (data.type === 'recording') {
+            if (bappUsers.has(data.to)) {
+                bappUsers.get(data.to).send(JSON.stringify({ type: 'recording', from: data.from, isRecording: data.isRecording }));
+            }
+        }
+
+        if (data.type === 'typing') {
+            if (bappUsers.has(data.to)) {
+                bappUsers.get(data.to).send(JSON.stringify({ type: 'typing', from: data.from, isTyping: data.isTyping }));
+            }
+        }
+
+        if (data.type === 'read_receipt') {
+            if (bappUsers.has(data.to)) {
+                bappUsers.get(data.to).send(JSON.stringify({ type: 'read_receipt', from: data.from }));
+            }
+        }
+
+        
+        
+        if (data.type === 'ghost_delete') {
+            const { to, from, msgId } = data;
+            if (bappUsers.has(to)) {
+                bappUsers.get(to).send(JSON.stringify({ type: 'ghost_deleted', msgId: msgId, from: from }));
+            }
+        }
+
+        if (data.type === 'delete_message') {
+            const { to, from, msgId } = data;
+            if (bappUsers.has(to)) {
+                bappUsers.get(to).send(JSON.stringify({ type: 'message_deleted', msgId: msgId, from: from }));
+            }
+        }
+
+        
+        if (data.type === 'create_group') {
+            const { groupId, groupName, members, creator } = data;
+            members.forEach(member => {
+                if (member !== creator) {
+                    const targetWs = bappUsers.get(member);
+                    if (targetWs && targetWs.readyState === 1) {
+                        targetWs.send(JSON.stringify({ type: 'group_created', groupId, groupName, members }));
+                    }
+                }
+            });
+        }
+
+        if (data.type === 'add_group_member') {
+            const { groupId, newMember } = data;
+            const targetWs = bappUsers.get(newMember);
+            if (targetWs && targetWs.readyState === 1) {
+                targetWs.send(JSON.stringify({ type: 'added_to_group', groupId }));
+            }
+        }
+
+        if (data.type === 'send_message') {
+            const { to, from, text, isImage, isVoice, msgId, replyData, isWhisper, isVideo, bubbleColor, isGroup, groupMembers } = data;
+            const cleanTo = to.trim();
+            
+            console.log(`📩 Msg from [${from}] to [${cleanTo}] isGroup: ${isGroup}`);
+
+            // --- GROUP MESSAGE ROUTING ---
+            if (isGroup && groupMembers && groupMembers.length > 0) {
+                groupMembers.forEach(member => {
+                    if (member === from) return; // Don't send to yourself
+                    const targetWs = bappUsers.get(member);
+                    if (targetWs && targetWs.readyState === 1) {
+                        targetWs.send(JSON.stringify({
+                            type: 'new_message', from: from, text: text, isImage: isImage || false, isVoice: isVoice || false,
+                            msgId: msgId, replyData: replyData, isWhisper: isWhisper || false, isVideo: isVideo || false, 
+                            bubbleColor: bubbleColor, isGroup: true, groupId: cleanTo, groupMembers: groupMembers
+                        }));
+                    } else {
+                        // Save for offline member
+                        let db = {};
+                        try { db = JSON.parse(fs.readFileSync(DB_FILE)); } catch(e) {}
+                        if (!db[member]) db[member] = [];
+                        db[member].push({
+                            from: from, text: text, isImage: isImage || false, isVoice: isVoice || false, isVideo: isVideo || false,
+                            msgId: msgId, replyData: replyData, isWhisper: isWhisper || false, bubbleColor: bubbleColor,
+                            isGroup: true, groupId: cleanTo, groupMembers: groupMembers
+                        });
+                        try { fs.writeFileSync(DB_FILE, JSON.stringify(db)); } catch(e) {}
+                    }
+                });
+                ws.send(JSON.stringify({ type: 'delivered_receipt', to: cleanTo }));
+                return; // Stop here so it doesn't run the single-user logic below
+            }
+
+            // --- SINGLE USER MESSAGE ROUTING ---
+            const targetWs = bappUsers.get(cleanTo);
+            let delivered = false;
+
+            if (targetWs && targetWs.readyState === 1) {
+                try {
+                    targetWs.send(JSON.stringify({
+                        type: 'new_message',
+                        from: from,
+                        text: text,
+                        isImage: isImage || false,
+                        isVoice: isVoice || false,
+                        msgId: msgId,
+                        replyData: replyData,
+                        isWhisper: isWhisper || false,
+                        isVideo: isVideo || false,
+                        bubbleColor: bubbleColor
+                    }));
+                    delivered = true;
+                } catch (err) {
+                    console.log("⚠️ Ghost socket detected. Cleaning up...");
+                    bappUsers.delete(cleanTo);
+                }
+            }
+
+            if (delivered) {
+                ws.send(JSON.stringify({ type: 'delivered_receipt', to: cleanTo }));
+                console.log("✅ Delivered (Receipt Sent)");
+            } else {
+                let db = {};
+                try {
+                    db = JSON.parse(fs.readFileSync(DB_FILE));
+                } catch(e) { console.log("DB was empty or corrupted, creating new."); }
+                
+                if (!db[cleanTo]) db[cleanTo] = [];
+                db[cleanTo].push({ 
+                    from: from, 
+                    text: text, 
+                    isImage: isImage || false, 
+                    isVoice: isVoice || false, msgId: msgId, replyData: replyData,
+                    msgId: msgId,
+                    replyData: replyData,
+                    isWhisper: isWhisper
+                });
+                fs.writeFileSync(DB_FILE, JSON.stringify(db));
+                console.log("💾 Offline Saved");
+            }
+        }
+    });
+
+    ws.on('close', () => {
+        for (let [userId, userWs] of bappUsers.entries()) {
+            if (userWs === ws) {
+                bappUsers.delete(userId);
+                console.log(`🔴 Disconnected: ${userId}`);
+            }
+        }
+    });
+});

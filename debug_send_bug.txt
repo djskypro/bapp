@@ -1,0 +1,32 @@
+--- SEND MESSAGE ---
+1841:  function sendMessage() {
+1842-    const input = document.getElementById('chat-input');
+1843-    const text = input.value.trim();
+1844-    const to = document.getElementById('chat-name').textContent.trim();
+1845-    if (text !== "" && socket.readyState === WebSocket.OPEN) {
+1846-      const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+1847-      const msgId = Date.now().toString();
+1848-
+1849-      socket.send(JSON.stringify({ 
+1850-          type: 'send_message', 
+1851-          to: activeChatId, 
+1852-          from: myBappId, 
+1853-          text: text,
+1854-          msgId: msgId,
+1855-          replyData: currentReplyTo
+1856-      }));
+1857-      
+1858-      appendMessage(text, 'sent', now, 'sent', false, false, msgId, currentReplyTo);
+1859-      input.value = '';
+1860-      
+1861-      const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + activeChatId)) || [];
+
+--- SOCKET.ONOPEN ---
+1487:  socket.onopen = () => {
+1488-    socket.send(JSON.stringify({ type: 'register_user', username: myBappId, profile: myProfile }));
+1489-  };
+1490-
+1491-  function toggleTheme() { document.body.classList.toggle('light-mode'); }
+1492-
+
+--- SOCKET ERROR HANDLERS ---

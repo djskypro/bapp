@@ -1,0 +1,14 @@
+--- CURRENT SETTINGS HTML ---
+      <div style="font-size:14px;">Auto-Switch Location</div>
+      <input type="checkbox" id="settings-auto-location" style="width:20px; height:20px; accent-color:var(--primary);">
+    </div>
+
+    <button class="save-btn" onclick="saveProfile()">Save Profile</button>
+
+--- TOGGLE IDS CHECK ---
+3029:    document.getElementById('settings-panic-mode').checked = window.enablePanicMode;
+3030:    document.getElementById('settings-shake-undo').checked = window.enableShakeToUndo;
+3035:    document.getElementById('settings-panic-mode').checked = window.enablePanicMode !== false;
+3036:    document.getElementById('settings-shake-undo').checked = window.enableShakeToUndo === true;
+3052:    window.enablePanicMode = document.getElementById('settings-panic-mode').checked;
+3053:    window.enableShakeToUndo = document.getElementById('settings-shake-undo').checked;

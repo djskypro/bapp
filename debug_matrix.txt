@@ -1,0 +1,217 @@
+--- 1. APPEND MESSAGE ---
+  function appendMessage(text, type, timeStr, status = '', isImage = false, isVoice = false, msgId = null, replyData = null, isWhisper = false, isVideo = false, bubbleColor = null) {
+    const msgBox = document.getElementById('chat-messages');
+    if (!msgBox) return;
+    const newMsg = document.createElement('div');
+    newMsg.className = 'msg ' + type;
+    if (bubbleColor && type === 'sent') { newMsg.style.setProperty('background', bubbleColor, 'important'); newMsg.style.setProperty('background-color', bubbleColor, 'important'); }
+    
+    const id = msgId || Date.now().toString();
+    newMsg.id = 'msg-' + id;
+
+    if (replyData) {
+        const quote = document.createElement('div');
+        quote.className = 'quoted-msg';
+        quote.innerHTML = '<strong>' + replyData.name + '</strong>' + (replyData.text.startsWith('data:image') ? '📷 Photo' : (replyData.text.startsWith('data:audio') ? '🎤 Voice Note' : replyData.text));
+        quote.style.cursor = 'pointer';
+        quote.style.pointerEvents = 'auto'; // Force it to be clickable
+        quote.onclick = function() { 
+            if(replyData.msgId) {
+                scrollToMessage(replyData.msgId); 
+            } else {
+                alert("Cannot find original message ID");
+            }
+        };
+        newMsg.appendChild(quote);
+    }
+    
+    // --- WHISPER MESSAGE LOGIC ---
+    if (isWhisper) {
+        newMsg.classList.add('whisper-msg');
+        
+        const label = document.createElement('div');
+        label.className = 'whisper-label';
+        label.innerText = '👻 Tap to reveal';
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'whisper-content';
+        
+        // Add text to the blurred content
+        const textNode = document.createTextNode(text);
+        contentDiv.appendChild(textNode);
+        
+        newMsg.appendChild(contentDiv);
+        newMsg.appendChild(label);
+        
+        newMsg.onclick = function() {
+            if (!newMsg.classList.contains('revealed')) {
+                newMsg.classList.add('revealed');
+                label.innerText = 'Auto-destructing...';
+                
+                // Auto destruct after 5 seconds
+                setTimeout(() => {
+                    newMsg.style.transition = 'opacity 1s, transform 1s';
+                    newMsg.style.opacity = '0';
+                    newMsg.style.transform = 'scale(0.8)';
+                    setTimeout(() => newMsg.remove(), 1000);
+                }, 5000);
+            }
+        };
+        
+    } else if (isImage) {
+      const img = document.createElement('img'); 
+      img.src = text; 
+      img.style.cursor = 'pointer';
+      newMsg.appendChild(img);
+    } else if (isVoice || (text && text.startsWith('data:audio'))) {
+      // Build Custom WhatsApp Player
+      const playerDiv = document.createElement('div');
+      playerDiv.className = 'wa-audio';
+      
+      const playBtn = document.createElement('div');
+      playBtn.className = 'wa-play-btn';
+      playBtn.innerText = '▶';
+      
+      const waveDiv = document.createElement('div');
+      waveDiv.className = 'wa-waveform';
+      
+      const timeSpan = document.createElement('span');
+      timeSpan.className = 'wa-time';
+      timeSpan.innerText = '0:00';
+      
+      // Generate deterministic random bars based on string length
+      const numBars = 25;
+      const bars = [];
+      for(let i=0; i<numBars; i++) {
+        const bar = document.createElement('div');
+        bar.className = 'wa-bar';
+        // Random height between 20% and 100%
+        const h = 20 + (Math.random() * 80); 
+        bar.style.height = h + '%';
+        waveDiv.appendChild(bar);
+        bars.push(bar);
+      }
+      
+      playerDiv.appendChild(playBtn);
+      playerDiv.appendChild(waveDiv);
+      playerDiv.appendChild(timeSpan);
+      
+      // Hidden real audio element
+      const audio = document.createElement('audio');
+      audio.src = text;
+      audio.style.display = 'none';
+      
+      playerDiv.appendChild(audio);
+      newMsg.appendChild(playerDiv);
+      
+      // --- Player Logic ---
+      let isPlaying = false;
+      playBtn.onclick = function() {
+        if (isPlaying) {
+          audio.pause();
+          playBtn.innerText = '▶';
+          isPlaying = false;
+        } else {
+          audio.play();
+          playBtn.innerText = '⏸';
+          playBtn.classList.add('played'); // Turn blue
+          isPlaying = true;
+          
+          // Mark all bars as played
+          bars.forEach(b => b.classList.add('played'));
+        }
+      };
+      
+      audio.onended = function() {
+        playBtn.innerText = '▶';
+        isPlaying = false;
+        // Reset bars to start if replayed later (optional)
+      };
+      
+      audio.ontimeupdate = function() {
+        const mins = Math.floor(audio.currentTime / 60);
+        const secs = Math.floor(audio.currentTime % 60);
+        timeSpan.innerText = mins + ':' + secs.toString().padStart(2, '0');
+        
+        // Calculate progress to color bars
+        const progress = audio.currentTime / (audio.duration || 1);
+        const playedBars = Math.floor(progress * numBars);
+        bars.forEach((b, i) => {
+          if (i < playedBars) b.classList.add('played');
+          else if (audio.currentTime === 0) b.classList.remove('played');
+        });
+      };
+    } else {
+      newMsg.appendChild(document.createTextNode(text));
+    }
+
+    const timeSpan = document.createElement('span');
+    timeSpan.className = 'msg-time';
+    timeSpan.textContent = timeStr || new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    newMsg.appendChild(timeSpan);
+
+    if (type === 'sent') {
+      const check = document.createElement('span');
+      check.className = 'msg-status ' + (status === 'read' ? 'read' : '');
+      check.innerText = status === 'pending' ? '🕒' : ((status === 'read' || status === 'delivered') ? '✓✓' : '✓');
+      newMsg.appendChild(check);
+    }
+    
+    // Insert before the spacer if it exists, otherwise just append
+    const spacer = document.getElementById('chat-spacer');
+    if (spacer) {
+        msgBox.insertBefore(newMsg, spacer);
+    } else {
+        msgBox.appendChild(newMsg);
+
+--- 2. SEND MESSAGE ---
+  function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if (text === "") return;
+
+    const to = activeChatId;
+    const reply = currentReplyTo;
+    const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    const msgId = Date.now().toString();
+    
+    const isConnected = socket.readyState === WebSocket.OPEN;
+    const status = isConnected ? 'sent' : 'pending';
+
+    // 1. Show on screen immediately
+    appendMessage(text, 'sent', now, status, false, false, msgId, reply, false, false, myProfile.bubbleColor || '#005c4b');
+    input.value = '';
+
+    // 2. Save to local memory
+    try {
+        const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+        savedMsgs.push({ text: text, type: 'sent', time: now, status: status, msgId: msgId, replyData: reply, bubbleColor: myProfile.bubbleColor || '#005c4b' });
+        localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+        loadChatList();
+    } catch(e) { console.error("Storage full"); }
+
+    const rp = document.getElementById('reply-preview');
+    if (rp) rp.style.display = 'none';
+    currentReplyTo = null;
+    if (window.replyState && activeChatId) delete window.replyState[activeChatId];
+
+    // 3. Send now OR save to Offline Queue
+    const payload = {
+        type: 'send_message',
+        to: to,
+        from: myBappId,
+        text: text,
+        msgId: msgId,
+        replyData: reply,
+        bubbleColor: myProfile.bubbleColor || '#005c4b'
+    };
+
+    if (isConnected) {
+        socket.send(JSON.stringify(payload));
+    } else {
+        let queue = JSON.parse(localStorage.getItem('bapp_offline_queue')) || [];
+        queue.push(payload);
+        localStorage.setItem('bapp_offline_queue', JSON.stringify(queue));
+        console.log("📩 Message queued. Will send when online.");
+    }
+  }

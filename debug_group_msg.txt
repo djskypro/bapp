@@ -1,0 +1,130 @@
+--- 1. CLIENT SEND TEXT ---
+  function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if (text === "") return;
+
+    const to = activeChatId;
+    const reply = currentReplyTo;
+    const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    const msgId = Date.now().toString();
+    
+    const isConnected = socket.readyState === WebSocket.OPEN;
+    const status = isConnected ? 'sent' : 'pending';
+
+    // 1. Show on screen immediately
+    appendMessage(text, 'sent', now, status, false, false, msgId, reply, false, false, myProfile.bubbleColor || '#005c4b');
+      
+      
+    input.value = '';
+    triggerInputDrop();
+ 
+    // Snap the keyboard back open instantly after sending
+    setTimeout(() => {
+        const chatIn = document.getElementById('chat-input');
+        const chatView = document.getElementById('chat-view');
+        if (chatIn && chatView && chatView.classList.contains('active')) {
+            chatIn.focus();
+        }
+    }, 10);
+
+    // 2. Save to local memory
+    try {
+        const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+        savedMsgs.push({ text: text, type: 'sent', time: now, status: status, msgId: msgId, replyData: reply, bubbleColor: myProfile.bubbleColor || '#005c4b' });
+        localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+        loadChatList();
+    } catch(e) { console.error("Storage full"); }
+
+    const rp = document.getElementById('reply-preview');
+    if (rp) rp.style.display = 'none';
+    currentReplyTo = null;
+    if (window.replyState && activeChatId) delete window.replyState[activeChatId];
+
+    // 3. Send now OR save to Offline Queue
+    // --- CHECK IF IT'S A GROUP MESSAGE ---
+      const isGroup = activeChatId.startsWith('group_');
+      let groupMembers = [];
+      if (isGroup) {
+          let groups = JSON.parse(localStorage.getItem('bapp_groups')) || {};
+          if (groups[activeChatId]) groupMembers = groups[activeChatId].members;
+      }
+
+      const payload = {
+          type: 'send_message',
+          to: to,
+          from: myBappId,
+          text: text,
+          msgId: msgId,
+          replyData: reply,
+          bubbleColor: myProfile.bubbleColor || '#005c4b',
+          isGroup: isGroup,
+          groupMembers: groupMembers
+      };
+
+    if (isConnected) {
+        socket.send(JSON.stringify(payload));
+    } else {
+        let queue = JSON.parse(localStorage.getItem('bapp_offline_queue')) || [];
+        queue.push(payload);
+        localStorage.setItem('bapp_offline_queue', JSON.stringify(queue));
+        console.log("📩 Message queued. Will send when online.");
+    }
+  }
+
+--- 2. CLIENT SEND MEDIA ---
+
+--- 3. CLIENT RECEIVE ONLINE MSG ---
+3394:      if (data.type === 'new_message') {
+3395-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+3396-        const senderId = (data.isGroup && data.groupId) ? data.groupId : (data.from || '').trim();
+3397-        
+3398-        if (data.senderProfile) {
+3399-            let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+3400-            profiles[senderId] = data.senderProfile;
+3401-            localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+3402-        }
+3403-        
+3404-        let saveText = data.text;
+3405-        if (data.isImage && !data.isVideo) {
+3406-            saveImgToDB(data.msgId, data.text);
+3407-            saveText = "img_ref_" + data.msgId;
+3408-        }
+3409-
+3410-        try {
+3411-          const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + senderId)) || [];
+3412-          savedMsgs.push({ text: saveText, type: 'received', time: now, isImage: data.isImage, isVoice: data.isVoice, msgId: data.msgId, replyData: data.replyData, isWhisper: data.isWhisper, bubbleColor: data.bubbleColor });
+3413-          localStorage.setItem('bapp_msgs_' + senderId, JSON.stringify(savedMsgs));
+3414-        } catch(e) {
+--
+3932:      if (data.type === 'new_message') {
+3933-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+3934-        const senderId = (data.isGroup && data.groupId) ? data.groupId : (data.from || '').trim();
+
+--- 4. SERVER GROUP ROUTING ---
+232:            if (isGroup && groupMembers && groupMembers.length > 0) {
+233-                groupMembers.forEach(member => {
+234-                    if (member === from) return; // Don't send to yourself
+235-                    const targetWs = bappUsers.get(member);
+236-                    if (targetWs && targetWs.readyState === 1) {
+237-                        targetWs.send(JSON.stringify({
+238-                            type: 'new_message', from: from, text: text, isImage: isImage || false, isVoice: isVoice || false,
+239-                            msgId: msgId, replyData: replyData, isWhisper: isWhisper || false, isVideo: isVideo || false, 
+240-                            bubbleColor: bubbleColor, isGroup: true, groupId: cleanTo, groupMembers: groupMembers
+241-                        }));
+242-                    } else {
+243-                        // Save for offline member
+244-                        let db = {};
+245-                        try { db = JSON.parse(fs.readFileSync(DB_FILE)); } catch(e) {}
+246-                        if (!db[member]) db[member] = [];
+247-                        db[member].push({
+248-                            from: from, text: saveImageToFile(text, isImage), isImage: isImage || false, isVoice: isVoice || false, isVideo: isVideo || false,
+249-                            msgId: msgId, replyData: replyData, isWhisper: isWhisper || false, bubbleColor: bubbleColor,
+250-                            isGroup: true, groupId: cleanTo, groupMembers: groupMembers
+251-                        });
+252-                        try { fs.writeFileSync(DB_FILE, JSON.stringify(db)); } catch(e) {}
+253-                    }
+254-                });
+255-                ws.send(JSON.stringify({ type: 'delivered_receipt', to: cleanTo }));
+256-                return; // Stop here so it doesn't run the single-user logic below
+257-            }

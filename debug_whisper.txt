@@ -1,0 +1,92 @@
+--- APPEND MESSAGE ---
+1648:  function appendMessage(text, type, timeStr, status = '', isImage = false, isVoice = false, msgId = null, replyData = null, isWhisper = false) {
+1649-    const msgBox = document.getElementById('chat-messages');
+1650-    if (!msgBox) return;
+1651-    const newMsg = document.createElement('div');
+1652-    newMsg.className = 'msg ' + type;
+1653-    
+1654-    const id = msgId || Date.now().toString();
+1655-    newMsg.id = 'msg-' + id;
+1656-
+1657-    if (replyData) {
+1658-        const quote = document.createElement('div');
+1659-        quote.className = 'quoted-msg';
+1660-        quote.innerHTML = '<strong>' + replyData.name + '</strong>' + (replyData.text.startsWith('data:image') ? '📷 Photo' : (replyData.text.startsWith('data:audio') ? '🎤 Voice Note' : replyData.text));
+1661-        quote.style.cursor = 'pointer';
+1662-        quote.style.pointerEvents = 'auto'; // Force it to be clickable
+1663-        quote.onclick = function() { 
+1664-            if(replyData.msgId) {
+1665-                scrollToMessage(replyData.msgId); 
+1666-            } else {
+1667-                alert("Cannot find original message ID");
+1668-            }
+
+--- CHAT LIST PREVIEW ---
+1502:      let lastMsgText = 'Tap to chat';
+1503-      let lastMsgTime = '';
+1504-      
+1505-      if (msgs.length > 0) {
+1506-        const last = msgs[msgs.length - 1];
+1507-        lastMsgTime = last.time || '';
+1508-        
+1509-        if (last.isImage) {
+1510:          lastMsgText = '📷 Photo';
+1511-        } else if (last.isVoice || (last.text && last.text.startsWith('data:audio'))) {
+1512:          lastMsgText = '🎤 Voice Note';
+1513-        } else {
+1514:          lastMsgText = last.text;
+1515-        }
+1516-      }
+1517-      
+1518-      const p = profiles[id] || { name: id, avatar: 'https://ui-avatars.com/api/?name=' + id.substring(0,2) + '&background=random' };
+1519-      const displayName = p.name || id;
+1520-      const avatarUrl = p.avatar;
+1521-      
+1522-      const unreadCount = unreads[id] || 0;
+1523-      const badgeHtml = unreadCount > 0 ? `<div class="badge">${unreadCount}</div>` : '';
+1524-      const timeClass = unreadCount > 0 ? 'chat-time unread' : 'chat-time';
+1525-
+1526-      const chatHtml = `
+1527-        <div class="chat-item" id="item-${id}" onclick="openChat('${id}')">
+1528-          <img src="${avatarUrl}" class="avatar">
+1529-          <div class="chat-info">
+--
+2047:            let lastMsgText = 'Tap to chat';
+2048-            if (msgs.length > 0) {
+2049-              const last = msgs[msgs.length - 1];
+2050:              lastMsgText = last.isImage ? '📷 Photo' : (last.isVoice || (last.text && last.text.startsWith('data:audio')) ? '🎤 Voice Note' : last.text);
+2051-            }
+2052-            previewEl.innerText = lastMsgText;
+2053-            previewEl.style.color = 'var(--text-muted)';
+2054-            previewEl.style.fontWeight = 'normal';
+2055-          }
+2056-        }
+2057-      }
+2058-
+2059-      if (data.type === 'typing') {
+2060-        const senderId = (data.from || '').trim();
+2061-        const dotsHTML = 'typing <span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>';
+2062-
+2063-        // 1. Update inside the active chat header
+2064-        if (activeChatId === senderId) {
+2065-          document.getElementById('chat-subtitle').innerHTML = data.isTyping ? dotsHTML : '🔒 End-to-End Encrypted';
+--
+2076:            let lastMsgText = 'Tap to chat';
+2077-            if (msgs.length > 0) {
+2078-              const last = msgs[msgs.length - 1];
+2079:              lastMsgText = last.isImage ? '📷 Photo' : last.text;
+2080-            }
+2081-            previewEl.innerText = lastMsgText;
+2082-          }
+2083-        }
+2084-      }
+2085-
+2086-      if (data.type === 'delivered_receipt') {
+2087-        // 1. Update Local Storage
+2088-        let msgs = JSON.parse(localStorage.getItem('bapp_msgs_' + data.to)) || [];
+2089-        msgs.forEach(m => { 
+2090-            if(m.type === 'sent' && m.status === 'sent') m.status = 'delivered'; 
+2091-        });
+2092-        localStorage.setItem('bapp_msgs_' + data.to, JSON.stringify(msgs));
+2093-        
+2094-        // 2. Update the UI if we are inside the chat

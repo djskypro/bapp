@@ -1,0 +1,72 @@
+--- 1. IMAGE RENDERING ---
+2358:    } else if (isImage) {
+2359-      const img = document.createElement('img'); 
+2360-      img.src = text; 
+2361-      img.style.cursor = 'pointer';
+2362-      newMsg.appendChild(img);
+2363-    } else if (isVoice || (text && text.startsWith('data:audio'))) {
+2364-      // Build Custom WhatsApp Player
+2365-      const playerDiv = document.createElement('div');
+2366-      playerDiv.className = 'wa-audio';
+--
+3451:    if (isImage) {
+3452-      const img = document.createElement('img'); 
+
+--- 2. FULLSCREEN VIEWER HTML ---
+2288:    const imgViewer = document.getElementById('full-image-viewer');
+2289-    if (imgViewer && imgViewer.style.display === 'flex') {
+2290-        closeFullscreenMedia();
+2291-        history.pushState({ view: 'chat' }, '', '#chat'); // Stay in chat
+2292-        return;
+2293-    }
+--
+4547:    const imgViewer = document.getElementById('full-image-viewer');
+4548-    if (imgViewer && imgViewer.style.display === 'flex') {
+4549-        closeFullscreenMedia();
+4550-        return;
+4551-    }
+4552-    
+--
+5423:    document.getElementById('full-image-viewer').style.display = 'flex';
+5424-    // Push state so hardware back works correctly
+5425-    history.pushState({ view: 'image' }, '', '#image');
+5426-  }
+5427-  
+5428-  function closeFullscreenMedia() {
+5429:    document.getElementById('full-image-viewer').style.display = 'none';
+5430-    // If we are on the #image state, go back to fix history
+5431-    if (window.location.hash === '#image') history.back();
+5432-  }
+5433-</script>
+5434-
+--
+5471:<div id="full-image-viewer" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 9999999; justify-content: center; align-items: center;" onclick="closeFullscreenMedia()">
+5472-  <div id="close-full-img" style="position: absolute; top: 20px; right: 20px; width: 45px; height: 45px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 24px; font-weight: bold; cursor: pointer; z-index: 10000000;">✕</div>
+5473-  <img id="full-image-src" src="" style="width: 100%; height: 100%; object-fit: contain;">
+5474-</div>
+5475-</body>
+5476-
+
+--- 3. POPSTATE ---
+2286:  window.addEventListener('popstate', function(event) {
+2287-    // Check if the full screen image viewer is open
+2288-    const imgViewer = document.getElementById('full-image-viewer');
+2289-    if (imgViewer && imgViewer.style.display === 'flex') {
+2290-        closeFullscreenMedia();
+2291-        history.pushState({ view: 'chat' }, '', '#chat'); // Stay in chat
+2292-        return;
+2293-    }
+2294-    // Otherwise, reset the UI to home
+
+--- 4. GESTURE ---
+4545:  function handleBackGesture() {
+4546-    // 0. Close Full Screen Image Viewer
+4547-    const imgViewer = document.getElementById('full-image-viewer');
+4548-    if (imgViewer && imgViewer.style.display === 'flex') {
+4549-        closeFullscreenMedia();
+4550-        return;
+4551-    }
+4552-    
+4553-    // 1. Close Full Screen Status Viewer
+4554-    const statusViewer = document.getElementById('status-viewer');
+4555-    if (statusViewer && statusViewer.style.display === 'flex') {

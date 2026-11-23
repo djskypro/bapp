@@ -1,0 +1,70 @@
+--- 1. IMAGE RENDERING (appendMessage) ---
+2351:    } else if (isImage) {
+2352-      const img = document.createElement('img'); 
+2353-      img.src = text; 
+2354-      img.style.cursor = 'pointer';
+2355-      newMsg.appendChild(img);
+2356-    } else if (isVoice || (text && text.startsWith('data:audio'))) {
+2357-      // Build Custom WhatsApp Player
+2358-      const playerDiv = document.createElement('div');
+2359-      playerDiv.className = 'wa-audio';
+2360-      
+2361-      const playBtn = document.createElement('div');
+--
+3444:    if (isImage) {
+3445-      const img = document.createElement('img'); img.src = text; newMsg.appendChild(img);
+3446-    } else if (isVoice) {
+3447-      const audio = document.createElement('audio');
+3448-      audio.controls = true;
+3449-      audio.src = text;
+3450-      newMsg.appendChild(audio);
+3451-    } else {
+3452-      
+3453-      if (type === 'received' && typeof text === 'string' && text.length > 0 && !text.startsWith('data:')) {
+3454-          const textSpan = document.createElement('span');
+--
+3572:    if (isImage) {
+
+--- 2. IMAGE UPLOADING (handleImageUpload / confirmMediaSend) ---
+2578:  function handleImageUpload(event) {
+2579-    const file = event.target.files[0];
+2580-    if(!file) return;
+2581-    
+2582-    event.target.value = ''; 
+2583-
+2584-    // Show modal
+2585-    document.getElementById('media-preview-modal').style.display = 'flex';
+2586-    document.getElementById('preview-loading').style.display = 'block';
+2587-    document.getElementById('preview-content').innerHTML = '';
+2588-    const sendBtn = document.getElementById('preview-send-btn');
+2589-    sendBtn.disabled = true;
+2590-    sendBtn.style.background = '#333';
+2591-    sendBtn.style.color = '#777';
+2592-
+2593-    const reader = new FileReader();
+2594-    reader.onload = function(e) {
+2595-      if (file.type.startsWith('video/')) {
+2596-         pendingIsVideo = true;
+2597-         pendingMediaBase64 = e.target.result;
+2598-         
+2632:  function confirmMediaSend() {
+2633-    if(!pendingMediaBase64) return;
+2634-    
+2635-    // Instantly close modal
+2636-    document.getElementById('media-preview-modal').style.display = 'none';
+2637-    
+2638-    const to = activeChatId;
+2639-    const base64Img = pendingMediaBase64;
+2640-    const isVid = pendingIsVideo;
+2641-    const msgId = Date.now().toString();
+2642-    const reply = currentReplyTo;
+2643-    
+2644-    socket.send(JSON.stringify({ type: 'send_message', to: to, from: myBappId, text: base64Img, isImage: !isVid, isVideo: isVid, msgId: msgId, replyData: reply }));
+2645-    const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+2646-    appendMessage(base64Img, 'sent', now, 'sent', !isVid, false, msgId, reply, false, isVid);
+2647-
+2648-    const rp = document.getElementById('reply-preview');
+2649-    if (rp) rp.style.display = 'none';
+2650-    currentReplyTo = null;
+2651-    if (window.replyState && activeChatId) delete window.replyState[activeChatId];
+2652-

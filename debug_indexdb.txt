@@ -1,0 +1,121 @@
+--- 1. SENDING IMAGE (SAVE TO LOCALSTORAGE) ---
+  function confirmMediaSend() {
+    if(!pendingMediaBase64) return;
+    
+    // Instantly close modal
+    document.getElementById('media-preview-modal').style.display = 'none';
+    
+    const to = activeChatId;
+    const base64Img = pendingMediaBase64;
+    const isVid = pendingIsVideo;
+    const msgId = Date.now().toString();
+    const reply = currentReplyTo;
+    
+    const payload = { 
+        type: 'send_message', 
+        to: to, 
+        from: myBappId, 
+        text: base64Img, 
+        isImage: !isVid, 
+        isVideo: isVid, 
+        msgId: msgId, 
+        replyData: reply 
+    };
+    
+    // CHECK IF ONLINE, IF NOT, QUEUE IT
+    if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify(payload));
+    } else {
+        let queue = JSON.parse(localStorage.getItem('bapp_offline_queue')) || [];
+        queue.push(payload);
+        localStorage.setItem('bapp_offline_queue', JSON.stringify(queue));
+        console.log("📩 Image queued. Will send when online.");
+    }
+    const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    appendMessage(base64Img, 'sent', now, 'sent', !isVid, false, msgId, reply, false, isVid);
+
+    const rp = document.getElementById('reply-preview');
+    if (rp) rp.style.display = 'none';
+    currentReplyTo = null;
+    if (window.replyState && activeChatId) delete window.replyState[activeChatId];
+
+    try {
+        const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+        savedMsgs.push({ text: base64Img, type: 'sent', time: now, isImage: !isVid, isVideo: isVid, status: 'sent' });
+        localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+        loadChatList();
+
+        document.getElementById('reply-preview').style.display = 'none';
+        currentReplyTo = null;
+        if (window.replyState) delete window.replyState[to];
+    } catch(err) { 
+        // Auto-cleanup
+        for (let i = 0; i < localStorage.length; i++) {
+            let key = localStorage.key(i);
+            if (key.startsWith('bapp_msgs_')) {
+                let msgs = JSON.parse(localStorage.getItem(key)) || [];
+                let changed = false;
+                msgs.forEach(m => {
+                    if (m.isImage && m.text && m.text.startsWith('data:image')) {
+                        m.text = "📷 [Image removed to save space]";
+                        m.isImage = false;
+                        changed = true;
+                    }
+                });
+                if (changed) localStorage.setItem(key, JSON.stringify(msgs));
+            }
+        }
+        try {
+            const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+            savedMsgs.push({ text: base64Img, type: 'sent', time: now, isImage: !isVid, isVideo: isVid, status: 'sent' });
+            localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+            loadChatList();
+        } catch(e2) { alert("Phone storage is completely full."); }
+    }
+    
+    pendingMediaBase64 = null;
+  }
+
+--- 2. RECEIVING IMAGE (SAVE TO LOCALSTORAGE) ---
+3014:      if (data.type === 'new_message') {
+3015-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+3016-        const senderId = (data.from || '').trim();
+3017-        
+3018-        if (data.senderProfile) {
+3019-            let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+3020-            profiles[senderId] = data.senderProfile;
+3021-            localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+3022-        }
+3023-        
+3024-        try {
+3025-          const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + senderId)) || [];
+3026-          savedMsgs.push({ text: data.text, type: 'received', time: now, isImage: data.isImage, isVoice: data.isVoice, msgId: data.msgId, replyData: data.replyData, isWhisper: data.isWhisper, bubbleColor: data.bubbleColor });
+3027-          localStorage.setItem('bapp_msgs_' + senderId, JSON.stringify(savedMsgs));
+3028-        } catch(e) {
+3029-          console.warn("Receiver storage full! Clearing old images...");
+3030-          for (let i = 0; i < localStorage.length; i++) {
+3031-              let key = localStorage.key(i);
+3032-              if (key.startsWith('bapp_msgs_')) {
+3033-                  let msgs = JSON.parse(localStorage.getItem(key)) || [];
+3034-                  let changed = false;
+--
+3538:      if (data.type === 'new_message') {
+3539-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+3540-        const senderId = (data.from || '').trim();
+
+--- 3. LOADING CHAT HISTORY ---
+2239:    const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + id)) || [];
+2240-    savedMsgs.forEach(m => appendMessage(m.text, m.type, m.time, m.status, m.isImage, m.isVoice, m.msgId, m.replyData, m.isWhisper, m.isVideo, m.bubbleColor));
+2241-    
+2242-    let unreads = getUnreads();
+2243-    if(unreads[id]) { unreads[id] = 0; localStorage.setItem('bapp_unreads', JSON.stringify(unreads)); }
+2244-    socket.send(JSON.stringify({ type: 'read_receipt', to: id, from: myBappId }));
+2245-    
+2246-    let msgs = JSON.parse(localStorage.getItem('bapp_msgs_' + id)) || [];
+2247-    msgs.forEach(m => { if(m.type === 'sent') m.status = 'read'; });
+2248-    localStorage.setItem('bapp_msgs_' + id, JSON.stringify(msgs));
+2249-    
+--
+2549:        const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+2550-        savedMsgs.push({ text: text, type: 'sent', time: now, status: status, msgId: msgId, replyData: reply, bubbleColor: myProfile.bubbleColor || '#005c4b' });
+2551-        localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));

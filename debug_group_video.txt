@@ -1,0 +1,48 @@
+--- 1. CLIENT CONFIRM SEND ---
+  async function confirmMediaSend() {
+    if(!pendingMediaBase64) return;
+    
+    // Instantly close modal
+    document.getElementById('media-preview-modal').style.display = 'none';
+    if(typeof showToast === 'function') showToast("Uploading...");
+
+    try {
+        // 1. Upload the file to the server
+        const blob = await (await fetch(pendingMediaBase64)).blob();
+        const formData = new FormData();
+        const isVid = pendingIsVideo;
+        const filename = (isVid ? 'video_' : 'image_') + Date.now() + (isVid ? '.mp4' : '.jpg');
+        formData.append('image', blob, filename);
+
+        const res = await fetch('/upload', { method: 'POST', body: formData });
+        const data = await res.json();
+        if(!data.url) throw new Error("Upload failed");
+
+        // 2. Prepare the payload with Group info
+        const to = activeChatId;
+        const msgId = Date.now().toString();
+        const reply = currentReplyTo;
+        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+        const isGroup = activeChatId.startsWith('group_');
+        let groupMembers = [];
+        if (isGroup) {
+            let groups = JSON.parse(localStorage.getItem('bapp_groups')) || {};
+            if (groups[activeChatId]) groupMembers = groups[activeChatId].members;
+        }
+
+        const payload = {
+            type: 'send_message',
+            to: to,
+            from: myBappId,
+            text: data.url,
+            isImage: true,
+            isVideo: isVid,
+            msgId: msgId,
+            replyData: reply,
+            isGroup: isGroup,
+            groupMembers: groupMembers
+        };
+
+
+--- 2. SERVER UPLOAD & GROUP ---

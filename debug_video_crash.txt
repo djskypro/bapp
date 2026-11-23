@@ -1,0 +1,31 @@
+--- 1. GLOBAL VIDEO OBSERVER ---
+
+--- 2. SENDER UPLOAD PAYLOAD ---
+3836:            isVideo: isVid,
+3837-            msgId: msgId,
+3838-            replyData: reply,
+3839-            isGroup: isGroup,
+3840-            groupMembers: groupMembers
+3841-        };
+--
+3857:            savedMsgs.push({ text: data.url, type: 'sent', time: now, isImage: true, isVideo: isVid, status: 'sent', msgId: msgId });
+3858-            localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+3859-            loadChatList();
+3860-        } catch(e) { console.error(e); }
+3861-
+3862-        const rp = document.getElementById('reply-preview');
+
+--- 3. MEDIA RENDERER (.mp4 check) ---
+3392:      if (text.startsWith('/media/') && text.endsWith('.mp4')) {
+3393-          // It's a VIDEO! Render as a playable player
+3394-          const video = document.createElement('video');
+3395-          video.src = text;
+3396-          video.controls = true;
+3397-          video.style.maxWidth = '250px'; video.style.width = 'auto';
+--
+6199:      if (text && text.startsWith('/media/') && text.endsWith('.mp4')) {
+6200-          const video = document.createElement('video');
+6201-          video.src = text;
+6202-          video.controls = true;
+6203-          video.style.maxWidth = '250px'; video.style.width = 'auto';
+6204-          video.style.borderRadius = '10px';

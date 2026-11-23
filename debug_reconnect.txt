@@ -1,0 +1,29 @@
+--- SOCKET INITIALIZATION ---
+1481:  const socket = new WebSocket('ws://' + location.host);
+
+--- ONOPEN & ONCLOSE ---
+1487:  socket.onopen = () => {
+1488-    console.log("✅ Connected to server.");
+1489-    socket.send(JSON.stringify({ type: 'register_user', username: myBappId, profile: myProfile }));
+1490-  };
+1491-
+1492-  socket.onclose = () => {
+1493-    console.log("🔴 Disconnected from server. Reconnecting in 3s...");
+1494-    // Try to reconnect every 3 seconds
+1495-    setTimeout(() => {
+1492:  socket.onclose = () => {
+1493-    console.log("🔴 Disconnected from server. Reconnecting in 3s...");
+1494-    // Try to reconnect every 3 seconds
+1495-    setTimeout(() => {
+1496-        window.location.reload(); // The easiest way to force a fresh socket connection
+1497-    }, 3000);
+1498-  };
+1499-
+1500-  socket.onerror = (err) => {
+
+--- SOCKET ONMESSAGE START ---
+2093:  socket.onmessage = (event) => {
+2754:  const oldOnMessage = socket.onmessage;
+2755:  socket.onmessage = function(event) {
+3614:  const oldSocketStatus = socket.onmessage;
+3615:  socket.onmessage = function(event) {

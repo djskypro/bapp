@@ -1,0 +1,243 @@
+--- 1. CLIENT SEND MESSAGE ---
+  function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if (text === "") return;
+
+    const to = activeChatId;
+    const reply = currentReplyTo;
+    const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    const msgId = Date.now().toString();
+    
+    const isConnected = socket.readyState === WebSocket.OPEN;
+    const status = isConnected ? 'sent' : 'pending';
+
+    // 1. Show on screen immediately
+    appendMessage(text, 'sent', now, status, false, false, msgId, reply, false, false, myProfile.bubbleColor || '#005c4b');
+      
+      
+    input.value = '';
+    triggerInputDrop();
+ 
+    // Snap the keyboard back open instantly after sending
+    setTimeout(() => {
+        const chatIn = document.getElementById('chat-input');
+        const chatView = document.getElementById('chat-view');
+        if (chatIn && chatView && chatView.classList.contains('active')) {
+            chatIn.focus();
+        }
+    }, 10);
+
+    // 2. Save to local memory
+    try {
+        const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+        savedMsgs.push({ text: text, type: 'sent', time: now, status: status, msgId: msgId, replyData: reply, bubbleColor: myProfile.bubbleColor || '#005c4b' });
+        localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+        loadChatList();
+    } catch(e) { console.error("Storage full"); }
+
+    const rp = document.getElementById('reply-preview');
+    if (rp) rp.style.display = 'none';
+    currentReplyTo = null;
+    if (window.replyState && activeChatId) delete window.replyState[activeChatId];
+
+    // 3. Send now OR save to Offline Queue
+    // --- CHECK IF IT'S A GROUP MESSAGE ---
+      const isGroup = activeChatId.startsWith('group_');
+      let groupMembers = [];
+      if (isGroup) {
+          let groups = JSON.parse(localStorage.getItem('bapp_groups')) || {};
+          if (groups[activeChatId]) groupMembers = groups[activeChatId].members;
+      }
+
+      const payload = {
+          type: 'send_message',
+          to: to,
+          from: myBappId,
+          text: text,
+          msgId: msgId,
+          replyData: reply,
+          bubbleColor: myProfile.bubbleColor || '#005c4b',
+          isGroup: isGroup,
+          groupMembers: groupMembers
+      };
+
+    if (isConnected) {
+        socket.send(JSON.stringify(payload));
+    } else {
+        let queue = JSON.parse(localStorage.getItem('bapp_offline_queue')) || [];
+        queue.push(payload);
+        localStorage.setItem('bapp_offline_queue', JSON.stringify(queue));
+        console.log("📩 Message queued. Will send when online.");
+    }
+  }
+
+--- 2. SERVER SAVE & ROUTE ---
+        if (data.type === 'send_message') {
+            const { to, from, text, isImage, isVoice, msgId, replyData, isWhisper, isVideo, bubbleColor, isGroup, groupMembers } = data;
+            const cleanTo = to.trim();
+            
+            console.log(`📩 Msg from [${from}] to [${cleanTo}] isGroup: ${isGroup}`);
+
+            // --- GROUP MESSAGE ROUTING ---
+            if (isGroup && groupMembers && groupMembers.length > 0) {
+                groupMembers.forEach(member => {
+                    if (member === from) return; // Don't send to yourself
+                    const targetWs = bappUsers.get(member);
+                    if (targetWs && targetWs.readyState === 1) {
+                        targetWs.send(JSON.stringify({
+                            type: 'new_message', from: from, text: text, isImage: isImage || false, isVoice: isVoice || false,
+                            msgId: msgId, replyData: replyData, isWhisper: isWhisper || false, isVideo: isVideo || false, 
+                            bubbleColor: bubbleColor, isGroup: true, groupId: cleanTo, groupMembers: groupMembers
+                        }));
+                    } else {
+                        // Save for offline member
+                        let db = {};
+                        try { db = JSON.parse(fs.readFileSync(DB_FILE)); } catch(e) {}
+                        if (!db[member]) db[member] = [];
+                        db[member].push({
+                            from: from, text: text, isImage: isImage || false, isVoice: isVoice || false, isVideo: isVideo || false,
+                            msgId: msgId, replyData: replyData, isWhisper: isWhisper || false, bubbleColor: bubbleColor,
+                            isGroup: true, groupId: cleanTo, groupMembers: groupMembers
+                        });
+                        try { fs.writeFileSync(DB_FILE, JSON.stringify(db)); } catch(e) {}
+                    }
+                });
+                ws.send(JSON.stringify({ type: 'delivered_receipt', to: cleanTo }));
+                return; // Stop here so it doesn't run the single-user logic below
+            }
+
+            // --- SINGLE USER MESSAGE ROUTING ---
+            const targetWs = bappUsers.get(cleanTo);
+            let delivered = false;
+
+            if (targetWs && targetWs.readyState === 1) {
+                try {
+                    targetWs.send(JSON.stringify({
+                        type: 'new_message',
+                        from: from,
+                        text: text,
+                        isImage: isImage || false,
+                        isVoice: isVoice || false,
+                        msgId: msgId,
+                        replyData: replyData,
+                        isWhisper: isWhisper || false,
+                        isVideo: isVideo || false,
+                        bubbleColor: bubbleColor
+                    }));
+                    delivered = true;
+                } catch (err) {
+                    console.log("⚠️ Ghost socket detected. Cleaning up...");
+                    bappUsers.delete(cleanTo);
+                }
+            }
+
+            if (delivered) {
+                ws.send(JSON.stringify({ type: 'delivered_receipt', to: cleanTo }));
+                console.log("✅ Delivered (Receipt Sent)");
+            } else {
+                let db = {};
+                try {
+                    db = JSON.parse(fs.readFileSync(DB_FILE));
+                } catch(e) { console.log("DB was empty or corrupted, creating new."); }
+                
+                if (!db[cleanTo]) db[cleanTo] = [];
+                db[cleanTo].push({
+                    from: from,
+                    text: text,
+                    isImage: isImage || false,
+                    isVoice: isVoice || false,
+                    isVideo: isVideo || false,
+                    msgId: msgId,
+                    replyData: replyData,
+                    isWhisper: isWhisper || false,
+                    bubbleColor: bubbleColor
+                });
+                fs.writeFileSync(DB_FILE, JSON.stringify(db));
+                console.log("💾 Offline Saved");
+            }
+        }
+
+--- 3. SERVER OFFLINE DELIVERY ---
+        if (data.type === 'register_user') {
+            const users = JSON.parse(fs.readFileSync(USERS_FILE));
+            users[data.username] = data.profile || { name: data.username };
+            allUsers = users;
+            fs.writeFileSync(USERS_FILE, JSON.stringify(users));
+            
+            bappUsers.set(data.username, ws);
+            console.log(`🟢 BAPP Connected: ${data.username}`);
+            ws.send(JSON.stringify({ type: 'register_success', username: data.username }));
+            
+            const db = JSON.parse(fs.readFileSync(DB_FILE));
+            if (db[data.username] && db[data.username].length > 0) {
+                const msgsToSend = db[data.username];
+                delete db[data.username];
+                try {
+                    fs.writeFileSync(DB_FILE, JSON.stringify(db));
+                } catch(e) { console.log("Failed to write to offline DB (maybe storage full?):", e); }
+                
+                // Send ALL offline messages at once (safer and faster)
+                // Send one by one with a 300ms delay to prevent WebSocket truncation
+                if (ws.readyState === 1) {
+                        ws.send(JSON.stringify({ type: 'offline_messages', messages: msgsToSend }));
+                        console.log("📬 Sent " + msgsToSend.length + " offline messages to " + data.username);
+                    }
+                console.log("📬 Queued " + msgsToSend.length + " offline messages for " + data.username);
+            }
+        }
+
+--- 4. CLIENT RECEIVE OFFLINE ---
+      if (data.type === 'offline_messages') {
+        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        (async () => {
+            for (const msg of data.messages) {
+                try {
+                    const senderId = (msg.isGroup && msg.groupId) ? msg.groupId : (msg.from || '').trim();
+                    
+                    if (msg.isGroupEvent) {
+                        let groups = JSON.parse(localStorage.getItem('bapp_groups')) || {};
+                        groups[msg.groupId] = { name: msg.groupName, members: msg.members };
+                        localStorage.setItem('bapp_groups', JSON.stringify(groups));
+                        
+                        let msgs = JSON.parse(localStorage.getItem('bapp_msgs_' + msg.groupId)) || [];
+                        msgs.push({ text: msg.text, type: 'received', time: now, msgId: msg.msgId });
+                        localStorage.setItem('bapp_msgs_' + msg.groupId, JSON.stringify(msgs));
+                        saveChat(msg.groupId);
+                    } 
+                    else {
+                        let saveText = msg.text;
+                        if (msg.isImage && !msg.isVideo && msg.msgId) {
+                            if (typeof saveImgToDB === 'function') {
+                                await saveImgToDB(msg.msgId, msg.text);
+                            }
+                            saveText = "img_ref_" + msg.msgId;
+                        }
+                        
+                        const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + senderId)) || [];
+                        savedMsgs.push({
+                            text: saveText, type: 'received', time: now, isImage: msg.isImage, isVoice: msg.isVoice,
+                            msgId: msg.msgId, replyData: msg.replyData, isWhisper: msg.isWhisper, isVideo: msg.isVideo, bubbleColor: msg.bubbleColor
+                        });
+                        localStorage.setItem('bapp_msgs_' + senderId, JSON.stringify(savedMsgs));
+                        saveChat(senderId);
+                        
+                        if (activeChatId === senderId) {
+                            appendMessage(saveText, 'received', now, '', msg.isImage, msg.isVoice, msg.msgId, msg.replyData, msg.isWhisper, msg.isVideo, msg.bubbleColor);
+                        }
+                    }
+                } catch(e) { console.error("Skipped broken message", e); }
+            }
+            
+            loadChatList();
+            
+            // TELL SERVER (ACK) AFTER 1 SECOND TO LET DB FINISH SAVING
+            setTimeout(() => {
+                if (socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({ type: 'sync_ack', username: myBappId }));
+                    console.log("✅ Sync ACK sent.");
+                }
+            }, 1000);
+        })();
+      }

@@ -1,0 +1,48 @@
+--- WHISPER TOGGLE ---
+1821:  function toggleWhisperMode() {
+1822-    window.isWhisperMode = !window.isWhisperMode;
+1823-    const btn = document.getElementById('whisper-toggle');
+1824-    if (window.isWhisperMode) {
+1825-      btn.style.background = '#25D366'; // Green when active
+1826-      btn.style.boxShadow = '0 0 15px rgba(37,211,102,0.5)';
+1827-      document.getElementById('chat-input').placeholder = "Whisper message...";
+1828-    } else {
+1829-      btn.style.background = 'var(--search-bg)'; // Normal when inactive
+1830-      btn.style.boxShadow = 'none';
+1831-      document.getElementById('chat-input').placeholder = "Message";
+1832-    }
+1833-  }
+1834-
+1835-  function openSettings() {
+1836-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+
+--- SEND MESSAGE ---
+1738:  function sendMessage() {
+1739-    const input = document.getElementById('chat-input');
+1740-    const text = input.value.trim();
+1741-    const to = document.getElementById('chat-name').textContent.trim();
+1742-    if (text !== "" && socket.readyState === WebSocket.OPEN) {
+1743-      const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+1744-      const msgId = Date.now().toString();
+1745-
+1746-      socket.send(JSON.stringify({ 
+1747-          type: 'send_message', 
+1748-          to: activeChatId, 
+1749-          from: myBappId, 
+1750-          text: text,
+1751-          msgId: msgId,
+1752-          replyData: currentReplyTo
+1753-      }));
+
+--- APPEND MESSAGE START ---
+1669:  function appendMessage(text, type, timeStr, status = '', isImage = false, isVoice = false, msgId = null, replyData = null, isWhisper = false) {
+1670-    const msgBox = document.getElementById('chat-messages');
+1671-    if (!msgBox) return;
+1672-    const newMsg = document.createElement('div');
+1673-    newMsg.className = 'msg ' + type;
+1674-    
+1675-    const id = msgId || Date.now().toString();
+1676-    newMsg.id = 'msg-' + id;
+1677-
+1678-    // --- WHISPER LOGIC ---
+1679-    // If it's a whisper AND it's a received message, lock it!

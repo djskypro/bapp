@@ -1,0 +1,32 @@
+--- 1. HOW MANY SHAKE LISTENERS? ---
+1
+
+--- 2. WHERE ARE THEY? ---
+5728:  window.addEventListener('devicemotion', function(event) {
+
+--- 3. THE SAVE CODE IN SENDMESSAGE ---
+2807-    const msgId = Date.now().toString();
+2808-    
+2809-    // SAVE LAST SENT MESSAGE FOR UNDO
+2810:    localStorage.setItem('bapp_last_sent', JSON.stringify({ to: activeChatId, msgId: msgId, time: Date.now() }));
+2811-    if (typeof showToast === 'function') showToast("📝 Message tracked for Undo!");
+2812-    
+2813-    // TRACK FOR SHAKE TO UNDO
+--
+5738-      
+5739-      // 1. PRIORITIZE SHAKE TO UNDO
+5740-      if (window.enableShakeToUndo) {
+5741:          const debugData = localStorage.getItem('bapp_last_sent');
+5742-          if (typeof showToast === 'function') showToast("Shake! DB: " + debugData);
+5743:          const lastData = JSON.parse(localStorage.getItem('bapp_last_sent'));
+5744-          
+5745-          if (lastData && lastData.msgId) {
+5746-              // 1. Send Ghost Delete to Server
+--
+5766-              if (typeof loadChatList === 'function') loadChatList();
+5767-              
+5768-              // 5. Clear the tracker so you can't undo twice
+5769:              localStorage.removeItem('bapp_last_sent');
+5770-              
+5771-              // 6. Feedback
+5772-              if (typeof showToast === 'function') showToast("Message Undone! 🫢");

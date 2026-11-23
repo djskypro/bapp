@@ -1,0 +1,5 @@
+--- UPLOAD RESPONSE ---
+56:        res.json({ url: '/media/' + req.file.filename });
+57-    } catch(e) { 
+58-        console.log("Upload error:", e);
+59-        res.status(500).json({ error: 'Upload failed' }); 

@@ -1,0 +1,4 @@
+--- URL CHECK ---
+2597:      if (text.startsWith('/media/')) {
+3281:                            if (msg.text.startsWith('/media/') || msg.text.startsWith('http')) {
+3281:                            if (msg.text.startsWith('/media/') || msg.text.startsWith('http')) {

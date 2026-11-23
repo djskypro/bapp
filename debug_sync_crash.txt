@@ -1,0 +1,58 @@
+--- CLIENT OFFLINE RECEIVER ---
+3284:      if (data.type === 'offline_messages') {
+3285-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+3286-        
+3287-        (async () => {
+3288-            for (const msg of data.messages) {
+3289-                try {
+3290-                    const senderId = (msg.isGroup && msg.groupId) ? msg.groupId : (msg.from || '').trim();
+3291-                    
+3292-                    // Handle Group Creation Event
+3293-                    if (msg.isGroupEvent) {
+3294-                        // Create the group FIRST
+3295-                        let groups = JSON.parse(localStorage.getItem('bapp_groups')) || {};
+3296-                        groups[msg.groupId] = { name: msg.groupName, members: msg.members };
+3297-                        localStorage.setItem('bapp_groups', JSON.stringify(groups));
+3298-                        
+3299-                        // THEN add the welcome message
+3300-                        let msgs = JSON.parse(localStorage.getItem('bapp_msgs_' + msg.groupId)) || [];
+3301-                        msgs.push({ text: msg.text, type: 'received', time: now, msgId: msg.msgId });
+3302-                        localStorage.setItem('bapp_msgs_' + msg.groupId, JSON.stringify(msgs));
+3303-                        
+3304-                        saveChat(msg.groupId);
+3305-                        console.log("Offline Group Created:", msg.groupName);
+3306-                    } 
+3307-                    // Handle Normal Message / Image
+3308-                    else {
+3309-                        let saveText = msg.text;
+3310-                        if (msg.isImage && !msg.isVideo && msg.msgId) {
+3311-                            if (typeof saveImgToDB === 'function') {
+3312-                                await saveImgToDB(msg.msgId, msg.text);
+3313-                            }
+3314-                            saveText = "img_ref_" + msg.msgId;
+
+--- SERVER SENDING LOGIC ---
+101:                msgsToSend.forEach((msg, index) => {
+102-                    setTimeout(() => {
+103-                        if (ws.readyState === 1) {
+104-                            ws.send(JSON.stringify({ type: 'offline_messages', messages: [msg] }));
+105-                        }
+106-                    }, index * 300);
+107-                });
+108-                console.log("📬 Queued " + msgsToSend.length + " offline messages for " + data.username);
+109-            }
+110-        }
+111-
+112-        
+113-        if (data.type === 'sync_ack') {
+
+--- SERVER ACK LOGIC ---
+113:        if (data.type === 'sync_ack') {
+114-            const db = JSON.parse(fs.readFileSync(DB_FILE));
+115-            if (db[data.username]) {
+116-                delete db[data.username];
+117-                fs.writeFileSync(DB_FILE, JSON.stringify(db));
+118-                console.log("✅ Sync ACK received. Cleared offline DB for " + data.username);
+119-            }
+120-        }
+121-

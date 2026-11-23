@@ -1,0 +1,61 @@
+--- 1. INDEXEDDB FUNCTIONS ---
+2021:  function saveImgToDB(id, base64) {
+2022-      if(!bappDB) return;
+2023-      try {
+2024-          let tx = bappDB.transaction("images", "readwrite");
+2025-          tx.objectStore("images").put(base64, id);
+2026-      } catch(e) { console.log("DB Save Error", e); }
+2027-  }
+2028-  
+2029-  function getImgFromDB(id, callback) {
+2030-      if(!bappDB) { callback(null); return; }
+2031-      try {
+2032-          let tx = bappDB.transaction("images", "readonly");
+2033-          let req = tx.objectStore("images").get(id);
+2034-          req.onsuccess = function() { callback(req.result); };
+2035-          req.onerror = function() { callback(null); };
+2036-      } catch(e) { callback(null); }
+2037-  }
+2038-
+2039-  let myBappId = localStorage.getItem('bapp_username');
+2040-  if (!myBappId) {
+2041-    myBappId = prompt("Welcome to BAPP! Choose a unique username:");
+2029:  function getImgFromDB(id, callback) {
+2030-      if(!bappDB) { callback(null); return; }
+2031-      try {
+2032-          let tx = bappDB.transaction("images", "readonly");
+2033-          let req = tx.objectStore("images").get(id);
+2034-          req.onsuccess = function() { callback(req.result); };
+2035-          req.onerror = function() { callback(null); };
+2036-      } catch(e) { callback(null); }
+2037-  }
+2038-
+2039-  let myBappId = localStorage.getItem('bapp_username');
+2040-  if (!myBappId) {
+2041-    myBappId = prompt("Welcome to BAPP! Choose a unique username:");
+2042-    while(!myBappId || myBappId.trim() === "") { myBappId = prompt("Username cannot be empty. Choose a username:"); }
+2043-    myBappId = myBappId.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+2044-    localStorage.setItem('bapp_username', myBappId);
+
+--- 2. APPEND MESSAGE IMAGE RENDER ---
+2390:    } else if (isImage) {
+2391-      const img = document.createElement('img');
+2392-      img.src = text;
+2393-      img.style.cursor = 'pointer';
+2394-      img.onclick = function(e) { e.stopPropagation(); openFullscreenMedia(this.src); };
+2395-      newMsg.appendChild(img);
+2396-    } else if (isVoice || (text && text.startsWith('data:audio'))) {
+2397-      // Build Custom WhatsApp Player
+2398-      const playerDiv = document.createElement('div');
+2399-      playerDiv.className = 'wa-audio';
+2400-      
+2401-      const playBtn = document.createElement('div');
+2402-      playBtn.className = 'wa-play-btn';
+2403-      playBtn.innerText = '▶';
+2404-      
+2405-      const waveDiv = document.createElement('div');
+2406-      waveDiv.className = 'wa-waveform';
+2407-      
+2408-      const timeSpan = document.createElement('span');
+2409-      timeSpan.className = 'wa-time';
+2410-      timeSpan.innerText = '0:00';

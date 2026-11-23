@@ -1,0 +1,8 @@
+--- SEND BUTTON & FUNCTION ---
+1892:    <div class="send-btn" onclick="sendMessage()" id="send-btn" style="display:none;">➤</div>
+2618:  function sendMessage() {
+2619-    const input = document.getElementById('chat-input');
+2620-    const text = input.value.trim();
+2621-    if (text === "") return;
+2622-
+2623-    const to = activeChatId;

@@ -1,0 +1,43 @@
+--- 1. DEVICE MOTION SHAKE LISTENER ---
+5717:  window.addEventListener('devicemotion', function(event) {
+5718-    const acc = event.accelerationIncludingGravity;
+5719-    if (!acc) return;
+5720-    
+5721-    const force = Math.abs(acc.x) + Math.abs(acc.y) + Math.abs(acc.z);
+5722-    const now = Date.now();
+5723-    
+5724-    if (force > 35 && (now - lastShake) > 2000) {
+5725-      lastShake = now;
+5726-      
+5727-      // Check Panic Mode
+5728-      if (window.enablePanicMode) {
+5729-          document.getElementById('fake-calculator').style.display = 'flex';
+5730-      } 
+5731-      // Check Shake to Undo
+5732-      else if (window.enableShakeToUndo) {
+5733-          if (window.lastSentMessage && window.lastSentMessage.msgId) {
+5734-              const msgToDelete = window.lastSentMessage;
+5735-              
+5736-              // 1. Remove from DOM
+5737-              const el = document.getElementById('msg-' + msgToDelete.msgId);
+5738-              if(el) {
+5739-                  el.style.transition = 'opacity 0.3s, transform 0.3s';
+5740-                  el.style.opacity = '0';
+5741-                  el.style.transform = 'scale(0.5)';
+5742-                  setTimeout(() => el.remove(), 300);
+5743-              }
+5744-              
+5745-              // 2. Remove from LocalStorage
+5746-              let msgs = JSON.parse(localStorage.getItem('bapp_msgs_' + msgToDelete.to)) || [];
+5747-              msgs = msgs.filter(m => m.msgId !== msgToDelete.msgId);
+5748-              localStorage.setItem('bapp_msgs_' + msgToDelete.to, JSON.stringify(msgs));
+5749-              loadChatList();
+5750-
+5751-              // 3. Send Ghost Delete to Server
+5752-              if (socket.readyState === WebSocket.OPEN) {
+
+--- 2. LAST SENT TRACKER IN SENDMESSAGE ---
+2816:      window.lastSentMessage = { to: to, msgId: msgId };
+5733:          if (window.lastSentMessage && window.lastSentMessage.msgId) {
+5734:              const msgToDelete = window.lastSentMessage;
+5757:              window.lastSentMessage = null;

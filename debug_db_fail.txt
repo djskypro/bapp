@@ -1,0 +1,77 @@
+--- 1. OPEN CHAT (LOADING) ---
+  function openChat(id, profileObj) {
+    document.getElementById('chat-input').value = ''; // <--- CLEAR INPUT ON CHAT SWITCH
+    history.pushState({ view: 'chat' }, '', '#chat');
+    // --- RESTORE REPLY STATE FOR THIS CHAT ---
+    const replyBox = document.getElementById('reply-preview');
+    if (window.replyState && window.replyState[id]) {
+        currentReplyTo = window.replyState[id];
+        if (replyBox) {
+            replyBox.style.display = 'block';
+            document.getElementById('reply-preview-name').innerText = 'Replying to ' + currentReplyTo.name;
+            document.getElementById('reply-preview-text').innerText = currentReplyTo.text.startsWith('data:image') ? '📷 Photo' : (currentReplyTo.text.startsWith('data:audio') ? '🎤 Voice Note' : currentReplyTo.text);
+        }
+    } else {
+        currentReplyTo = null;
+        if (replyBox) replyBox.style.display = 'none';
+    }
+    // ---------------------------------------
+
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('chat-view').classList.add('active');
+    
+    let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+    let p = profileObj || profiles[id] || { name: id, avatar: 'https://ui-avatars.com/api/?name=' + id.substring(0,2) + '&background=random' };
+    
+    document.getElementById('chat-name').textContent = p.name || id;
+    activeChatId = id.trim();
+    document.getElementById('chat-avatar').src = p.avatar || 'https://ui-avatars.com/api/?name=' + id.substring(0,2) + '&background=random';
+    document.getElementById('chat-subtitle').innerText = '🔒 End-to-End Encrypted';
+    
+    const msgBox = document.getElementById('chat-messages');
+    msgBox.innerHTML = ""; 
+    const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + id)) || [];
+    savedMsgs.forEach(m => appendMessage(m.text, m.type, m.time, m.status, m.isImage, m.isVoice, m.msgId, m.replyData, m.isWhisper, m.isVideo, m.bubbleColor));
+    
+    let unreads = getUnreads();
+    if(unreads[id]) { unreads[id] = 0; localStorage.setItem('bapp_unreads', JSON.stringify(unreads)); }
+    socket.send(JSON.stringify({ type: 'read_receipt', to: id, from: myBappId }));
+    
+    let msgs = JSON.parse(localStorage.getItem('bapp_msgs_' + id)) || [];
+    msgs.forEach(m => { if(m.type === 'sent') m.status = 'read'; });
+    localStorage.setItem('bapp_msgs_' + id, JSON.stringify(msgs));
+    
+    loadChatList();
+
+    // --- FORCE SCROLL TO BOTTOM (NEWEST MESSAGE) ---
+    const scrollToBottom = () => {
+        if(msgBox) msgBox.scrollTop = msgBox.scrollHeight;
+    };
+    
+    // Fire multiple times to catch image loading delays
+    scrollToBottom();
+    setTimeout(scrollToBottom, 50);
+    setTimeout(scrollToBottom, 200);
+    setTimeout(scrollToBottom, 500);
+    // Keyboard auto-focus removed
+  }
+  function openChatMenu() {
+    document.getElementById('chat-options-menu').style.display = 'flex';
+  }
+
+--- 2. APPEND MESSAGE IMAGE ---
+2383:    } else if (isImage) {
+2384-      const img = document.createElement('img');
+2385-      img.style.cursor = 'pointer';
+2386-      img.style.minHeight = '100px';
+2387-      img.style.backgroundColor = 'rgba(255,255,255,0.1)';
+2388-      
+2389-      if (text.startsWith('img_ref_')) {
+2390-          const realId = text.replace('img_ref_', '');
+2391-          getImgFromDB(realId, function(base64Data) {
+2392-              if(base64Data) {
+2393-                  img.src = base64Data;
+--
+3507:    if (isImage) {
+3508-      const img = document.createElement('img'); 
+3509-      img.src = text; 

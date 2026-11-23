@@ -1,0 +1,100 @@
+--- SEND MESSAGE ---
+1608:  function sendMessage() {
+1609-    const input = document.getElementById('chat-input');
+1610-    const text = input.value.trim();
+1611-    const to = document.getElementById('chat-name').textContent.trim();
+1612-    if (text !== "" && socket.readyState === WebSocket.OPEN) {
+1613-      socket.send(JSON.stringify({ type: 'send_message', to: activeChatId, from: myBappId, text: text }));
+1614-      const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+1615-      appendMessage(text, 'sent', now, 'sent');
+1616-      input.value = '';
+1617-      const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + activeChatId)) || [];
+1618-      savedMsgs.push({ text: text, type: 'sent', time: now, status: 'sent' });
+1619-      localStorage.setItem('bapp_msgs_' + activeChatId, JSON.stringify(savedMsgs));
+1620-      loadChatList();
+1621-    }
+1622-  }
+1623-  function handleEnter(e) { if (e.key === 'Enter') sendMessage(); }
+1624-
+1625-  function handleImageUpload(event) {
+1626-    const file = event.target.files[0];
+1627-    if(!file) return;
+1628-    const to = activeChatId;
+
+--- APPEND MESSAGE ---
+1493:  function appendMessage(text, type, timeStr, status = '', isImage = false, isVoice = false) {
+1494-    const msgBox = document.getElementById('chat-messages');
+1495-    if (!msgBox) return;
+1496-    const newMsg = document.createElement('div');
+1497-    newMsg.className = 'msg ' + type;
+1498-    
+1499-    if (isImage) {
+1500-      const img = document.createElement('img'); 
+1501-      img.src = text; 
+1502-      img.style.cursor = 'pointer';
+1503-      newMsg.appendChild(img);
+1504-    } else if (isVoice || (text && text.startsWith('data:audio'))) {
+1505-      // Build Custom WhatsApp Player
+1506-      const playerDiv = document.createElement('div');
+1507-      playerDiv.className = 'wa-audio';
+1508-      
+1509-      const playBtn = document.createElement('div');
+1510-      playBtn.className = 'wa-play-btn';
+1511-      playBtn.innerText = '▶';
+1512-      
+1513-      const waveDiv = document.createElement('div');
+1514-      waveDiv.className = 'wa-waveform';
+1515-      
+1516-      const timeSpan = document.createElement('span');
+1517-      timeSpan.className = 'wa-time';
+1518-      timeSpan.innerText = '0:00';
+1519-      
+1520-      // Generate deterministic random bars based on string length
+1521-      const numBars = 25;
+1522-      const bars = [];
+1523-      for(let i=0; i<numBars; i++) {
+
+--- RECEIVE MESSAGE ---
+1891:      if (data.type === 'new_message') {
+1892-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+1893-        const senderId = (data.from || '').trim();
+1894-        
+1895-        if (data.senderProfile) {
+1896-            let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+1897-            profiles[senderId] = data.senderProfile;
+1898-            localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+1899-        }
+1900-        
+1901-        try {
+1902-          const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + senderId)) || [];
+1903-          savedMsgs.push({ text: data.text, type: 'received', time: now, isImage: data.isImage, isVoice: data.isVoice });
+1904-          localStorage.setItem('bapp_msgs_' + senderId, JSON.stringify(savedMsgs));
+1905-        } catch(e) { console.error("Storage full"); }
+1906-        
+1907-        saveChat(senderId);
+1908-        
+1909-        if (activeChatId === senderId) {
+1910-          appendMessage(data.text, 'received', now, '', data.isImage, data.isVoice);
+1911-          socket.send(JSON.stringify({ type: 'read_receipt', to: senderId, from: myBappId }));
+--
+2346:      if (data.type === 'new_message') {
+2347-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+2348-        const senderId = (data.from || '').trim();
+2349-        if (data.senderProfile) {
+2350-            let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+2351-            profiles[senderId] = data.senderProfile;
+2352-            localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+2353-        }
+2354-        try {
+2355-          const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + senderId)) || [];
+2356-          savedMsgs.push({ text: data.text, type: 'received', time: now, isImage: data.isImage, isVoice: data.isVoice });
+2357-          localStorage.setItem('bapp_msgs_' + senderId, JSON.stringify(savedMsgs));
+2358-        } catch(e) {}
+2359-        saveChat(senderId);
+2360-        if (activeChatId === senderId) {
+2361-          appendMessage(data.text, 'received', now, '', data.isImage, data.isVoice);
+2362-          socket.send(JSON.stringify({ type: 'read_receipt', to: senderId, from: myBappId }));
+2363-        } else {
+2364-          let unreads = getUnreads();
+2365-          unreads[senderId] = (unreads[senderId] || 0) + 1;
+2366-          localStorage.setItem('bapp_unreads', JSON.stringify(unreads));

@@ -1,0 +1,69 @@
+--- 1. SENDER PAYLOAD ---
+3004:            text: data.url,
+3005-            isImage: true,
+3006-            isVideo: isVid,
+3007-            msgId: msgId,
+3008-            replyData: reply,
+3009-            isGroup: isGroup,
+3010-            groupMembers: groupMembers
+3011-        };
+3012-
+--
+3027:            savedMsgs.push({ text: data.url, type: 'sent', time: now, isImage: !isVid, isVideo: isVid, status: 'sent', msgId: msgId });
+3028-            localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+3029-            loadChatList();
+3030-        } catch(e) { console.error(e); }
+3031-
+
+--- 2. SERVER RECEIVE ---
+9:function saveImageToFile(text, isImage) {
+10-    if (!isImage || !text || !text.startsWith('data:image')) return text;
+11-    try {
+12-        const filename = 'img_' + Date.now() + '_' + Math.floor(Math.random()*1000) + '.jpg';
+13-        const base64Data = text.replace(/^data:image\/\w+;base64,/, "");
+14-        fs.writeFileSync(path.join(__dirname, 'media', filename), base64Data, 'base64');
+15-        console.log("💾 Saved image file:", filename);
+16-        return '/media/' + filename;
+17-    } catch(e) { 
+--
+268:                            from: from, text: saveImageToFile(text, isImage), isImage: isImage || false, isVoice: isVoice || false, isVideo: isVideo || false,
+269-                            msgId: msgId, replyData: replyData, isWhisper: isWhisper || false, bubbleColor: bubbleColor,
+270-                            isGroup: true, groupId: cleanTo, groupMembers: groupMembers
+271-                        });
+272-                        try { fs.writeFileSync(DB_FILE, JSON.stringify(db)); } catch(e) {}
+273-                    }
+274-                });
+275-                ws.send(JSON.stringify({ type: 'delivered_receipt', to: cleanTo }));
+276-                return; // Stop here so it doesn't run the single-user logic below
+
+--- 3. RECEIVER OFFLINE ---
+
+--- 4. APPEND MESSAGE RENDER ---
+    } else if (isImage) {
+      const img = document.createElement('img');
+      img.style.cursor = 'pointer';
+      
+      if (text.startsWith('/media/') && text.endsWith('.mp4')) {
+          // It's a VIDEO! Render as a playable player
+          const video = document.createElement('video');
+          video.src = text;
+          video.controls = true;
+          video.style.maxWidth = '100%';
+          video.style.borderRadius = '10px';
+          newMsg.appendChild(video);
+          return; // Stop, don't append img
+      } else if (text.startsWith('/media/')) {
+          // It's an IMAGE URL from the server
+          img.src = text;
+          img.style.borderRadius = '10px';
+          img.style.maxWidth = '100%';
+      } else if (text.startsWith('img_ref_')) {
+          // It's an IndexedDB image. Load it safely.
+          const realId = text.replace('img_ref_', '');
+          img.style.minHeight = '150px';
+          img.style.backgroundColor = 'rgba(255,255,255,0.05)';
+          img.style.borderRadius = '10px';
+          
+          getImgFromDB(realId, function(base64Data) {
+              if(base64Data) {
+                  img.src = base64Data;

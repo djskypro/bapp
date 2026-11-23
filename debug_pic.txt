@@ -1,0 +1,66 @@
+--- APPEND MESSAGE IMAGE ---
+1706:    } else if (isImage) {
+1707-      const img = document.createElement('img');
+1708-      img.src = text;
+1709-      img.style.cursor = 'pointer';
+1710-      img.onclick = function() { openFullscreenMedia(this.src, false); };
+1711-      newMsg.appendChild(img);
+1712-    } else if (text && text.startsWith('data:video')) {
+1713-      const video = document.createElement('video');
+1714-      video.src = text;
+1715-      video.style.maxWidth = '100%';
+1716-      video.style.borderRadius = '10px';
+--
+2614:    if (isImage) {
+2615-      const img = document.createElement('img');
+2616-      img.src = text;
+2617-      img.style.cursor = 'pointer';
+2618-      img.onclick = function() { openFullscreenMedia(this.src, false); };
+2619-      newMsg.appendChild(img);
+2620-    } else if (isVoice) {
+2621-      const audio = document.createElement('audio');
+2622-      audio.controls = true;
+2623-      audio.src = text;
+2624-      newMsg.appendChild(audio);
+--
+2692:    if (isImage) {
+2693-      const img = document.createElement('img');
+2694-      img.src = text;
+2695-      img.style.cursor = 'pointer';
+2696-      img.onclick = function() { openFullscreenMedia(this.src, false); };
+2697-      newMsg.appendChild(img);
+2698-    } else if (isVoice || (text && text.startsWith('data:audio'))) {
+2699-      
+2700-      // BUILD THE WHATSAPP PLAYER
+2701-      const playerDiv = document.createElement('div');
+2702-      playerDiv.className = 'wa-audio';
+--
+3103:        if (isImage) {
+3104-          const img = document.createElement('img');
+3105-      img.src = text;
+3106-      img.style.cursor = 'pointer';
+3107-      img.onclick = function() { openFullscreenMedia(this.src, false); };
+3108-      newMsg.appendChild(img);
+3109-        } else if (isVoice || (text && text.startsWith('data:audio'))) {
+3110-          // BUILD THE WHATSAPP PLAYER
+3111-          const playerDiv = document.createElement('div');
+3112-          playerDiv.className = 'wa-audio';
+3113-          
+
+--- FULLSCREEN FUNCTION ---
+3648:  function openFullscreenMedia(src, isVideo) {
+3649-    currentViewMedia = src;
+3650-    const viewer = document.getElementById('fullscreen-viewer');
+3651-    const img = document.getElementById('fullscreen-img');
+3652-    const video = document.getElementById('fullscreen-video');
+3653-    
+3654-    // 1. Reset the viewer to be totally hidden first
+3655-    viewer.style.display = 'none';
+3656-    img.style.display = 'none';
+3657-    video.style.display = 'none';
+3658-    
+3659-    if (isVideo || src.startsWith('data:video')) {
+3660-      video.src = src;
+3661-      video.style.display = 'block';
+3662-      viewer.style.display = 'flex';
+3663-      video.play();

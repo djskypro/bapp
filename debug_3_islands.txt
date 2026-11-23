@@ -1,0 +1,352 @@
+--- 1. HEADER HTML ---
+  <div class="chat-header">
+    <div class="back-btn" onclick="goBack()">←</div>
+    <div style="display:flex; align-items:center; flex:1; cursor:pointer;" onclick="openContactInfo()">
+      <img src="" id="chat-avatar" class="avatar">
+      <div>
+        <div class="name" id="chat-name"></div>
+        <div class="lock" id="chat-subtitle">🔒 End-to-End Encrypted</div>
+      </div>
+    </div>
+    <div class="header-action-icons">
+      <span onclick="startCall('video')" style="cursor:pointer;">📹</span>
+      <span onclick="startCall('audio')" style="cursor:pointer;">📞</span>
+      <span onclick="openChatMenu()" style="font-weight:bold; cursor:pointer;">⋮</span>
+    </div>
+  </div>
+  <div class="messages" id="chat-messages"></div>
+  <div class="chat-input-area">
+    <div class="attach-btn" onclick="document.getElementById('file-input').click()">📎</div>
+    <input type="file" id="file-input" accept="image/*,video/*" style="display:none" onchange="handleImageUpload(event)">
+    
+    <input type="text" id="chat-input" placeholder="Message" onkeypress="handleEnter(event)">
+    
+    
+    <div class="mic-btn" id="mic-btn" onclick="toggleRecording()" style="background:var(--primary); width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: black; font-size: 20px; cursor: pointer; margin-left: 5px;">🎤</div>
+    <div id="whisper-toggle" onclick="toggleWhisperMode()" style="display:none; width: 45px; height: 45px; border-radius: 50%; background: var(--search-bg); justify-content: center; align-items: center; font-size: 20px; cursor: pointer; margin-right: 5px; transition: 0.2s;">👻</div>
+    <div class="send-btn" onclick="sendMessage()" id="send-btn" style="display:none;">➤</div>
+
+  </div>
+</div>
+
+
+<!-- STATUS VIEW -->
+<div id="status-view" class="view">
+  <div class="header" style="padding-top: 40px;">
+    <h1>Updates</h1>
+  </div>
+  
+  <div class="status-list">
+    <!-- My Status -->
+    <div class="status-item">
+      <div class="status-avatar-ring" onclick="postStatus()" style="border-color: var(--text-muted); display:flex; justify-content:center; align-items:center;">
+        <span style="font-size:24px; color:var(--text-muted);">+</span>
+      </div>
+      <div class="status-info" onclick="viewMyUpdates()">
+        <div class="status-name">My Updates</div>
+        <div class="status-time" id="my-status-time">Tap to view my update</div>
+      </div>
+    </div>
+
+    <div style="font-size: 14px; font-weight: bold; color: var(--text-muted); margin-top: 10px;">Recent Updates</div>
+    
+    <!-- List of statuses goes here -->
+    <div id="status-feed-container"></div>
+  </div>
+</div>
+
+<!-- FULL SCREEN STATUS VIEWER -->
+<div id="status-viewer">
+  <div class="status-viewer-header">
+    <div style="font-weight: bold; font-size: 18px;" id="viewer-username">User</div>
+    <div class="close-status" onclick="closeStatusViewer()">✕</div>
+  </div>
+  <div class="status-progress-container" id="status-progress-container"></div>
+  <div class="tap-zone left" onclick="prevStatus()"></div>
+  <div class="tap-zone right" onclick="nextStatus()"></div>
+  <div class="status-viewer-content" id="status-viewer-content">
+    <!-- Content injected here -->
+  </div>
+</div>
+
+<!-- SETTINGS VIEW -->
+<div id="settings-view" class="view">
+  <div class="header" style="padding-top: 40px;">
+    <div style="display:flex; align-items:center; gap:15px;">
+      <div class="back-btn" onclick="goBack()">←</div>
+      <h1>Settings</h1>
+    </div>
+  </div>
+  
+  <div class="settings-content">
+    <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:20px;">
+      <img id="settings-avatar" src="" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); margin-bottom: 15px;">
+      <label style="background:var(--search-bg); padding:10px 20px; border-radius:12px; cursor:pointer; font-size:14px;">
+        Change Picture
+        <input type="file" id="settings-pic-input" accept="image/*" style="display:none;">
+      </label>
+    </div>
+
+    <div class="input-group">
+      <label>Username (Cannot change)</label>
+      <input type="text" id="settings-username" disabled style="color:var(--text-muted); opacity:0.7;">
+    </div>
+    <div class="input-group">
+      <label>Display Name</label>
+      <input type="text" id="settings-name-input" placeholder="Your Name">
+    </div>
+    <div class="input-group">
+      <label>Bio</label>
+      <textarea id="settings-bio" rows="3" placeholder="About me..."></textarea>
+    </div>
+    <div class="input-group">
+      <label>Phone Number</label>
+      <input type="tel" id="settings-phone" placeholder="+256...">
+    </div>
+    <div class="input-group">
+      <label>Location</label>
+      <div style="display:flex; gap:10px; margin-top:5px;">
+        <input type="text" id="settings-location" placeholder="City, Country" style="margin-top:0;">
+        <button onclick="randomizeLocation()" style="background:var(--search-bg); color:var(--text); border:none; border-radius:12px; padding:0 15px; font-size:18px;">🎲</button>
+      </div>
+    </div>
+    
+    <div class="input-group" style="margin-top: 15px; cursor: pointer;" onclick="openThemeModal()">
+      <label style="cursor: pointer;">Chat Bubble Color</label>
+      <div style="display:flex; align-items:center; gap:10px; margin-top:5px; background: var(--search-bg); padding: 15px; border-radius: 12px; justify-content: space-between;">
+        <span style="color: var(--text); font-size: 16px; font-weight: 500;">Customize Theme</span>
+        <div id="settings-color-indicator" style="width: 30px; height: 30px; border-radius: 50%; background: #005c4b; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>
+      </div>
+    </div>
+
+    <div class="toggle-row">
+      <div style="font-size:14px;">Auto-Switch Location</div>
+      <input type="checkbox" id="settings-auto-location" style="width:20px; height:20px; accent-color:var(--primary);">
+    </div>
+
+    <button class="save-btn" onclick="saveProfile()">Save Profile</button>
+  </div>
+</div>
+
+<!-- CONTACT INFO VIEW -->
+<div id="contact-info-view" class="view">
+  <div class="header" style="padding-top: 40px;">
+    <div style="display:flex; align-items:center; gap:15px;">
+      <div class="back-btn" onclick="closeContactInfo()">←</div>
+      <h1>Contact Info</h1>
+    </div>
+  </div>
+  
+  <div class="settings-content" style="align-items:center; display:flex; flex-direction:column;">
+    <img id="info-avatar" src="" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); margin-bottom: 15px;">
+    <h2 id="info-name" style="font-size:24px; margin-bottom:5px;">Name</h2>
+    <div id="info-username" style="color:var(--text-muted); font-size:16px; margin-bottom:20px;">@username</div>
+    
+    <div style="width:100%; background:var(--search-bg); padding:15px; border-radius:12px; margin-bottom:10px;">
+      <div style="font-size:12px; color:var(--text-muted); margin-bottom:5px;">Bio</div>
+      <div id="info-bio" style="font-size:16px;">No bio yet</div>
+    </div>
+
+    <div style="width:100%; background:var(--search-bg); padding:15px; border-radius:12px; margin-bottom:10px;">
+      <div style="font-size:12px; color:var(--text-muted); margin-bottom:5px;">Phone</div>
+      <div id="info-phone" style="font-size:16px; color:var(--primary);">Not shared</div>
+    </div>
+
+    <div style="width:100%; background:var(--search-bg); padding:15px; border-radius:12px; margin-bottom:10px;">
+      <div style="font-size:12px; color:var(--text-muted); margin-bottom:5px;">Location</div>
+      <div id="info-location" style="font-size:16px;">Unknown</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let myBappId = localStorage.getItem('bapp_username');
+  if (!myBappId) {
+    myBappId = prompt("Welcome to BAPP! Choose a unique username:");
+    while(!myBappId || myBappId.trim() === "") { myBappId = prompt("Username cannot be empty. Choose a username:"); }
+    myBappId = myBappId.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+    localStorage.setItem('bapp_username', myBappId);
+  }
+  document.getElementById('my-id').innerText = "Your ID: @" + myBappId;
+
+  window.selectedBubbleColor = '#005c4b';
+  let myProfile = JSON.parse(localStorage.getItem('bapp_profile')) || { name: myBappId, bio: '', phone: '', location: 'Unknown', autoLocation: false, bubbleColor: '#005c4b', avatar: 'https://ui-avatars.com/api/?name=' + myBappId.charAt(0) + '&background=random' };
+  let autoLocationInterval = null;
+  let activeChatId = null;
+  window.replyState = {};
+
+  let socket = new WebSocket('ws://' + location.host);
+  let reconnectTimer = null;
+  // 1. Load the UI and chats instantly (works offline)
+  loadChatList();
+  document.getElementById('my-id').innerText = "Your ID: @" + myBappId;
+
+  // 2. Connect to server when online
+  socket.onopen = () => {
+    console.log("✅ Connected to server.");
+    socket.send(JSON.stringify({ type: 'register_user', username: myBappId, profile: myProfile }));
+    
+    // FLUSH OFFLINE QUEUE
+    let queue = JSON.parse(localStorage.getItem('bapp_offline_queue')) || [];
+    if (queue.length > 0) {
+        console.log(`📤 Sending ${queue.length} queued messages...`);
+        queue.forEach(payload => {
+            socket.send(JSON.stringify(payload));
+        });
+        localStorage.removeItem('bapp_offline_queue');
+        
+        // Update statuses in local memory to 'sent'
+        queue.forEach(payload => {
+            let msgs = JSON.parse(localStorage.getItem('bapp_msgs_' + payload.to)) || [];
+            let m = msgs.find(msg => msg.msgId === payload.msgId);
+            if (m) m.status = 'sent';
+            localStorage.setItem('bapp_msgs_' + payload.to, JSON.stringify(msgs));
+        });
+        loadChatList();
+    }
+  };
+
+  socket.onclose = () => {
+    console.log("🔴 Disconnected from server. Trying to reconnect...");
+    if (!reconnectTimer) {
+        reconnectTimer = setTimeout(reconnectWebSocket, 3000);
+    }
+  };
+
+  function reconnectWebSocket() {
+    reconnectTimer = null;
+    console.log("🔄 Attempting silent reconnect...");
+    
+    // Save the current message handler so we don't lose it
+    const currentHandler = socket.onmessage;
+    
+    // Create a fresh socket
+    socket = new WebSocket('ws://' + location.host);
+    
+    socket.onopen = () => {
+        console.log("✅ Reconnected successfully!");
+        let queue = JSON.parse(localStorage.getItem('bapp_offline_queue')) || [];
+        if (queue.length > 0) {
+            queue.forEach(payload => socket.send(JSON.stringify(payload)));
+            localStorage.removeItem('bapp_offline_queue');
+        }
+        socket.send(JSON.stringify({ type: 'register_user', username: myBappId, profile: myProfile }));
+    };
+    
+    socket.onclose = () => {
+        console.log("🔴 Disconnected again. Retrying...");
+        if (!reconnectTimer) reconnectTimer = setTimeout(reconnectWebSocket, 3000);
+    };
+    
+    socket.onerror = (err) => console.error("WebSocket Error: ", err);
+    
+    // Reattach all the message listeners we built earlier
+    if (currentHandler) {
+        socket.onmessage = currentHandler;
+    }
+  }
+
+  // Listen for the phone's internet coming back
+  window.addEventListener('online', () => {
+    console.log("🌐 Network restored. Reconnecting instantly...");
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+        if (reconnectTimer) clearTimeout(reconnectTimer);
+        reconnectWebSocket();
+    }
+  });
+
+  socket.onerror = (err) => {
+    console.error("WebSocket Error: ", err);
+  };
+
+  function toggleTheme() { document.body.classList.toggle('light-mode'); }
+
+  function getChats() { return JSON.parse(localStorage.getItem('bapp_chats')) || []; }
+  function getUnreads() { return JSON.parse(localStorage.getItem('bapp_unreads')) || {}; }
+  function saveChat(id) {
+    let chats = getChats();
+    if (!chats.includes(id)) { chats.unshift(id); localStorage.setItem('bapp_chats', JSON.stringify(chats)); }
+  }
+
+  function loadChatList() {
+    const chatList = document.getElementById('chat-list-container');
+    chatList.innerHTML = ''; 
+    const chats = getChats();
+    const unreads = getUnreads();
+    let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+    
+    chats.forEach(id => {
+      const msgs = JSON.parse(localStorage.getItem('bapp_msgs_' + id)) || [];
+      let lastMsgText = 'Tap to chat';
+      let lastMsgTime = '';
+      
+      if (msgs.length > 0) {
+        const last = msgs[msgs.length - 1];
+        lastMsgTime = last.time || '';
+        
+        if (last.isImage) {
+          lastMsgText = '📷 Photo';
+        } else if (last.isVoice || (last.text && last.text.startsWith('data:audio'))) {
+          lastMsgText = '🎤 Voice Note';
+        } else {
+          lastMsgText = last.text;
+        }
+      }
+      
+      const p = profiles[id] || { name: id, avatar: 'https://ui-avatars.com/api/?name=' + id.substring(0,2) + '&background=random' };
+      const displayName = p.name || id;
+      const avatarUrl = p.avatar;
+      
+      const unreadCount = unreads[id] || 0;
+      const badgeHtml = unreadCount > 0 ? `<div class="badge">${unreadCount}</div>` : '';
+      const timeClass = unreadCount > 0 ? 'chat-time unread' : 'chat-time';
+
+      const chatHtml = `
+        <div class="chat-item" id="item-${id}" onclick="openChat('${id}')">
+          <img src="${avatarUrl}" class="avatar">
+          <div class="chat-info">
+            <div class="chat-top"><div class="chat-name">${displayName}</div><div class="${timeClass}">${lastMsgTime}</div></div>
+
+--- 2. HEADER CSS ---
+72:  .chat-header { display: flex; align-items: center; padding: 15px 20px; background: var(--glass-bg); backdrop-filter: blur(20px); border-bottom: 1px solid var(--glass-border); }
+73-  .back-btn { font-size: 24px; margin-right: 15px; color: var(--primary); cursor: pointer; }
+74-  .chat-header .avatar { width: 40px; height: 40px; margin-right: 12px; }
+75-  .chat-header .name { font-size: 18px; font-weight: 600; }
+76-  .chat-header .lock { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 3px; }
+77-  .messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+78-  .msg { max-width: 80%; padding: 10px 12px; border-radius: 12px; font-size: 15px; line-height: 1.4; position: relative; word-wrap: break-word; }
+79-  .msg.received { background: var(--msg-received); align-self: flex-start; border-top-left-radius: 2px; }
+80-  .msg.sent { background: var(--msg-sent); color: var(--text); align-self: flex-end; border-top-right-radius: 2px; }
+81-  .msg-time { font-size: 10px; color: var(--text-muted); float: right; margin: 6px 0 0 12px; }
+82-  .msg.sent .msg-time { color: rgba(255,255,255,0.7); }
+--
+758:  .chat-header {
+759-    position: absolute !important;
+760-    top: 15px !important;
+761-    left: 15px !important;
+762-    right: 15px !important;
+763-    width: auto !important;
+764-    z-index: 1000 !important;
+765-    
+766-    background: var(--glass-bg) !important;
+767-    backdrop-filter: blur(30px) !important;
+768-    -webkit-backdrop-filter: blur(30px) !important;
+73:  .back-btn { font-size: 24px; margin-right: 15px; color: var(--primary); cursor: pointer; }
+74-  .chat-header .avatar { width: 40px; height: 40px; margin-right: 12px; }
+75-  .chat-header .name { font-size: 18px; font-weight: 600; }
+76-  .chat-header .lock { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 3px; }
+77-  .messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+78-  .msg { max-width: 80%; padding: 10px 12px; border-radius: 12px; font-size: 15px; line-height: 1.4; position: relative; word-wrap: break-word; }
+--
+779:  .chat-header .back-btn {
+780-    background: var(--search-bg) !important;
+781-    width: 38px !important;
+782-    height: 38px !important;
+783-    border-radius: 50% !important;
+784-    display: flex !important;
+1276:  .header-action-icons {
+1277-    display: flex !important;
+1278-    gap: 25px !important; /* Spreads them out */
+1279-    font-size: 22px !important;
+1280-    color: var(--primary) !important;
+1281-    margin-right: 15px !important;

@@ -1,0 +1,2 @@
+--- LOG CHECK ---
+3283:                                console.log("✅ Offline Image URL received:", msg.text);

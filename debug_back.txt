@@ -1,0 +1,30 @@
+--- OPEN CHAT ---
+1593:  function openChat(id, profileObj) {
+1594-    // --- RESTORE REPLY STATE FOR THIS CHAT ---
+1595-    const replyBox = document.getElementById('reply-preview');
+1596-    if (window.replyState && window.replyState[id]) {
+1597-        currentReplyTo = window.replyState[id];
+1598-        if (replyBox) {
+
+--- OPEN SETTINGS ---
+1972:  function openSettings() {
+1973-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+1974-    document.getElementById('settings-view').classList.add('active');
+1975-    document.getElementById('settings-username').value = myBappId;
+1976-    document.getElementById('settings-name-input').value = myProfile.name;
+1977-    document.getElementById('settings-bio').value = myProfile.bio || '';
+
+--- GO BACK ---
+1648:  function goBack() {
+1649-    activeChatId = null;
+1650-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+1651-    document.getElementById('main-view').classList.add('active');
+1652-  }
+1653-
+1654-  
+1655-  function appendMessage(text, type, timeStr, status = '', isImage = false, isVoice = false, msgId = null, replyData = null, isWhisper = false) {
+1656-    const msgBox = document.getElementById('chat-messages');
+1657-    if (!msgBox) return;
+1658-    const newMsg = document.createElement('div');
+
+--- POPSTATE / HISTORY ---

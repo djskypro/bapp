@@ -1,0 +1,96 @@
+--- 1. CLIENT SEND MESSAGE ---
+  function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if (text === "") return;
+
+    const to = activeChatId;
+    const reply = currentReplyTo;
+    const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    const msgId = Date.now().toString();
+    
+    const isConnected = socket.readyState === WebSocket.OPEN;
+    const status = isConnected ? 'sent' : 'pending';
+
+    // 1. Show on screen immediately
+    appendMessage(text, 'sent', now, status, false, false, msgId, reply, false, false, myProfile.bubbleColor || '#005c4b');
+      
+      
+    input.value = '';
+    triggerInputDrop();
+ 
+    // Snap the keyboard back open instantly after sending
+    setTimeout(() => {
+        const chatIn = document.getElementById('chat-input');
+        const chatView = document.getElementById('chat-view');
+        if (chatIn && chatView && chatView.classList.contains('active')) {
+            chatIn.focus();
+        }
+    }, 10);
+
+    // 2. Save to local memory
+    try {
+        const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+        savedMsgs.push({ text: text, type: 'sent', time: now, status: status, msgId: msgId, replyData: reply, bubbleColor: myProfile.bubbleColor || '#005c4b' });
+        localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+        loadChatList();
+    } catch(e) { console.error("Storage full"); }
+
+    const rp = document.getElementById('reply-preview');
+    if (rp) rp.style.display = 'none';
+    currentReplyTo = null;
+    if (window.replyState && activeChatId) delete window.replyState[activeChatId];
+
+    // 3. Send now OR save to Offline Queue
+    const payload = {
+        type: 'send_message',
+        to: to,
+        from: myBappId,
+        text: text,
+        msgId: msgId,
+        replyData: reply,
+        bubbleColor: myProfile.bubbleColor || '#005c4b'
+    };
+
+    if (isConnected) {
+        socket.send(JSON.stringify(payload));
+    } else {
+        let queue = JSON.parse(localStorage.getItem('bapp_offline_queue')) || [];
+        queue.push(payload);
+        localStorage.setItem('bapp_offline_queue', JSON.stringify(queue));
+        console.log("📩 Message queued. Will send when online.");
+    }
+  }
+
+--- 2. SERVER SEND MESSAGE ---
+199:        if (data.type === 'send_message') {
+200-            const { to, from, text, isImage, isVoice, msgId, replyData, isWhisper, isVideo, bubbleColor, isGroup, groupMembers } = data;
+201-            const cleanTo = to.trim();
+202-            
+203-            console.log(`📩 Msg from [${from}] to [${cleanTo}] isGroup: ${isGroup}`);
+204-
+205-            // --- GROUP MESSAGE ROUTING ---
+206-            if (isGroup && groupMembers && groupMembers.length > 0) {
+207-                groupMembers.forEach(member => {
+208-                    if (member === from) return; // Don't send to yourself
+209-                    const targetWs = bappUsers.get(member);
+210-                    if (targetWs && targetWs.readyState === 1) {
+211-                        targetWs.send(JSON.stringify({
+212-                            type: 'new_message', from: from, text: text, isImage: isImage || false, isVoice: isVoice || false,
+213-                            msgId: msgId, replyData: replyData, isWhisper: isWhisper || false, isVideo: isVideo || false, 
+214-                            bubbleColor: bubbleColor, isGroup: true, groupId: cleanTo, groupMembers: groupMembers
+215-                        }));
+216-                    } else {
+217-                        // Save for offline member
+218-                        let db = {};
+219-                        try { db = JSON.parse(fs.readFileSync(DB_FILE)); } catch(e) {}
+220-                        if (!db[member]) db[member] = [];
+221-                        db[member].push({
+222-                            from: from, text: text, isImage: isImage || false, isVoice: isVoice || false, isVideo: isVideo || false,
+223-                            msgId: msgId, replyData: replyData, isWhisper: isWhisper || false, bubbleColor: bubbleColor,
+224-                            isGroup: true, groupId: cleanTo, groupMembers: groupMembers
+225-                        });
+226-                        try { fs.writeFileSync(DB_FILE, JSON.stringify(db)); } catch(e) {}
+227-                    }
+228-                });
+229-                ws.send(JSON.stringify({ type: 'delivered_receipt', to: cleanTo }));

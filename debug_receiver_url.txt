@@ -1,0 +1,52 @@
+--- RECEIVER APPEND ---
+                        let msgs = JSON.parse(localStorage.getItem('bapp_msgs_' + msg.groupId)) || [];
+                        msgs.push({ text: msg.text, type: 'received', time: now, msgId: msg.msgId });
+                        localStorage.setItem('bapp_msgs_' + msg.groupId, JSON.stringify(msgs));
+                        saveChat(msg.groupId);
+                    } 
+                    else {
+                        let saveText = msg.text;
+                        
+                        // --- CRITICAL FIX: AWAIT THE DATABASE SAVE ---
+                        if (msg.isImage && !msg.isVideo && msg.msgId) {
+                            // If it's a URL from the server, use it directly
+                            if (msg.text.startsWith('/media/') || msg.text.startsWith('http')) {
+                                console.log("✅ Offline Image URL received:", msg.text);
+                                saveText = msg.text;
+                            } else {
+                                // Fallback for old Base64 images
+                                if (typeof saveImgToDB === 'function') {
+                                    await saveImgToDB(msg.msgId, msg.text);
+                                }
+                                saveText = "img_ref_" + msg.msgId;
+                            }
+                        }
+                        
+                        const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + senderId)) || [];
+                        if (msg.msgId && savedMsgs.some(m => m.msgId === msg.msgId)) continue;
+                        
+                        savedMsgs.push({
+                            text: saveText, type: 'received', time: now, isImage: msg.isImage, isVoice: msg.isVoice,
+                            msgId: msg.msgId, replyData: msg.replyData, isWhisper: msg.isWhisper, isVideo: msg.isVideo, bubbleColor: msg.bubbleColor
+                        });
+                        
+                        try {
+                            localStorage.setItem('bapp_msgs_' + senderId, JSON.stringify(savedMsgs));
+                        } catch (storageErr) {
+                            for (let i = 0; i < localStorage.length; i++) {
+                                let key = localStorage.key(i);
+                                if (key.startsWith('bapp_msgs_')) {
+                                    let msgs = JSON.parse(localStorage.getItem(key)) || [];
+                                    msgs.forEach(m => { if (m.isImage && m.text && m.text.startsWith('data:image')) { m.text = "📷 [Image removed]"; m.isImage = false; } });
+                                    localStorage.setItem(key, JSON.stringify(msgs));
+                                }
+                            }
+                            localStorage.setItem('bapp_msgs_' + senderId, JSON.stringify(savedMsgs));
+                        }
+                        
+                        saveChat(senderId);
+                        if (activeChatId === senderId) {
+                            appendMessage(saveText, 'received', now, '', msg.isImage, msg.isVoice, msg.msgId, msg.replyData, msg.isWhisper, msg.isVideo, msg.bubbleColor);
+                        } else {
+                            let unreads = getUnreads();
+                            unreads[senderId] = (unreads[senderId] || 0) + 1;

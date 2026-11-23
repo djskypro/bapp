@@ -1,0 +1,68 @@
+--- APPEND MESSAGE IMAGE BLOCK ---
+1706:    } else if (isImage) {
+1707-      const img = document.createElement('img'); 
+1708-      img.src = text; 
+1709-      img.style.cursor = 'pointer';
+1710-      newMsg.appendChild(img);
+1711-    } else if (isVoice || (text && text.startsWith('data:audio'))) {
+1712-      // Build Custom WhatsApp Player
+1713-      const playerDiv = document.createElement('div');
+1714-      playerDiv.className = 'wa-audio';
+1715-      
+1716-      const playBtn = document.createElement('div');
+1717-      playBtn.className = 'wa-play-btn';
+1718-      playBtn.innerText = '▶';
+1719-      
+1720-      const waveDiv = document.createElement('div');
+1721-      waveDiv.className = 'wa-waveform';
+--
+2605:    if (isImage) {
+2606-      const img = document.createElement('img'); img.src = text; newMsg.appendChild(img);
+2607-    } else if (isVoice) {
+2608-      const audio = document.createElement('audio');
+2609-      audio.controls = true;
+2610-      audio.src = text;
+2611-      newMsg.appendChild(audio);
+2612-    } else {
+2613-      newMsg.appendChild(document.createTextNode(text));
+2614-    }
+2615-
+2616-    const timeSpan = document.createElement('span');
+2617-    timeSpan.className = 'msg-time';
+2618-    timeSpan.textContent = timeStr || new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+2619-    newMsg.appendChild(timeSpan);
+2620-
+--
+2679:    if (isImage) {
+2680-      const img = document.createElement('img'); 
+2681-      img.src = text; 
+2682-      img.style.cursor = 'pointer';
+2683-      newMsg.appendChild(img);
+2684-    } else if (isVoice || (text && text.startsWith('data:audio'))) {
+2685-      
+2686-      // BUILD THE WHATSAPP PLAYER
+2687-      const playerDiv = document.createElement('div');
+2688-      playerDiv.className = 'wa-audio';
+2689-      
+2690-      const playBtn = document.createElement('div');
+2691-      playBtn.className = 'wa-play-btn';
+2692-      playBtn.innerText = '▶';
+2693-      
+2694-      const waveDiv = document.createElement('div');
+--
+3089:        if (isImage) {
+3090-          const img = document.createElement('img'); 
+3091-          img.src = text; 
+3092-          img.style.cursor = 'pointer';
+3093-          newMsg.appendChild(img);
+3094-        } else if (isVoice || (text && text.startsWith('data:audio'))) {
+3095-          // BUILD THE WHATSAPP PLAYER
+3096-          const playerDiv = document.createElement('div');
+3097-          playerDiv.className = 'wa-audio';
+3098-          
+3099-          const playBtn = document.createElement('div');
+3100-          playBtn.className = 'wa-play-btn';
+3101-          playBtn.innerText = '▶';
+3102-          
+3103-          const waveDiv = document.createElement('div');
+3104-          waveDiv.className = 'wa-waveform';

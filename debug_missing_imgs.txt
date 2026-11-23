@@ -1,0 +1,54 @@
+--- 1. SERVER SEND MESSAGE BLOCK ---
+150:        if (data.type === 'send_message') {
+151-            const { to, from, text, isImage, isVoice, msgId, replyData, isWhisper, isVideo, bubbleColor } = data;
+152-            const cleanTo = to.trim();
+153-            
+154-            console.log(`📩 Msg from [${from}] to [${cleanTo}] isVoice: ${isVoice}`);
+155-
+156-            const targetWs = bappUsers.get(cleanTo);
+157-            let delivered = false;
+158-
+159-            // Check if the user exists AND the socket is actually open (readyState 1)
+160-            if (targetWs && targetWs.readyState === 1) {
+161-                try {
+162-                    targetWs.send(JSON.stringify({
+163-                        type: 'new_message',
+164-                        from: from,
+165-                        text: text,
+166-                        isImage: isImage || false,
+167-                        isVoice: isVoice || false,
+168-                        msgId: msgId,
+169-                        replyData: replyData,
+170-                        isWhisper: isWhisper || false,
+171-                        isVideo: isVideo || false,
+172-                        bubbleColor: bubbleColor
+173-                    }));
+174-                    delivered = true;
+175-                } catch (err) {
+
+--- 2. CLIENT RECEIVE BLOCK ---
+3046:      if (data.type === 'new_message') {
+3047-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+3048-        const senderId = (data.from || '').trim();
+3049-        
+3050-        if (data.senderProfile) {
+3051-            let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+3052-            profiles[senderId] = data.senderProfile;
+3053-            localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+3054-        }
+3055-        
+3056-        let saveText = data.text;
+3057-        if (data.isImage && !data.isVideo) {
+3058-            saveImgToDB(data.msgId, data.text);
+3059-            saveText = "img_ref_" + data.msgId;
+3060-        }
+3061-
+3062-        try {
+3063-          const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + senderId)) || [];
+3064-          savedMsgs.push({ text: saveText, type: 'received', time: now, isImage: data.isImage, isVoice: data.isVoice, msgId: data.msgId, replyData: data.replyData, isWhisper: data.isWhisper, bubbleColor: data.bubbleColor });
+3065-          localStorage.setItem('bapp_msgs_' + senderId, JSON.stringify(savedMsgs));
+3066-        } catch(e) {
+--
+3576:      if (data.type === 'new_message') {
+3577-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+3578-        const senderId = (data.from || '').trim();

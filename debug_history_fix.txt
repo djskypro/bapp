@@ -1,0 +1,60 @@
+--- 1. FULLSCREEN FUNCTIONS ---
+5424:  function openFullscreenMedia(src) {
+5425-    document.getElementById('full-image-src').src = src;
+5426-    document.getElementById('full-image-viewer').style.display = 'flex';
+5427-    // Push state so hardware back works correctly
+5428-    history.pushState({ view: 'image' }, '', '#image');
+5429-  }
+5430-  
+5431-  function closeFullscreenMedia() {
+5432-    document.getElementById('full-image-viewer').style.display = 'none';
+5433-    // If we are on the #image state, go back to fix history
+5434-    if (window.location.hash === '#image') history.back();
+5431:  function closeFullscreenMedia() {
+5432-    document.getElementById('full-image-viewer').style.display = 'none';
+5433-    // If we are on the #image state, go back to fix history
+5434-    if (window.location.hash === '#image') history.back();
+5435-  }
+5436-</script>
+5437-
+5438-<style>
+5439-  #bapp-ai-orb {
+5440-    position: fixed;
+5441-    bottom: 90px;
+
+--- 2. POPSTATE ---
+2286:  window.addEventListener('popstate', function(event) {
+2287-    // Check if the full screen image viewer is open
+2288-    const imgViewer = document.getElementById('full-image-viewer');
+2289-    if (imgViewer && imgViewer.style.display === 'flex') {
+2290-        closeFullscreenMedia();
+2291-        history.pushState({ view: 'chat' }, '', '#chat'); // Stay in chat
+2292-        return;
+2293-    }
+2294-    // Otherwise, reset the UI to home
+2295-    resetToHome();
+2296-  });
+2297-
+2298-  
+
+--- 3. GESTURE ---
+4548:  function handleBackGesture() {
+4549-    // 0. Close Full Screen Image Viewer
+4550-    const imgViewer = document.getElementById('full-image-viewer');
+4551-    if (imgViewer && imgViewer.style.display === 'flex') {
+4552-        closeFullscreenMedia();
+4553-        return;
+4554-    }
+4555-    
+4556-    // 1. Close Full Screen Status Viewer
+4557-    const statusViewer = document.getElementById('status-viewer');
+4558-    if (statusViewer && statusViewer.style.display === 'flex') {
+4559-      closeStatusViewer(); return;
+4560-    }
+
+--- 4. VIEWER HTML ---
+2288:    const imgViewer = document.getElementById('full-image-viewer');
+4550:    const imgViewer = document.getElementById('full-image-viewer');
+5426:    document.getElementById('full-image-viewer').style.display = 'flex';
+5432:    document.getElementById('full-image-viewer').style.display = 'none';
+5474:<div id="full-image-viewer" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 9999999; justify-content: center; align-items: center;" onclick="closeFullscreenMedia()">

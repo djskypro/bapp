@@ -1,0 +1,35 @@
+--- 1. OPEN CHAT START ---
+1902:  function openChat(id, profileObj) {
+1903-    history.pushState({ view: 'chat' }, '', '#chat');
+1904-    // --- RESTORE REPLY STATE FOR THIS CHAT ---
+1905-    const replyBox = document.getElementById('reply-preview');
+1906-    if (window.replyState && window.replyState[id]) {
+1907-        currentReplyTo = window.replyState[id];
+1908-        if (replyBox) {
+1909-            replyBox.style.display = 'block';
+1910-            document.getElementById('reply-preview-name').innerText = 'Replying to ' + currentReplyTo.name;
+1911-            document.getElementById('reply-preview-text').innerText = currentReplyTo.text.startsWith('data:image') ? '📷 Photo' : (currentReplyTo.text.startsWith('data:audio') ? '🎤 Voice Note' : currentReplyTo.text);
+1912-        }
+1913-    } else {
+1914-        currentReplyTo = null;
+1915-        if (replyBox) replyBox.style.display = 'none';
+1916-    }
+1917-    // ---------------------------------------
+
+--- 2. AI EXECUTE FUNCTION ---
+4979:      if (actionType === 'message') {
+4980-        speakBappAI("Sending message to " + foundDisplayName);
+4981-        openChat(foundUserId);
+4982-        setTimeout(() => {
+4983-            document.getElementById('chat-input').value = messageText;
+4984-            sendMessage();
+4985-        }, 800); // Wait for chat to open
+4986-      } 
+4987-      else if (actionType === 'call') {
+4988-        speakBappAI("Calling " + foundDisplayName);
+4989-        openChat(foundUserId);
+4990-        setTimeout(() => {
+4991-            startCall('audio');
+4992-        }, 800);
+4993-      }
+4994-    }

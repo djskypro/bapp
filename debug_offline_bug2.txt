@@ -1,0 +1,69 @@
+--- SERVER OFFLINE SAVE FULL ---
+                console.log("✅ Delivered (Receipt Sent)");
+            } else {
+                const db = JSON.parse(fs.readFileSync(DB_FILE));
+                if (!db[cleanTo]) db[cleanTo] = [];
+                db[cleanTo].push({ 
+                    from: from, 
+                    text: text, 
+                    isImage: isImage || false, 
+                    isVoice: isVoice || false, msgId: msgId, replyData: replyData,
+                    msgId: msgId,
+                    replyData: replyData,
+                    isWhisper: isWhisper
+                });
+                fs.writeFileSync(DB_FILE, JSON.stringify(db));
+                console.log("💾 Offline Saved");
+            }
+        }
+    });
+
+    ws.on('close', () => {
+        for (let [userId, userWs] of bappUsers.entries()) {
+
+--- CLIENT SEND FULL ---
+  function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    const to = document.getElementById('chat-name').textContent.trim();
+    if (text !== "" && socket.readyState !== WebSocket.OPEN) {
+      alert("⚠️ You are offline or the server is down. Message not sent.");
+      return;
+    }
+    
+    if (text !== "" && socket.readyState !== WebSocket.OPEN) {
+      alert("⚠️ You are offline. Message not sent. Please wait for reconnection.");
+      return;
+    }
+
+    if (text !== "" && socket.readyState === WebSocket.OPEN) {
+      const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      const msgId = Date.now().toString();
+
+      socket.send(JSON.stringify({ 
+          type: 'send_message', 
+          to: activeChatId, 
+          from: myBappId, 
+          text: text,
+          msgId: msgId,
+          replyData: currentReplyTo
+      }));
+      
+      appendMessage(text, 'sent', now, 'sent', false, false, msgId, currentReplyTo);
+      input.value = '';
+      
+      const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + activeChatId)) || [];
+      savedMsgs.push({ text: text, type: 'sent', time: now, status: 'sent', msgId: msgId, replyData: currentReplyTo });
+      localStorage.setItem('bapp_msgs_' + activeChatId, JSON.stringify(savedMsgs));
+      loadChatList();
+      
+      
+        const rp = document.getElementById('reply-preview');
+        if (rp) rp.style.display = 'none';
+        currentReplyTo = null;
+        if (window.replyState && activeChatId) delete window.replyState[activeChatId];
+ // Hide preview after sending
+    }
+  }
+  function handleEnter(e) { if (e.key === 'Enter') sendMessage(); }
+

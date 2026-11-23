@@ -1,0 +1,57 @@
+--- 1. IMAGE SAVE/LOAD ---
+2198:  function saveImgToDB(id, base64) {
+2199-      return new Promise((resolve) => {
+2200-          if(!bappDB) {
+2201-              setTimeout(() => resolve(saveImgToDB(id, base64)), 100);
+2202-              return;
+2203-          }
+2204-          try {
+2205-              let tx = bappDB.transaction("images", "readwrite");
+2206-              let req = tx.objectStore("images").put(base64, id);
+2207-              req.onsuccess = function() { resolve(true); };
+2208-              req.onerror = function(e) { console.log("DB Save Error", e); resolve(false); };
+2213:  function getImgFromDB(id, callback) {
+2214-      if(!bappDB) { 
+2215-          setTimeout(() => getImgFromDB(id, callback), 100);
+2216-          return; 
+2217-      }
+2218-      try {
+2219-          let tx = bappDB.transaction("images", "readonly");
+2220-          let req = tx.objectStore("images").get(id);
+2221-          req.onsuccess = function() { callback(req.result); };
+2222-          req.onerror = function() { callback(null); };
+2223-      } catch(e) { callback(null); }
+2224-  }
+2225-
+2226-  
+2227-  window.enablePanicMode = localStorage.getItem('bapp_panic_mode') !== 'false';
+2228-  window.enableShakeToUndo = localStorage.getItem('bapp_shake_undo') === 'true';
+
+--- 2. OFFLINE IMAGE PROCESSING ---
+
+--- 3. APPEND MESSAGE IMAGE RENDER ---
+2593:    } else if (isImage) {
+2594-      const img = document.createElement('img');
+2595-      img.style.cursor = 'pointer';
+2596-      
+2597-      if (text.startsWith('img_ref_')) {
+2598-          // It's an IndexedDB image. Load it safely.
+2599-          const realId = text.replace('img_ref_', '');
+2600-          img.style.minHeight = '150px';
+2601-          img.style.backgroundColor = 'rgba(255,255,255,0.05)';
+2602-          img.style.borderRadius = '10px';
+2603-          
+2604-          getImgFromDB(realId, function(base64Data) {
+2605-              if(base64Data) {
+2606-                  img.src = base64Data;
+2607-                  img.style.minHeight = 'auto';
+2608-                  img.style.backgroundColor = 'transparent';
+2609-              }
+2610-          });
+2611-      } else {
+2612-          // Fallback for old normal images
+2613-          img.src = text; 
+--
+3856:    if (isImage) {
+3857-      const img = document.createElement('img'); 
+3858-      img.src = text; 

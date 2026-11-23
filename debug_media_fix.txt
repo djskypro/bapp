@@ -1,0 +1,113 @@
+--- 1. SERVER SAVE HELPER ---
+8:function saveImageToFile(text, isImage) {
+9-    if (!isImage || !text || !text.startsWith('data:image')) return text;
+10-    try {
+11-        const filename = 'img_' + Date.now() + '_' + Math.floor(Math.random()*1000) + '.jpg';
+12-        const base64Data = text.replace(/^data:image\/\w+;base64,/, "");
+13-        fs.writeFileSync(path.join(__dirname, 'media', filename), base64Data, 'base64');
+14-        console.log("💾 Saved image file:", filename);
+15-        return '/media/' + filename;
+16-    } catch(e) { 
+17-        console.error("❌ Failed to save image file:", e); 
+18-        return text; // Fallback to base64
+
+--- 2. CLIENT CONFIRM SEND ---
+  function confirmMediaSend() {
+    if(!pendingMediaBase64) return;
+    
+    // Instantly close modal
+    document.getElementById('media-preview-modal').style.display = 'none';
+    
+    const to = activeChatId;
+    const base64Img = pendingMediaBase64;
+    const isVid = pendingIsVideo;
+    const msgId = Date.now().toString();
+    const reply = currentReplyTo;
+    
+    const payload = { 
+        type: 'send_message', 
+        to: to, 
+        from: myBappId, 
+        text: base64Img, 
+        isImage: !isVid, 
+        isVideo: isVid, 
+        msgId: msgId, 
+        replyData: reply 
+    };
+    
+    // CHECK IF ONLINE, IF NOT, QUEUE IT
+    if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify(payload));
+    } else {
+        let queue = JSON.parse(localStorage.getItem('bapp_offline_queue')) || [];
+        queue.push(payload);
+        localStorage.setItem('bapp_offline_queue', JSON.stringify(queue));
+        console.log("📩 Image queued. Will send when online.");
+    }
+    const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    appendMessage(base64Img, 'sent', now, 'sent', !isVid, false, msgId, reply, false, isVid);
+
+    const rp = document.getElementById('reply-preview');
+    if (rp) rp.style.display = 'none';
+    currentReplyTo = null;
+    if (window.replyState && activeChatId) delete window.replyState[activeChatId];
+
+    try {
+        const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+        savedMsgs.push({ text: base64Img, type: 'sent', time: now, isImage: !isVid, isVideo: isVid, status: 'sent' });
+        localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+        loadChatList();
+
+        document.getElementById('reply-preview').style.display = 'none';
+        currentReplyTo = null;
+        if (window.replyState) delete window.replyState[to];
+    } catch(err) { 
+        // Auto-cleanup
+        for (let i = 0; i < localStorage.length; i++) {
+            let key = localStorage.key(i);
+            if (key.startsWith('bapp_msgs_')) {
+                let msgs = JSON.parse(localStorage.getItem(key)) || [];
+                let changed = false;
+                msgs.forEach(m => {
+                    if (m.isImage && m.text && m.text.startsWith('data:image')) {
+                        m.text = "📷 [Image removed to save space]";
+                        m.isImage = false;
+                        changed = true;
+                    }
+                });
+                if (changed) localStorage.setItem(key, JSON.stringify(msgs));
+            }
+        }
+        try {
+            const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+            savedMsgs.push({ text: base64Img, type: 'sent', time: now, isImage: !isVid, isVideo: isVid, status: 'sent' });
+            localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+            loadChatList();
+        } catch(e2) { alert("Phone storage is completely full."); }
+    }
+    
+    pendingMediaBase64 = null;
+  }
+
+--- 3. CLIENT APPEND IMAGE ---
+2593:    } else if (isImage) {
+2594-      const img = document.createElement('img');
+2595-      img.style.cursor = 'pointer';
+2596-      
+2597-      if (text.startsWith('/media/')) {
+2598-          // It's a URL from the server!
+2599-          img.src = text;
+2600-          img.style.borderRadius = '10px';
+2601-          img.style.maxWidth = '100%';
+2602-      } else if (text.startsWith('img_ref_')) {
+2603-          // It's an IndexedDB image. Load it safely.
+2604-          const realId = text.replace('img_ref_', '');
+2605-          img.style.minHeight = '150px';
+2606-          img.style.backgroundColor = 'rgba(255,255,255,0.05)';
+2607-          img.style.borderRadius = '10px';
+2608-          
+2609-          getImgFromDB(realId, function(base64Data) {
+2610-              if(base64Data) {
+2611-                  img.src = base64Data;
+2612-                  img.style.minHeight = 'auto';
+2613-                  img.style.backgroundColor = 'transparent';

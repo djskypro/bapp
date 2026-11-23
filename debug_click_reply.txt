@@ -1,0 +1,55 @@
+--- APPEND MESSAGE ---
+1584:  function appendMessage(text, type, timeStr, status = '', isImage = false, isVoice = false, msgId = null, replyData = null) {
+1585-    const msgBox = document.getElementById('chat-messages');
+1586-    if (!msgBox) return;
+1587-    const newMsg = document.createElement('div');
+1588-    newMsg.className = 'msg ' + type;
+1589-    
+1590-    const id = msgId || Date.now().toString();
+1591-    newMsg.id = 'msg-' + id;
+1592-
+1593-    if (replyData) {
+1594-        const quote = document.createElement('div');
+1595-        quote.className = 'quoted-msg';
+1596-        quote.innerHTML = '<strong>' + replyData.name + '</strong>' + (replyData.text.startsWith('data:image') ? '📷 Photo' : (replyData.text.startsWith('data:audio') ? '🎤 Voice Note' : replyData.text));
+1597-        if (replyData.msgId) {
+1598-            quote.style.cursor = 'pointer';
+1599-            quote.onclick = function() { scrollToMessage(replyData.msgId); };
+
+--- SCROLL FUNCTION ---
+2715:  function scrollToMessage(msgId) {
+2716-    if(!msgId) return;
+2717-    const target = document.getElementById('msg-' + msgId);
+2718-    if (target) {
+2719-      // Scroll to the message smoothly
+2720-      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+2721-      
+2722-      // Add the green highlight
+2723-      target.classList.add('highlight-flash');
+2724-      
+2725-      // Remove the highlight after 3 seconds
+--
+2839:  function scrollToMessage(msgId) {
+2840-    if(!msgId) return;
+2841-    const target = document.getElementById('msg-' + msgId);
+2842-    if (target) {
+2843-      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+2844-      target.classList.add('highlight-flash');
+2845-      setTimeout(() => {
+2846-        target.classList.remove('highlight-flash');
+2847-      }, 3000);
+2848-    }
+2849-  }
+
+--- EXECUTE REPLY ---
+2851:  function executeReply() {
+2852-    const el = activeMsgElement;
+2853-    const text = el.dataset.msgText;
+2854-    const isMe = el.dataset.isMe === 'true';
+2855-    
+2856-    currentReplyTo = {
+2857-      msgId: el.dataset.msgId,
+2858-      text: text,
+2859-      name: isMe ? 'You' : document.getElementById('chat-name').textContent
+2860-    };
+2861-    window.replyState[activeChatId] = currentReplyTo; // Save to memory

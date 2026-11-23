@@ -1,0 +1,48 @@
+--- 1. SERVER SAVING OFFLINE ---
+265:                console.log("💾 Offline Saved");
+266-            }
+267-        }
+268-    });
+269-
+270-    ws.on('close', () => {
+271-        for (let [userId, userWs] of bappUsers.entries()) {
+272-            if (userWs === ws) {
+273-                bappUsers.delete(userId);
+274-                console.log(`🔴 Disconnected: ${userId}`);
+275-            }
+
+--- 2. SERVER DELIVERING OFFLINE ---
+81:        if (data.type === 'register_user') {
+82-            const users = JSON.parse(fs.readFileSync(USERS_FILE));
+83-            users[data.username] = data.profile || { name: data.username };
+84-            allUsers = users;
+85-            fs.writeFileSync(USERS_FILE, JSON.stringify(users));
+86-            
+87-            bappUsers.set(data.username, ws);
+88-            console.log(`🟢 BAPP Connected: ${data.username}`);
+89-            ws.send(JSON.stringify({ type: 'register_success', username: data.username }));
+90-            
+91-            const db = JSON.parse(fs.readFileSync(DB_FILE));
+92-            if (db[data.username] && db[data.username].length > 0) {
+93-                const msgsToSend = db[data.username];
+94-                delete db[data.username];
+95-                try {
+96-                    fs.writeFileSync(DB_FILE, JSON.stringify(db));
+
+--- 3. CLIENT RECEIVING OFFLINE ---
+3284:      if (data.type === 'offline_messages') {
+3285-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+3286-        
+3287-        // Use an async loop to wait for the database
+3288-        (async () => {
+3289-            for (const msg of data.messages) {
+3290-                const senderId = (msg.from || '').trim();
+3291-                let saveText = msg.text;
+3292-                
+3293-                // WAIT for the image to save to IndexedDB
+3294-                if (msg.isImage && !msg.isVideo && msg.msgId) {
+3295-                    if (typeof saveImgToDB === 'function') {
+3296-                        await saveImgToDB(msg.msgId, msg.text); 
+3297-                    }
+3298-                    saveText = "img_ref_" + msg.msgId;
+3299-                }

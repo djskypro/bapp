@@ -1,0 +1,90 @@
+--- 1. IMAGE RENDERING BLOCK ---
+2351:    } else if (isImage) {
+2352-      const img = document.createElement('img'); 
+2353-      img.src = text; 
+2354-      img.style.cursor = 'pointer';
+2355-      newMsg.appendChild(img);
+2356-    } else if (isVoice || (text && text.startsWith('data:audio'))) {
+2357-      // Build Custom WhatsApp Player
+2358-      const playerDiv = document.createElement('div');
+2359-      playerDiv.className = 'wa-audio';
+2360-      
+2361-      const playBtn = document.createElement('div');
+2362-      playBtn.className = 'wa-play-btn';
+2363-      playBtn.innerText = '▶';
+2364-      
+2365-      const waveDiv = document.createElement('div');
+2366-      waveDiv.className = 'wa-waveform';
+--
+3397:    if (isImage) {
+3398-      const img = document.createElement('img'); img.src = text; newMsg.appendChild(img);
+3399-    } else if (isVoice) {
+3400-      const audio = document.createElement('audio');
+3401-      audio.controls = true;
+3402-      audio.src = text;
+3403-      newMsg.appendChild(audio);
+3404-    } else {
+3405-      
+3406-      if (type === 'received' && typeof text === 'string' && text.length > 0 && !text.startsWith('data:')) {
+3407-          const textSpan = document.createElement('span');
+3408-          newMsg.appendChild(textSpan);
+3409-          
+3410-          const originalText = Array.from(text);
+3411-          const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+{}[]<>';
+3412-          let iteration = 0;
+--
+3525:    if (isImage) {
+3526-      const img = document.createElement('img'); 
+3527-      img.src = text; 
+3528-      img.style.cursor = 'pointer';
+3529-      newMsg.appendChild(img);
+3530-    } else if (isVoice || (text && text.startsWith('data:audio'))) {
+3531-      
+3532-      // BUILD THE WHATSAPP PLAYER
+3533-      const playerDiv = document.createElement('div');
+3534-      playerDiv.className = 'wa-audio';
+3535-      
+3536-      const playBtn = document.createElement('div');
+3537-      playBtn.className = 'wa-play-btn';
+3538-      playBtn.innerText = '▶';
+3539-      
+3540-      const waveDiv = document.createElement('div');
+--
+3966:        if (isImage) {
+3967-          const img = document.createElement('img'); 
+3968-          img.src = text; 
+3969-          img.style.cursor = 'pointer';
+3970-          newMsg.appendChild(img);
+3971-        } else if (isVoice || (text && text.startsWith('data:audio'))) {
+3972-          // BUILD THE WHATSAPP PLAYER
+3973-          const playerDiv = document.createElement('div');
+3974-          playerDiv.className = 'wa-audio';
+3975-          
+3976-          const playBtn = document.createElement('div');
+3977-          playBtn.className = 'wa-play-btn';
+3978-          playBtn.innerText = '▶';
+3979-          
+3980-          const waveDiv = document.createElement('div');
+3981-          waveDiv.className = 'wa-waveform';
+--
+4747:    if (isImage) {
+4748-      const img = document.createElement('img'); img.src = text; img.style.cursor = 'pointer';
+4749-      img.onclick = function(e) { e.stopPropagation(); openFullscreenMedia(this.src, false); };
+4750-      newMsg.appendChild(img);
+4751-    } else if (isVoice || (text && text.startsWith('data:audio'))) {
+4752-      const audio = document.createElement('audio'); audio.controls = true; audio.src = text; newMsg.appendChild(audio);
+4753-    } else {
+4754-      
+4755-      if (type === 'received' && typeof text === 'string' && text.length > 0 && !text.startsWith('data:')) {
+4756-          const textSpan = document.createElement('span');
+4757-          newMsg.appendChild(textSpan);
+4758-          
+4759-          const originalText = Array.from(text);
+4760-          const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+{}[]<>';
+4761-          let iteration = 0;
+4762-          
+
+--- 2. EXISTING FULLSCREEN CODE ---
+2999:    document.getElementById('fullscreen-img').src = src;
+3066:  <img id="fullscreen-img" src="">
+4749:      img.onclick = function(e) { e.stopPropagation(); openFullscreenMedia(this.src, false); };

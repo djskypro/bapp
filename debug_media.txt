@@ -1,0 +1,28 @@
+--- FILE INPUT & UPLOAD ---
+1858:  function handleImageUpload(event) {
+1859-    const file = event.target.files[0];
+1860-    if(!file) return;
+1861-    const to = activeChatId;
+1862-    
+1863-    // Check if it's a video
+1864-    if (file.type.startsWith('video/')) {
+1865-        if (file.size > 100 * 1024 * 1024) {
+1866-            alert("Video is too large! Please select a video under 100MB.");
+1867-            return;
+1868-        }
+1869-        
+1870-        // Show a small loading indication in console
+1871-        console.log("Compressing video...");
+1872-        
+1873-        const reader = new FileReader();
+1874-        reader.onload = function(e) {
+1875-            const base64Video = e.target.result;
+1876-            const msgId = Date.now().toString();
+1877-            const reply = currentReplyTo;
+1878-            const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+1879-            
+1880-            // Send to server
+1881-            socket.send(JSON.stringify({ type: 'send_message', to: to, from: myBappId, text: base64Video, isVideo: true, msgId: msgId, replyData: reply }));
+1882-            
+1883-            // Render on our screen
+1329:    <input type="file" id="file-input" accept="image/*,video/*" style="display:none" onchange="handleImageUpload(event)">

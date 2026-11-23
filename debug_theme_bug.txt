@@ -1,0 +1,106 @@
+--- 1. SEND MESSAGE ---
+  function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if (text === "") return;
+
+    const to = activeChatId;
+    const reply = currentReplyTo;
+    const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    const msgId = Date.now().toString();
+    
+    const isConnected = socket.readyState === WebSocket.OPEN;
+    const status = isConnected ? 'sent' : 'pending';
+
+    // 1. Show on screen immediately
+    appendMessage(text, 'sent', now, status, false, false, msgId, reply);
+    input.value = '';
+
+    // 2. Save to local memory
+    try {
+        const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+        savedMsgs.push({ text: text, type: 'sent', time: now, status: status, msgId: msgId, replyData: reply, bubbleColor: myProfile.bubbleColor || '#005c4b' });
+        localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+        loadChatList();
+    } catch(e) { console.error("Storage full"); }
+
+    const rp = document.getElementById('reply-preview');
+    if (rp) rp.style.display = 'none';
+    currentReplyTo = null;
+    if (window.replyState && activeChatId) delete window.replyState[activeChatId];
+
+    // 3. Send now OR save to Offline Queue
+    const payload = {
+        type: 'send_message',
+        to: to,
+        from: myBappId,
+        text: text,
+        msgId: msgId,
+        replyData: reply,
+        bubbleColor: myProfile.bubbleColor || '#005c4b'
+    };
+
+    if (isConnected) {
+        socket.send(JSON.stringify(payload));
+    } else {
+        let queue = JSON.parse(localStorage.getItem('bapp_offline_queue')) || [];
+        queue.push(payload);
+        localStorage.setItem('bapp_offline_queue', JSON.stringify(queue));
+        console.log("📩 Message queued. Will send when online.");
+    }
+  }
+
+--- 2. OPEN CHAT LOOP ---
+1708:    savedMsgs.forEach(m => appendMessage(m.text, m.type, m.time, m.status, m.isImage, m.isVoice, m.msgId, m.replyData, m.isWhisper, m.isVideo, m.bubbleColor));
+
+--- 3. OPEN SETTINGS ---
+  function openSettings() {
+    history.pushState({ view: 'settings' }, '', '#settings');
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('settings-view').classList.add('active');
+    document.getElementById('settings-username').value = myBappId;
+    document.getElementById('settings-name-input').value = myProfile.name;
+    document.getElementById('settings-bio').value = myProfile.bio || '';
+    document.getElementById('settings-phone').value = myProfile.phone || '';
+    document.getElementById('settings-location').value = myProfile.location || 'Unknown';
+    document.getElementById('settings-avatar').src = myProfile.avatar;
+    window.selectedBubbleColor = myProfile.bubbleColor || '#005c4b';
+    document.getElementById('settings-color-indicator').style.background = window.selectedBubbleColor;
+    document.getElementById('settings-auto-location').checked = myProfile.autoLocation || false;
+    if (myProfile.autoLocation) startAutoLocation(); else stopAutoLocation();
+  }
+
+--- 4. RECEIVE MESSAGE ---
+2390:      if (data.type === 'new_message') {
+2391-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+2392-        const senderId = (data.from || '').trim();
+2393-        
+2394-        if (data.senderProfile) {
+2395-            let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+2396-            profiles[senderId] = data.senderProfile;
+2397-            localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+2398-        }
+2399-        
+2400-        try {
+2401-          const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + senderId)) || [];
+2402-          savedMsgs.push({ text: data.text, type: 'received', time: now, isImage: data.isImage, isVoice: data.isVoice, msgId: data.msgId, replyData: data.replyData, isWhisper: data.isWhisper, bubbleColor: data.bubbleColor });
+2403-          localStorage.setItem('bapp_msgs_' + senderId, JSON.stringify(savedMsgs));
+2404-        } catch(e) {
+2405-          console.warn("Receiver storage full! Clearing old images...");
+--
+2879:      if (data.type === 'new_message') {
+2880-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+2881-        const senderId = (data.from || '').trim();
+2882-        if (data.senderProfile) {
+2883-            let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+2884-            profiles[senderId] = data.senderProfile;
+2885-            localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+2886-        }
+2887-        try {
+2888-          const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + senderId)) || [];
+2889-          savedMsgs.push({ text: data.text, type: 'received', time: now, isImage: data.isImage, isVoice: data.isVoice, msgId: data.msgId, replyData: data.replyData, isWhisper: data.isWhisper, bubbleColor: data.bubbleColor });
+2890-          localStorage.setItem('bapp_msgs_' + senderId, JSON.stringify(savedMsgs));
+2891-        } catch(e) {
+2892-          console.warn("Receiver storage full! Clearing old images...");
+2893-          for (let i = 0; i < localStorage.length; i++) {
+2894-              let key = localStorage.key(i);

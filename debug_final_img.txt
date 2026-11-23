@@ -1,0 +1,41 @@
+--- FULLSCREEN HTML ---
+3648:    const viewer = document.getElementById('fullscreen-viewer');
+3649-    const img = document.getElementById('fullscreen-img');
+3650-    const video = document.getElementById('fullscreen-video');
+3651-    
+3652-    viewer.style.display = 'flex';
+3653-    
+--
+3684:        document.getElementById('fullscreen-viewer').style.display = 'none';
+3685-    }
+3686-  }
+3687-</script>
+3688-
+3689:<div id="fullscreen-viewer" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:99999; flex-direction:column; justify-content:center; align-items:center;">
+3690-  
+3691-  <!-- Close Button -->
+3692:  <div style="position:absolute; top:30px; left:20px; color:white; font-size:35px; cursor:pointer; z-index:100000; text-shadow: 0 0 10px rgba(0,0,0,0.8);" onclick="document.getElementById('fullscreen-viewer').style.display='none'">✕</div>
+3693-  
+3694-  <!-- Image (Fits Screen) -->
+3695-  <img id="fullscreen-img" src="" style="width:100vw; height:100vh; object-fit:contain; display:none;">
+3696-  
+3697-  <!-- Video (Fits Screen) -->
+
+--- IMAGE RENDERING LINES ---
+1708:     img.src = text; 
+2616:     img.src = text; 
+2693:     img.src = text; 
+3104:     img.src = text; 
+
+--- OPEN FULLSCREEN FUNCTION ---
+3646:  function openFullscreenMedia(src, isVideo) {
+3647-    currentViewMedia = src;
+3648-    const viewer = document.getElementById('fullscreen-viewer');
+3649-    const img = document.getElementById('fullscreen-img');
+3650-    const video = document.getElementById('fullscreen-video');
+3651-    
+3652-    viewer.style.display = 'flex';
+3653-    
+3654-    if (isVideo || src.startsWith('data:video')) {
+3655-      img.style.display = 'none';
+3656-      video.style.display = 'block';

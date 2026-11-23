@@ -1,0 +1,10 @@
+--- INPUT HTML ---
+2168:  <div class="chat-input-area">
+2169-    <div class="attach-btn" onclick="document.getElementById('file-input').click()">📎</div>
+2170-    <input type="file" id="file-input" accept="image/*,video/*" style="display:none" onchange="handleImageUpload(event)">
+2171-    
+2172-    <input type="text" id="chat-input" placeholder="Message" onkeypress="handleEnter(event)">
+2173-    
+2174-    
+2175-    <div class="mic-btn" id="mic-btn" onclick="toggleRecording()" style="background:var(--primary); width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: black; font-size: 20px; cursor: pointer; margin-left: 5px;">🎤</div>
+2176-    <div id="whisper-toggle" onclick="toggleWhisperMode()" style="display:none; width: 45px; height: 45px; border-radius: 50%; background: var(--search-bg); justify-content: center; align-items: center; font-size: 20px; cursor: pointer; margin-right: 5px; transition: 0.2s;">👻</div>

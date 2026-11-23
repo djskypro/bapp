@@ -1,0 +1,7 @@
+node_modules/
+media/
+*.zip
+*.log
+offline_db.json
+users.json
+auth_info/

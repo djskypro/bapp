@@ -1,0 +1,35 @@
+--- 1. IMAGE RENDERING (HOW IT'S DRAWN) ---
+2351:    } else if (isImage) {
+2352-      const img = document.createElement('img'); 
+2353-      img.src = text; 
+2354-      img.style.cursor = 'pointer';
+2355-      newMsg.appendChild(img);
+2356-    } else if (isVoice || (text && text.startsWith('data:audio'))) {
+2357-      // Build Custom WhatsApp Player
+2358-      const playerDiv = document.createElement('div');
+2359-      playerDiv.className = 'wa-audio';
+2360-      
+2361-      const playBtn = document.createElement('div');
+2362-      playBtn.className = 'wa-play-btn';
+2363-      playBtn.innerText = '▶';
+2364-      
+2365-      const waveDiv = document.createElement('div');
+2366-      waveDiv.className = 'wa-waveform';
+--
+3397:    if (isImage) {
+3398-      const img = document.createElement('img'); img.src = text; newMsg.appendChild(img);
+3399-    } else if (isVoice) {
+3400-      const audio = document.createElement('audio');
+3401-      audio.controls = true;
+3402-      audio.src = text;
+3403-      newMsg.appendChild(audio);
+3404-    } else {
+3405-      
+3406-      if (type === 'received' && typeof text === 'string' && text.length > 0 && !text.startsWith('data:')) {
+3407-          const textSpan = document.createElement('span');
+3408-          newMsg.appendChild(textSpan);
+3409-          
+
+--- 2. THE VIEWER HTML ---
+
+--- 3. THE CLICK LISTENER JS ---

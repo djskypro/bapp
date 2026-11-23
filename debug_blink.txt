@@ -1,0 +1,42 @@
+--- BACKGROUND TEXTURE CODE ---
+464:  #magic-ball {
+465-    position: fixed;
+466-    top: 50%; left: 50%;
+467-    transform: translate(-50%, -50%);
+468-    width: 600px; /* Made it huge so it feels like a background wall */
+469-    height: 600px;
+470-    border-radius: 50%;
+471-    z-index: 0; 
+472-    pointer-events: none;
+473-    
+474-    /* Extremely dark 3D lighting */
+--
+483:  #magic-ball::before {
+484-    content: '';
+485-    position: absolute;
+486-    top: -50%; left: -50%;
+487-    width: 200%; height: 200%;
+488-    
+489-    /* Dark grey overlapping scales */
+490-    background-image: 
+491-      radial-gradient(circle at 50% 0, transparent 20%, rgba(255, 255, 255, 0.04) 21%, rgba(255, 255, 255, 0.04) 34%, transparent 35%, transparent),
+492-      radial-gradient(circle at 0 50%, transparent 20%, rgba(255, 255, 255, 0.04) 21%, rgba(255, 255, 255, 0.04) 34%, transparent 35%, transparent),
+493-      radial-gradient(circle at 100% 50%, transparent 20%, rgba(255, 255, 255, 0.04) 21%, rgba(255, 255, 255, 0.04) 34%, transparent 35%, transparent),
+--
+502:  .light-mode #magic-ball {
+503-    background: radial-gradient(circle at 30% 30%, #f0f0f0 0%, #e0e0e0 80%);
+504-  }
+505:  .light-mode #magic-ball::before {
+506-    background-image: 
+507-      radial-gradient(circle at 50% 0, transparent 20%, rgba(0, 0, 0, 0.04) 21%, rgba(0, 0, 0, 0.04) 34%, transparent 35%, transparent),
+252:  .snake-bg {
+253-    position: absolute;
+254-    top: 0; left: 0; width: 100%; height: 100%;
+255-    background-color: var(--bg); /* Follows light/dark mode */
+256-    z-index: 0;
+257-    pointer-events: none;
+258-  }
+259-
+260-  
+261-  /* --- THE SPINNING SNAKE SPHERE --- */
+262-  .snake-sphere {

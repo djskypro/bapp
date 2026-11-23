@@ -1,0 +1,58 @@
+--- 1. MESSAGES CSS ---
+77:  .messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+78-  .msg { max-width: 80%; padding: 10px 12px; border-radius: 12px; font-size: 15px; line-height: 1.4; position: relative; word-wrap: break-word; }
+79-  .msg.received { background: var(--msg-received); align-self: flex-start; border-top-left-radius: 2px; }
+80-  .msg.sent { background: var(--msg-sent); color: var(--text); align-self: flex-end; border-top-right-radius: 2px; }
+81-  .msg-time { font-size: 10px; color: var(--text-muted); float: right; margin: 6px 0 0 12px; }
+82-  .msg.sent .msg-time { color: rgba(255,255,255,0.7); }
+--
+742:  .messages {
+743-    padding-left: 10px !important;
+744-    padding-right: 10px !important;
+745-    gap: 8px !important; /* Slightly closer messages */
+746-  }
+747-</style>
+--
+829:  .messages {
+830-    padding-top: 100px !important;
+831-    padding-bottom: 110px !important;
+832-  }
+833-</style>
+834-
+--
+1187:  .messages {
+1188-    flex: 1;
+1189-    overflow-y: auto;
+1190-  }
+1191-
+1192-  .chat-input-area {
+--
+1272:  .messages {
+1273-    padding-bottom: 100px !important;
+1274-  }
+1275-</style>
+1276-
+1277-<style>
+--
+1392:  .messages {
+1393-    padding-top: 80px !important;
+1394-  }
+1395-</style>
+1396-
+1397-<style>
+--
+1454:  .messages, #chat-messages {
+1455-    padding-bottom: 140px !important; /* Stops the last message from hiding */
+1456-  }
+1457-</style>
+1458-
+1459-<style>
+
+--- 2. ANIMATION SETTING LOAD ---
+2265:  window.enableAnimations = localStorage.getItem('bapp_animations') !== 'false';
+2266:  if (!window.enableAnimations) document.body.classList.add('no-animations');
+2579:    if (window.enableAnimations !== false) newMsg.classList.add('zoom-in');
+3139:    document.getElementById('settings-animations').checked = window.enableAnimations !== false;
+3157:    window.enableAnimations = document.getElementById('settings-animations').checked;
+3158:    localStorage.setItem('bapp_animations', window.enableAnimations);
+3159:    if (window.enableAnimations) document.body.classList.remove('no-animations');

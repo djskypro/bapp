@@ -1,0 +1,16 @@
+--- SERVER SEND BLOCK ---
+209:                        targetWs.send(JSON.stringify({ type: 'group_created', groupId, groupName, members }));
+210:                        targetWs.send(JSON.stringify({
+211-                            type: 'new_message', from: creator, text: "👋 You were added to the group: " + groupName,
+212-                            msgId: Date.now().toString(), isGroup: true, groupId: groupId, groupMembers: members, bubbleColor: '#005c4b'
+213-                        }));
+214-                    } else {
+215-                        // OFFLINE USER: Save group event to database
+216-                        let db = {};
+217-                        try { db = JSON.parse(fs.readFileSync(DB_FILE)); } catch(e) {}
+218-                        if (!db[member]) db[member] = [];
+219-                        db[member].push({
+220-                            isGroupEvent: true, groupId: groupId, groupName: groupName, members: members, creator: creator,
+--
+233:                targetWs.send(JSON.stringify({ type: 'added_to_group', groupId }));
+234-            }

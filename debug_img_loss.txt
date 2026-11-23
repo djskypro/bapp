@@ -1,0 +1,113 @@
+--- 1. CLIENT IMAGE SEND (confirmMediaSend) ---
+  function confirmMediaSend() {
+    if(!pendingMediaBase64) return;
+    
+    // Instantly close modal
+    document.getElementById('media-preview-modal').style.display = 'none';
+    
+    const to = activeChatId;
+    const base64Img = pendingMediaBase64;
+    const isVid = pendingIsVideo;
+    const msgId = Date.now().toString();
+    const reply = currentReplyTo;
+    
+    socket.send(JSON.stringify({ type: 'send_message', to: to, from: myBappId, text: base64Img, isImage: !isVid, isVideo: isVid, msgId: msgId, replyData: reply }));
+    const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    appendMessage(base64Img, 'sent', now, 'sent', !isVid, false, msgId, reply, false, isVid);
+
+    const rp = document.getElementById('reply-preview');
+    if (rp) rp.style.display = 'none';
+    currentReplyTo = null;
+    if (window.replyState && activeChatId) delete window.replyState[activeChatId];
+
+    try {
+        const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+        savedMsgs.push({ text: base64Img, type: 'sent', time: now, isImage: !isVid, isVideo: isVid, status: 'sent' });
+        localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+        loadChatList();
+
+        document.getElementById('reply-preview').style.display = 'none';
+        currentReplyTo = null;
+        if (window.replyState) delete window.replyState[to];
+    } catch(err) { 
+        // Auto-cleanup
+        for (let i = 0; i < localStorage.length; i++) {
+            let key = localStorage.key(i);
+            if (key.startsWith('bapp_msgs_')) {
+                let msgs = JSON.parse(localStorage.getItem(key)) || [];
+                let changed = false;
+                msgs.forEach(m => {
+                    if (m.isImage && m.text && m.text.startsWith('data:image')) {
+                        m.text = "📷 [Image removed to save space]";
+                        m.isImage = false;
+                        changed = true;
+                    }
+                });
+                if (changed) localStorage.setItem(key, JSON.stringify(msgs));
+            }
+        }
+        try {
+            const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+            savedMsgs.push({ text: base64Img, type: 'sent', time: now, isImage: !isVid, isVideo: isVid, status: 'sent' });
+            localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+            loadChatList();
+        } catch(e2) { alert("Phone storage is completely full."); }
+    }
+    
+    pendingMediaBase64 = null;
+  }
+
+--- 2. SERVER SEND MESSAGE BLOCK ---
+        if (data.type === 'send_message') {
+            const { to, from, text, isImage, isVoice, msgId, replyData, isWhisper, isVideo, bubbleColor } = data;
+            const cleanTo = to.trim();
+            
+            console.log(`📩 Msg from [${from}] to [${cleanTo}] isVoice: ${isVoice}`);
+
+            const targetWs = bappUsers.get(cleanTo);
+            let delivered = false;
+
+            // Check if the user exists AND the socket is actually open (readyState 1)
+            if (targetWs && targetWs.readyState === 1) {
+                try {
+                    targetWs.send(JSON.stringify({
+                        type: 'new_message',
+                        from: from,
+                        text: text,
+                        isImage: isImage || false,
+                        isVoice: isVoice || false,
+                        msgId: msgId,
+                        replyData: replyData,
+                        isWhisper: isWhisper || false,
+                        isVideo: isVideo || false,
+                        bubbleColor: bubbleColor
+                    }));
+                    delivered = true;
+                } catch (err) {
+                    console.log("⚠️ Ghost socket detected. Cleaning up...");
+                    bappUsers.delete(cleanTo);
+                }
+            }
+
+            if (delivered) {
+                ws.send(JSON.stringify({ type: 'delivered_receipt', to: cleanTo }));
+                console.log("✅ Delivered (Receipt Sent)");
+            } else {
+                const db = JSON.parse(fs.readFileSync(DB_FILE));
+                if (!db[cleanTo]) db[cleanTo] = [];
+                db[cleanTo].push({ 
+                    from: from, 
+                    text: text, 
+                    isImage: isImage || false, 
+                    isVoice: isVoice || false, msgId: msgId, replyData: replyData,
+                    msgId: msgId,
+                    replyData: replyData,
+                    isWhisper: isWhisper
+                });
+                fs.writeFileSync(DB_FILE, JSON.stringify(db));
+                console.log("💾 Offline Saved");
+            }
+        }
+
+--- 3. SERVER WEBSOCKET SETUP ---
+9:const wss = new WebSocket.Server({ server, maxPayload: 150 * 1024 * 1024 });

@@ -1,0 +1,44 @@
+--- 1. CLIENT RECEIVE TEXT ---
+3393:      if (data.type === 'new_message') {
+3394-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+3395-        const senderId = (data.isGroup && data.groupId) ? data.groupId : (data.from || '').trim();
+3396-        
+3397-        if (data.senderProfile) {
+3398-            let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+3399-            profiles[senderId] = data.senderProfile;
+3400-            localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+3401-        }
+3402-        
+3403-        let saveText = data.text;
+3404-        if (data.isImage && !data.isVideo) {
+3405-            // If it's a URL from the server, use it directly!
+3406-            if (data.text.startsWith('/media/') || data.text.startsWith('http')) {
+3407-                saveText = data.text;
+3408-            } else {
+3409-                saveImgToDB(data.msgId, data.text);
+3410-                saveText = "img_ref_" + data.msgId;
+3411-            }
+3412-        }
+3413-
+--
+3936:      if (data.type === 'new_message') {
+3937-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+3938-        const senderId = (data.isGroup && data.groupId) ? data.groupId : (data.from || '').trim();
+
+--- 2. SERVER GROUP TEXT ROUTING ---
+232:            if (isGroup && groupMembers && groupMembers.length > 0) {
+233-                groupMembers.forEach(member => {
+234-                    if (member === from) return; // Don't send to yourself
+235-                    const targetWs = bappUsers.get(member);
+236-                    if (targetWs && targetWs.readyState === 1) {
+237-                        targetWs.send(JSON.stringify({
+238-                            type: 'new_message', from: from, text: text, isImage: isImage || false, isVoice: isVoice || false,
+239-                            msgId: msgId, replyData: replyData, isWhisper: isWhisper || false, isVideo: isVideo || false, 
+240-                            bubbleColor: bubbleColor, isGroup: true, groupId: cleanTo, groupMembers: groupMembers
+241-                        }));
+242-                    } else {
+243-                        // Save for offline member
+244-                        let db = {};
+245-                        try { db = JSON.parse(fs.readFileSync(DB_FILE)); } catch(e) {}
+246-                        if (!db[member]) db[member] = [];
+247-                        db[member].push({

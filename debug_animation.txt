@@ -1,0 +1,64 @@
+--- 1. SEND MESSAGE FUNCTION ---
+  function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if (text === "") return;
+
+    const to = activeChatId;
+    const reply = currentReplyTo;
+    const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    const msgId = Date.now().toString();
+    
+    const isConnected = socket.readyState === WebSocket.OPEN;
+    const status = isConnected ? 'sent' : 'pending';
+
+    // 1. Show on screen immediately
+    appendMessage(text, 'sent', now, status, false, false, msgId, reply, false, false, myProfile.bubbleColor || '#005c4b');
+    input.value = '';
+
+    // 2. Save to local memory
+    try {
+        const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+        savedMsgs.push({ text: text, type: 'sent', time: now, status: status, msgId: msgId, replyData: reply, bubbleColor: myProfile.bubbleColor || '#005c4b' });
+        localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+        loadChatList();
+    } catch(e) { console.error("Storage full"); }
+
+    const rp = document.getElementById('reply-preview');
+    if (rp) rp.style.display = 'none';
+    currentReplyTo = null;
+    if (window.replyState && activeChatId) delete window.replyState[activeChatId];
+
+    // 3. Send now OR save to Offline Queue
+    const payload = {
+        type: 'send_message',
+        to: to,
+        from: myBappId,
+        text: text,
+        msgId: msgId,
+        replyData: reply,
+        bubbleColor: myProfile.bubbleColor || '#005c4b'
+    };
+
+    if (isConnected) {
+        socket.send(JSON.stringify(payload));
+    } else {
+        let queue = JSON.parse(localStorage.getItem('bapp_offline_queue')) || [];
+        queue.push(payload);
+        localStorage.setItem('bapp_offline_queue', JSON.stringify(queue));
+        console.log("📩 Message queued. Will send when online.");
+    }
+  }
+
+--- 2. CHAT INPUT HTML ---
+1862:  <div class="chat-input-area">
+1863-    <div class="attach-btn" onclick="document.getElementById('file-input').click()">📎</div>
+1864-    <input type="file" id="file-input" accept="image/*,video/*" style="display:none" onchange="handleImageUpload(event)">
+1865-    
+1866-    <input type="text" id="chat-input" placeholder="Message" onkeypress="handleEnter(event)">
+1867-    
+1868-    
+1869-    <div class="mic-btn" id="mic-btn" onclick="toggleRecording()" style="background:var(--primary); width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: black; font-size: 20px; cursor: pointer; margin-left: 5px;">🎤</div>
+1870-    <div id="whisper-toggle" onclick="toggleWhisperMode()" style="display:none; width: 45px; height: 45px; border-radius: 50%; background: var(--search-bg); justify-content: center; align-items: center; font-size: 20px; cursor: pointer; margin-right: 5px; transition: 0.2s;">👻</div>
+1871-    <div class="send-btn" onclick="sendMessage()" id="send-btn" style="display:none;">➤</div>
+1872-

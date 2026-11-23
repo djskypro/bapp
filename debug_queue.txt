@@ -1,0 +1,71 @@
+--- 1. SEND MESSAGE ---
+  function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    const to = document.getElementById('chat-name').textContent.trim();
+    if (text !== "" && socket.readyState !== WebSocket.OPEN) {
+      alert("⚠️ You are offline or the server is down. Message not sent.");
+      return;
+    }
+    
+    if (text !== "" && socket.readyState !== WebSocket.OPEN) {
+      alert("⚠️ You are offline. Message not sent. Please wait for reconnection.");
+      return;
+    }
+
+    if (text !== "" && socket.readyState === WebSocket.OPEN) {
+      const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      const msgId = Date.now().toString();
+
+      socket.send(JSON.stringify({ 
+          type: 'send_message', 
+          to: activeChatId, 
+          from: myBappId, 
+          text: text,
+          msgId: msgId,
+          replyData: currentReplyTo
+      }));
+      
+      appendMessage(text, 'sent', now, 'sent', false, false, msgId, currentReplyTo);
+      input.value = '';
+      
+      const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + activeChatId)) || [];
+      savedMsgs.push({ text: text, type: 'sent', time: now, status: 'sent', msgId: msgId, replyData: currentReplyTo });
+      localStorage.setItem('bapp_msgs_' + activeChatId, JSON.stringify(savedMsgs));
+      loadChatList();
+      
+      
+        const rp = document.getElementById('reply-preview');
+        if (rp) rp.style.display = 'none';
+        currentReplyTo = null;
+        if (window.replyState && activeChatId) delete window.replyState[activeChatId];
+ // Hide preview after sending
+    }
+  }
+
+--- 2. SOCKET.ONOPEN ---
+1488:  socket.onopen = () => {
+1489-    console.log("✅ Connected to server.");
+1490-    socket.send(JSON.stringify({ type: 'register_user', username: myBappId, profile: myProfile }));
+1491-    
+1492-    // FLUSH OFFLINE QUEUE
+1493-    let queue = JSON.parse(localStorage.getItem('bapp_offline_queue')) || [];
+1494-    if (queue.length > 0) {
+1495-        console.log(`📤 Sending ${queue.length} queued messages...`);
+1496-        queue.forEach(payload => {
+--
+1529:    socket.onopen = () => {
+1530-        console.log("✅ Reconnected successfully!");
+1531-        let queue = JSON.parse(localStorage.getItem('bapp_offline_queue')) || [];
+1532-        if (queue.length > 0) {
+1533-            queue.forEach(payload => socket.send(JSON.stringify(payload)));
+1534-            localStorage.removeItem('bapp_offline_queue');
+1535-        }
+1536-        socket.send(JSON.stringify({ type: 'register_user', username: myBappId, profile: myProfile }));
+1537-    };
+
+--- 3. TICK RENDERING ---
+1901:      check.innerText = status === 'pending' ? '🕒' : ((status === 'read' || status === 'delivered') ? '✓✓' : '✓');
+2812:      check.innerText = status === 'read' ? '✓✓' : '✓';
+2980:      check.innerText = (status === 'read' || status === 'delivered') ? '✓✓' : '✓';
+3403:      check.innerText = (status === 'read' || status === 'delivered') ? '✓✓' : '✓';

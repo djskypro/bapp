@@ -1,0 +1,585 @@
+--- 1. CSS FOR SENT MSG ---
+80:  .msg.sent { background: var(--msg-sent); color: var(--text); align-self: flex-end; border-top-right-radius: 2px; }
+82:  .msg.sent .msg-time { color: rgba(255,255,255,0.7); }
+83:  .light-mode .msg.sent .msg-time { color: #666; }
+600:  body.light-mode .messages .msg.sent,
+2316:          const checks = document.querySelectorAll('.msg.sent .msg-status');
+
+--- 2. APPEND MESSAGE RENDER ---
+  function appendMessage(text, type, timeStr, status = '', isImage = false, isVoice = false, msgId = null, replyData = null, isWhisper = false, isVideo = false, bubbleColor = null) {
+    const msgBox = document.getElementById('chat-messages');
+    if (!msgBox) return;
+    const newMsg = document.createElement('div');
+    newMsg.className = 'msg ' + type;
+    newMsg.className = 'msg ' + type;
+    if (bubbleColor && type === 'sent') { newMsg.style.setProperty('background', bubbleColor, 'important'); newMsg.style.setProperty('background-color', bubbleColor, 'important'); }
+    
+    const id = msgId || Date.now().toString();
+    newMsg.className = 'msg ' + type;
+    
+    if (isImage) {
+      const img = document.createElement('img'); img.src = text; newMsg.appendChild(img);
+    } else if (isVoice) {
+      const audio = document.createElement('audio');
+      audio.controls = true;
+      audio.src = text;
+      newMsg.appendChild(audio);
+    } else {
+      newMsg.appendChild(document.createTextNode(text));
+    }
+
+    const timeSpan = document.createElement('span');
+    timeSpan.className = 'msg-time';
+    timeSpan.textContent = timeStr || new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    newMsg.appendChild(timeSpan);
+
+    if (type === 'sent') {
+      const check = document.createElement('span');
+      check.className = 'msg-status ' + (status === 'read' ? 'read' : '');
+      check.innerText = status === 'pending' ? '🕒' : (status === 'read' ? '✓✓' : '✓');
+      newMsg.appendChild(check);
+    }
+    msgBox.appendChild(newMsg);
+    msgBox.scrollTop = msgBox.scrollHeight;
+  };
+
+  // --- UPDATE RECEIVE LOGIC ---
+  const oldOnMessage = socket.onmessage;
+  socket.onmessage = function(event) {
+    try {
+      const data = JSON.parse(event.data);
+      
+      if (data.type === 'new_message') {
+        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        const senderId = (data.from || '').trim();
+        if (data.senderProfile) {
+            let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+            profiles[senderId] = data.senderProfile;
+            localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+        }
+        try {
+          const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + senderId)) || [];
+          savedMsgs.push({ text: data.text, type: 'received', time: now, isImage: data.isImage, isVoice: data.isVoice, msgId: data.msgId, replyData: data.replyData, isWhisper: data.isWhisper, bubbleColor: data.bubbleColor });
+          localStorage.setItem('bapp_msgs_' + senderId, JSON.stringify(savedMsgs));
+        } catch(e) {
+          console.warn("Receiver storage full! Clearing old images...");
+          for (let i = 0; i < localStorage.length; i++) {
+              let key = localStorage.key(i);
+              if (key.startsWith('bapp_msgs_')) {
+                  let msgs = JSON.parse(localStorage.getItem(key)) || [];
+                  let changed = false;
+                  msgs.forEach(m => {
+                      if (m.isImage && m.text && m.text.startsWith('data:image')) {
+                          m.text = "📷 [Image removed to save space]";
+                          m.isImage = false;
+                          changed = true;
+                      }
+                  });
+                  if (changed) localStorage.setItem(key, JSON.stringify(msgs));
+              }
+          }
+          // Retry saving the new message
+          try {
+              const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + senderId)) || [];
+              savedMsgs.push({ text: data.text, type: 'received', time: now, isImage: data.isImage, isVoice: data.isVoice, msgId: data.msgId, replyData: data.replyData, isWhisper: data.isWhisper, bubbleColor: data.bubbleColor });
+              localStorage.setItem('bapp_msgs_' + senderId, JSON.stringify(savedMsgs));
+          } catch(e2) { console.error("Still full after cleanup."); }
+        }
+        saveChat(senderId);
+        if (activeChatId === senderId) {
+          appendMessage(data.text, 'received', now, '', data.isImage, data.isVoice, data.msgId, data.replyData, data.isWhisper, false, data.bubbleColor);
+          socket.send(JSON.stringify({ type: 'read_receipt', to: senderId, from: myBappId }));
+        } else {
+          let unreads = getUnreads();
+          unreads[senderId] = (unreads[senderId] || 0) + 1;
+          localStorage.setItem('bapp_unreads', JSON.stringify(unreads));
+        }
+        loadChatList();
+      } else {
+        // Pass typing, read receipts, search, etc. to the original handler
+        oldOnMessage.call(socket, event); 
+      }
+    } catch(err) { console.error(err); }
+  };
+</script>
+
+<script>
+  // Keep the original appendMessage safe
+  const originalAppend = window.appendMessage || function(){};
+
+  // Overwrite it globally
+  window.appendMessage = function(text, type, timeStr, status = '', isImage = false, isVoice = false) {
+    const msgBox = document.getElementById('chat-messages');
+    if (!msgBox) return;
+    const newMsg = document.createElement('div');
+    newMsg.className = 'msg ' + type;
+    
+    if (isImage) {
+      const img = document.createElement('img'); 
+      img.src = text; 
+      img.style.cursor = 'pointer';
+      newMsg.appendChild(img);
+    } else if (isVoice || (text && text.startsWith('data:audio'))) {
+      
+      // BUILD THE WHATSAPP PLAYER
+      const playerDiv = document.createElement('div');
+      playerDiv.className = 'wa-audio';
+      
+      const playBtn = document.createElement('div');
+      playBtn.className = 'wa-play-btn';
+      playBtn.innerText = '▶';
+      
+      const waveDiv = document.createElement('div');
+      waveDiv.className = 'wa-waveform';
+      
+      const timeSpan = document.createElement('span');
+      timeSpan.className = 'wa-time';
+      timeSpan.innerText = '0:00';
+      
+      // Generate visible bars
+      const numBars = 25;
+      const bars = [];
+      for(let i=0; i<numBars; i++) {
+        const bar = document.createElement('div');
+        bar.className = 'wa-bar';
+        // Give them a random height in pixels so they are definitely visible
+        bar.style.height = (20 + Math.random() * 80) + '%'; 
+        waveDiv.appendChild(bar);
+        bars.push(bar);
+      }
+      
+      playerDiv.appendChild(playBtn);
+      playerDiv.appendChild(waveDiv);
+      playerDiv.appendChild(timeSpan);
+      
+      const audio = document.createElement('audio');
+      audio.src = text;
+      audio.style.display = 'none';
+      playerDiv.appendChild(audio);
+      newMsg.appendChild(playerDiv);
+      
+      // Player Logic
+      let isPlaying = false;
+      playBtn.onclick = function() {
+        if (isPlaying) {
+          audio.pause();
+          playBtn.innerText = '▶';
+          isPlaying = false;
+        } else {
+          audio.play();
+          playBtn.innerText = '⏸';
+          playBtn.classList.add('played');
+          isPlaying = true;
+        }
+      };
+      
+      audio.onended = function() {
+        playBtn.innerText = '▶';
+        isPlaying = false;
+      };
+      
+      audio.ontimeupdate = function() {
+        const mins = Math.floor(audio.currentTime / 60);
+        const secs = Math.floor(audio.currentTime % 60);
+        timeSpan.innerText = mins + ':' + secs.toString().padStart(2, '0');
+        
+        // Fill bars progressively
+        const progress = audio.currentTime / (audio.duration || 1);
+        const playedBars = Math.floor(progress * numBars);
+        bars.forEach((b, i) => {
+          if (i < playedBars) b.classList.add('played');
+          if (audio.currentTime === 0) b.classList.remove('played');
+        });
+      };
+
+    } else {
+      newMsg.appendChild(document.createTextNode(text));
+    }
+
+    const timeSpan = document.createElement('span');
+    timeSpan.className = 'msg-time';
+    timeSpan.textContent = timeStr || new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    newMsg.appendChild(timeSpan);
+
+    if (type === 'sent') {
+      const check = document.createElement('span');
+      check.className = 'msg-status ' + (status === 'read' ? 'read' : '');
+      check.innerText = status === 'pending' ? '🕒' : ((status === 'read' || status === 'delivered') ? '✓✓' : '✓');
+      newMsg.appendChild(check);
+    }
+    
+    const spacer = document.getElementById('chat-spacer');
+    if (spacer) msgBox.insertBefore(newMsg, spacer);
+    else msgBox.appendChild(newMsg);
+    msgBox.scrollTop = msgBox.scrollHeight;
+  };
+
+  // --- LIVE RECORDING WAVEFORM OVERRIDE ---
+  // We hook into the media recorder to draw real audio
+  const originalMediaRecorder = window.MediaRecorder;
+  window.MediaRecorder = function(stream, options) {
+    const recorder = new originalMediaRecorder(stream, options);
+    
+    recorder.addEventListener('start', () => {
+      const canvas = document.getElementById('live-waveform');
+      if (!canvas) return;
+      
+      canvas.style.display = 'block';
+      const canvasCtx = canvas.getContext('2d');
+      canvas.width = canvas.clientWidth;
+      canvas.height = canvas.clientHeight;
+      
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioCtx.createMediaStreamSource(stream);
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 64;
+      source.connect(analyser);
+      
+      function draw() {
+        if (!canvas.style.display || canvas.style.display === 'none') return;
+        requestAnimationFrame(draw);
+        
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        analyser.getByteFrequencyData(dataArray);
+        
+        canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+        canvasCtx.fillStyle = '#25D366'; // Green live waves
+        
+        const barWidth = (canvas.width / bufferLength) * 1.5;
+        let x = 0;
+        for(let i = 0; i < bufferLength; i++) {
+            const barHeight = (dataArray[i] / 255) * canvas.height;
+            canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+            x += barWidth + 2;
+        }
+      }
+      draw();
+    });
+
+    recorder.addEventListener('stop', () => {
+      const canvas = document.getElementById('live-waveform');
+      if (canvas) canvas.style.display = 'none';
+    });
+
+    return recorder;
+  };
+
+  // Inject the live canvas into the UI if it's not there
+  setTimeout(() => {
+    if (!document.getElementById('live-waveform')) {
+      const inputArea = document.querySelector('.chat-input-area');
+      if (inputArea) {
+        const canvas = document.createElement('canvas');
+        canvas.id = 'live-waveform';
+        inputArea.parentNode.insertBefore(canvas, inputArea);
+      }
+    }
+  }, 1000);
+
+</script>
+
+  <!-- Context Menu -->
+  <div id="msg-context-menu">
+    <div class="ctx-item" onclick="executeReply()">↩️ Reply</div>
+    <div class="ctx-item" onclick="executeCopy()">📋 Copy</div>
+    <div class="ctx-item delete" onclick="executeDelete()">🗑️ Delete</div>
+  </div>
+
+  <!-- Reply Preview -->
+  <div id="reply-preview">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <strong id="reply-preview-name" style="font-size:12px; color:var(--primary);">Replying to...</strong>
+      <span onclick="cancelReply()" style="cursor:pointer; font-size:16px;">✕</span>
+    </div>
+    <div class="reply-preview-text" id="reply-preview-text"></div>
+  </div>
+
+<script>
+  let currentReplyTo = null;
+  let activeMsgElement = null;
+
+  // 1. Add Long-Press Logic to Messages
+  
+  
+  function scrollToMessage(msgId) {
+    if(!msgId) return;
+    const target = document.getElementById('msg-' + msgId);
+    if (target) {
+      // Scroll to the message smoothly
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      
+      // Add the green highlight
+      target.classList.add('highlight-flash');
+      
+      // Remove the highlight after 3 seconds
+      setTimeout(() => {
+        target.classList.remove('highlight-flash');
+      }, 3000);
+    }
+  }
+
+  function attachContextMenu(el, msgId, text, isMe) {
+    el.dataset.msgId = msgId;
+    el.dataset.msgText = text;
+    el.dataset.isMe = isMe;
+
+    let startX = 0;
+    let currentX = 0;
+    let startY = 0;
+    let isSwiping = false;
+    let pressTimer;
+
+    // --- POINTER DOWN ---
+    el.addEventListener('pointerdown', (e) => {
+      // Don't trigger swipe if tapping a button (like play audio)
+      if (e.target.closest('.wa-play-btn') || e.target.tagName === 'AUDIO') return;
+
+      startX = e.clientX;
+      startY = e.clientY;
+      isSwiping = false;
+      el.classList.add('swiping');
+
+      // Fallback: Long press still opens the menu for Delete/Copy
+      pressTimer = setTimeout(() => {
+        if (!isSwiping) showContextMenu(e.clientX, e.clientY, el);
+      }, 600);
+    });
+
+    // --- POINTER MOVE ---
+    el.addEventListener('pointermove', (e) => {
+      if (startX === 0) return;
+      
+      const diffX = e.clientX - startX;
+      const diffY = e.clientY - startY;
+
+      // If moving horizontally more than vertically, it's a swipe
+      if (Math.abs(diffX) > Math.abs(diffY) && diffX > 10) {
+        isSwiping = true;
+        clearTimeout(pressTimer); // Cancel long press
+        
+        // Only allow swiping right (positive diffX) up to 80px
+        if (diffX > 0 && diffX < 80) {
+          el.style.transform = `translateX(${diffX}px)`;
+        }
+      }
+    });
+
+    // --- POINTER UP ---
+    el.addEventListener('pointerup', (e) => {
+      clearTimeout(pressTimer);
+      el.classList.remove('swiping');
+
+      if (isSwiping) {
+        const diffX = e.clientX - startX;
+        
+        // Snap back to original position
+        el.style.transform = `translateX(0px)`;
+        
+        // If swiped far enough to the right, trigger reply
+        if (diffX > 50) {
+          activeMsgElement = el; // Set the global active element
+          executeReply();
+        }
+        
+        startX = 0; // Reset
+      } else {
+        el.style.transform = `translateX(0px)`;
+        startX = 0;
+      }
+    });
+
+    // --- POINTER CANCEL ---
+    el.addEventListener('pointercancel', () => {
+      clearTimeout(pressTimer);
+      el.classList.remove('swiping');
+      el.style.transform = `translateX(0px)`;
+      startX = 0;
+    });
+
+    // --- RIGHT CLICK (Desktop fallback) ---
+    el.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      showContextMenu(e.clientX, e.clientY, el);
+    });
+  }
+
+  function showContextMenu(x, y, el) {
+    activeMsgElement = el;
+    const menu = document.getElementById('msg-context-menu');
+    menu.style.display = 'flex';
+    menu.style.left = Math.min(x, window.innerWidth - 150) + 'px';
+    menu.style.top = Math.min(y, window.innerHeight - 150) + 'px';
+    
+    // Hide Delete if it's not my message
+    const delBtn = menu.querySelector('.delete');
+    if (el.dataset.isMe === 'true') delBtn.style.display = 'flex';
+    else delBtn.style.display = 'none';
+  }
+
+  // Hide menu on tap anywhere else
+  document.addEventListener('pointerdown', (e) => {
+    const menu = document.getElementById('msg-context-menu');
+    if (menu && menu.style.display === 'flex' && !menu.contains(e.target)) {
+      menu.style.display = 'none';
+    }
+  });
+
+  
+  function scrollToMessage(msgId) {
+    if(!msgId) return;
+    const target = document.getElementById('msg-' + msgId);
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      
+      // Flash Green
+      target.style.transition = 'background-color 0.3s';
+      target.style.backgroundColor = 'rgba(37, 211, 102, 0.8)';
+      
+      setTimeout(() => {
+        target.style.backgroundColor = ''; // Revert to normal
+      }, 2000);
+    } else {
+      console.log("Original message not found on screen.");
+    }
+  }
+
+  function executeReply() {
+    const el = activeMsgElement;
+    const text = el.dataset.msgText;
+    const isMe = el.dataset.isMe === 'true';
+    
+    currentReplyTo = {
+      msgId: el.dataset.msgId,
+      text: text,
+      name: isMe ? 'You' : document.getElementById('chat-name').textContent
+    };
+    window.replyState[activeChatId] = currentReplyTo; // Save to memory
+    
+    document.getElementById('reply-preview').style.display = 'block';
+    document.getElementById('reply-preview-name').innerText = 'Replying to ' + currentReplyTo.name;
+    document.getElementById('reply-preview-text').innerText = text.startsWith('data:image') ? '📷 Photo' : (text.startsWith('data:audio') ? '🎤 Voice Note' : text);
+    
+    document.getElementById('msg-context-menu').style.display = 'none';
+    document.getElementById('chat-input').focus();
+  }
+
+  function cancelReply() {
+    currentReplyTo = null;
+    if (window.replyState) delete window.replyState[activeChatId]; // Delete from memory
+    document.getElementById('reply-preview').style.display = 'none';
+  }
+
+  function executeCopy() {
+    navigator.clipboard.writeText(activeMsgElement.dataset.msgText);
+    showToast("Copied to clipboard!");
+    document.getElementById('msg-context-menu').style.display = 'none';
+  }
+
+  function executeDelete() {
+    const el = activeMsgElement;
+    const msgId = el.dataset.msgId;
+    const to = activeChatId;
+    
+    // 1. GHOST DELETE LOCALLY (Instantly remove the bubble from screen)
+    if (el) {
+        el.style.transition = 'opacity 0.2s';
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 200); 
+    }
+    
+    // 2. Send to server to delete on the OTHER person's phone
+    if (socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: 'ghost_delete', to: to, from: myBappId, msgId: msgId }));
+    }
+    
+    // 3. Remove from local storage so it never comes back on refresh
+    let msgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+    msgs = msgs.filter(m => m.msgId !== msgId);
+    localStorage.setItem('bapp_msgs_' + to, JSON.stringify(msgs));
+    
+    document.getElementById('msg-context-menu').style.display = 'none';
+  }
+
+  // 2. Override appendMessage to support Reply & Delete
+  const originalAppendForReply = window.appendMessage;
+  window.appendMessage = function(text, type, timeStr, status = '', isImage = false, isVoice = false, msgId = null, replyData = null, isDeleted = false) {
+    const msgBox = document.getElementById('chat-messages');
+    if (!msgBox) return;
+    
+    const newMsg = document.createElement('div');
+    newMsg.className = 'msg ' + type;
+    
+    const id = msgId || Date.now().toString();
+
+--- 3. SEND MESSAGE ---
+  function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if (text === "") return;
+
+    const to = activeChatId;
+    const reply = currentReplyTo;
+    const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    const msgId = Date.now().toString();
+    
+    const isConnected = socket.readyState === WebSocket.OPEN;
+    const status = isConnected ? 'sent' : 'pending';
+
+    // 1. Show on screen immediately
+    appendMessage(text, 'sent', now, status, false, false, msgId, reply, false, false, myProfile.bubbleColor || '#005c4b');
+    input.value = '';
+
+    // 2. Save to local memory
+    try {
+        const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+        savedMsgs.push({ text: text, type: 'sent', time: now, status: status, msgId: msgId, replyData: reply, bubbleColor: myProfile.bubbleColor || '#005c4b' });
+        localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+        loadChatList();
+    } catch(e) { console.error("Storage full"); }
+
+    const rp = document.getElementById('reply-preview');
+    if (rp) rp.style.display = 'none';
+    currentReplyTo = null;
+    if (window.replyState && activeChatId) delete window.replyState[activeChatId];
+
+    // 3. Send now OR save to Offline Queue
+    const payload = {
+        type: 'send_message',
+        to: to,
+        from: myBappId,
+        text: text,
+        msgId: msgId,
+        replyData: reply,
+        bubbleColor: myProfile.bubbleColor || '#005c4b'
+    };
+
+    if (isConnected) {
+        socket.send(JSON.stringify(payload));
+    } else {
+        let queue = JSON.parse(localStorage.getItem('bapp_offline_queue')) || [];
+        queue.push(payload);
+        localStorage.setItem('bapp_offline_queue', JSON.stringify(queue));
+        console.log("📩 Message queued. Will send when online.");
+    }
+  }
+
+--- 4. SAVE PROFILE ---
+  function saveProfile() {
+    myProfile.name = document.getElementById('settings-name-input').value || myBappId;
+    myProfile.bio = document.getElementById('settings-bio').value;
+    myProfile.phone = document.getElementById('settings-phone').value;
+    myProfile.location = document.getElementById('settings-location').value;
+    myProfile.autoLocation = document.getElementById('settings-auto-location').checked;
+    myProfile.bubbleColor = window.selectedBubbleColor || '#005c4b';
+    try { localStorage.setItem('bapp_profile', JSON.stringify(myProfile)); } 
+    catch(e) { alert("Storage is full!"); return; }
+    let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+    profiles[myBappId] = myProfile;
+    localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+    socket.send(JSON.stringify({ type: 'register_user', username: myBappId, profile: myProfile }));
+    const btn = document.querySelector('.save-btn');
+    const originalText = btn.innerText;
+    btn.innerText = 'Saved! ✅'; btn.style.background = '#2ecc71';
+    setTimeout(() => { btn.innerText = originalText; btn.style.background = 'var(--primary)'; goBack(); }, 1000);
+  }

@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>BAPP</title>
+<style>
+  :root {
+    --bg: #000000; --text: #ffffff; --text-muted: #888888;
+    --glass-bg: rgba(25, 25, 28, 0.85); --glass-border: rgba(255, 255, 255, 0.08);
+    --search-bg: rgba(255, 255, 255, 0.1); --primary: #25D366; --icon-color: #a0a0a0;
+    --msg-sent: #005c4b; --msg-received: #202c33;
+  }
+  .light-mode {
+    --bg: #f2f2f7; --text: #000000; --text-muted: #666666;
+    --glass-bg: rgba(255, 255, 255, 0.85); --glass-border: rgba(0, 0, 0, 0.1);
+    --search-bg: rgba(0, 0, 0, 0.05); --icon-color: #333333;
+    --msg-sent: #dcf8c6; --msg-received: #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+  body { background-color: var(--bg); background-image: radial-gradient(circle at 15% 50%, rgba(37, 211, 102, 0.1), transparent 50%), radial-gradient(circle at 85% 30%, rgba(0, 150, 255, 0.1), transparent 50%); color: var(--text); height: 100vh; overflow: hidden; transition: background-color 0.3s, color 0.3s; }
+  .glass { background: var(--glass-bg); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid var(--glass-border); }
+  .view { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; opacity: 0; pointer-events: none; transition: transform 0.3s ease, opacity 0.3s ease; transform: translateX(20px); z-index: 1; }
+  .view.active { opacity: 1; pointer-events: auto; transform: translateX(0); z-index: 10; }
+
+  #main-view { padding-top: 40px; padding-bottom: 90px; }
+  .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; }
+  .header h1 { font-size: 32px; font-weight: 700; letter-spacing: -1px; }
+  .header-icons { display: flex; gap: 12px; align-items: center; font-size: 20px; color: var(--icon-color); }
+  .icon-btn { cursor: pointer; display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 50%; background: var(--search-bg); }
+
+  .search-container { padding: 10px 20px 15px 20px; position: relative; }
+  .search-box { background: var(--search-bg); border-radius: 12px; padding: 10px 15px; display: flex; align-items: center; gap: 10px; }
+  .search-box input { background: transparent; border: none; color: var(--text); font-size: 16px; width: 100%; outline: none; }
+  #search-dropdown { display:none; position:absolute; top:60px; left:20px; right:20px; z-index:100; border-radius:12px; overflow:hidden; background: var(--glass-bg); backdrop-filter: blur(30px); border: 1px solid var(--glass-border); }
+
+  .chat-list { flex: 1; overflow-y: auto; }
+  .chat-item { display: flex; align-items: center; padding: 12px 20px; cursor: pointer; }
+  .chat-item:active { background: var(--search-bg); }
+  .avatar { width: 50px; height: 50px; border-radius: 50%; background: #333; object-fit: cover; margin-right: 15px; border: 1px solid var(--glass-border); }
+  .chat-info { flex: 1; border-bottom: 1px solid var(--glass-border); padding-bottom: 12px; padding-top: 5px; }
+  .chat-item:last-child .chat-info { border-bottom: none; }
+  .chat-top { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .chat-name { font-size: 17px; font-weight: 500; }
+  .chat-time { font-size: 13px; color: var(--text-muted); }
+  .chat-time.unread { color: var(--primary); font-weight: bold; }
+  .chat-bottom { display: flex; justify-content: space-between; align-items: center; }
+  .chat-msg { font-size: 15px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+  .badge { background: var(--primary); color: black; font-size: 12px; font-weight: bold; min-width: 20px; height: 20px; border-radius: 10px; display: flex; align-items: center; justify-content: center; padding: 0 5px; }
+
+  .bottom-nav { position: absolute; bottom: 15px; left: 15px; right: 15px; border-radius: 30px; display: flex; justify-content: space-around; padding: 12px 0; box-shadow: 0 10px 30px rgba(0,0,0,0.3); z-index: 20; background: var(--glass-bg); backdrop-filter: blur(30px); border: 1px solid var(--glass-border); }
+  .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; color: var(--text-muted); cursor: pointer; position: relative; }
+  .nav-item.active { color: var(--primary); }
+  .nav-item span { font-size: 22px; }
+  .nav-badge { position: absolute; top: -5px; right: -10px; background: var(--primary); color: black; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; display: none; }
+
+  #chat-view, #settings-view, #contact-info-view { background: var(--bg); z-index: 30; }
+  .chat-header { display: flex; align-items: center; padding: 15px 20px; background: var(--glass-bg); backdrop-filter: blur(20px); border-bottom: 1px solid var(--glass-border); }
+  .back-btn { font-size: 24px; margin-right: 15px; color: var(--primary); cursor: pointer; }
+  .chat-header .avatar { width: 40px; height: 40px; margin-right: 12px; }
+  .chat-header .name { font-size: 18px; font-weight: 600; }
+  .chat-header .lock { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 3px; }
+  .messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+  .msg { max-width: 80%; padding: 10px 12px; border-radius: 12px; font-size: 15px; line-height: 1.4; position: relative; word-wrap: break-word; }
+  .msg.received { background: var(--msg-received); align-self: flex-start; border-top-left-radius: 2px; }
+  .msg.sent { background: var(--msg-sent); color: var(--text); align-self: flex-end; border-top-right-radius: 2px; }
+  .msg-time { font-size: 10px; color: var(--text-muted); float: right; margin: 6px 0 0 12px; }
+  .msg.sent .msg-time { color: rgba(255,255,255,0.7); }
+  .light-mode .msg.sent .msg-time { color: #666; }
+  .msg img { max-width: 100%; border-radius: 8px; margin-bottom: 5px; display: block; }
+  .msg-status { font-size: 12px; margin-left: 5px; color: var(--text-muted); }
+  .msg-status.read { color: #53bdeb; }
+
+  .chat-input-area { padding: 10px 15px 25px 15px; display: flex; gap: 10px; background: var(--glass-bg); backdrop-filter: blur(20px); border-top: 1px solid var(--glass-border); }
+  .chat-input-area input { flex: 1; background: var(--search-bg); border: none; border-radius: 20px; padding: 12px 15px; color: var(--text); font-size: 16px; outline: none; }
+  .send-btn { background: var(--primary); width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: black; font-size: 20px; cursor: pointer; }
+  .attach-btn { font-size: 24px; color: var(--text-muted); padding: 10px; cursor: pointer; }
+
+  .settings-content { padding: 20px; flex: 1; overflow-y: auto; }
+  .input-group { margin-bottom: 15px; }
+  .input-group label { font-size:12px; color:var(--text-muted); margin-left:10px; }
+  .input-group input, .input-group textarea { width:100%; padding:15px; border-radius:12px; border:none; background:var(--search-bg); color:var(--text); outline:none; font-size:16px; margin-top:5px; }
+  .toggle-row { display:flex; align-items:center; justify-content:space-between; background:var(--search-bg); padding:15px; border-radius:12px; margin-bottom:25px; }
+  .save-btn { background:var(--primary); color:black; padding:15px; border:none; border-radius:12px; font-weight:bold; width:100%; font-size:16px; cursor:pointer; }
+  ::-webkit-scrollbar { display: none; }
+</style>
+</head>
+<body>
+
+<!-- MAIN VIEW -->
+<div id="main-view" class="view active">
+  <div class="header">
+    <div>
+      <h1>Chats</h1>
+      <div id="my-id" style="font-size:12px; color:var(--text-muted); margin-top:-5px;">ID: ...</div>
+    </div>
+    <div class="header-icons">
+      <div class="icon-btn" onclick="toggleTheme()">🌗</div>
+      <div class="icon-btn">📷</div>
+    </div>
+  </div>
+
+  <div class="search-container">
+    <div class="search-box">
+      <span>🔍</span>
+      <input type="text" id="search-input" placeholder="Search username..." oninput="handleSearchInput()" autocomplete="off">
+    </div>
+    <div id="search-dropdown"></div>
+  </div>
+
+  <div class="chat-list" id="chat-list-container"></div>
+
+  <div class="bottom-nav">
+    <div class="nav-item active" onclick="goBack()">
+      <span>💬</span>Chats
+      <div class="nav-badge" id="global-badge">0</div>
+    </div>
+    <div class="nav-item"><span>⭕</span>Status</div>
+    <div class="nav-item"><span>📞</span>Calls</div>
+    <div class="nav-item" onclick="openSettings()"><span>⚙️</span>Settings</div>
+  </div>
+</div>
+
+<!-- CHAT VIEW -->
+<div id="chat-view" class="view">
+  <div class="chat-header">
+    <div class="back-btn" onclick="goBack()">←</div>
+    <div style="display:flex; align-items:center; flex:1; cursor:pointer;" onclick="openContactInfo()">
+      <img src="" id="chat-avatar" class="avatar">
+      <div>
+        <div class="name" id="chat-name"></div>
+        <div class="lock" id="chat-subtitle">🔒 End-to-End Encrypted</div>
+      </div>
+    </div>
+    <div style="display:flex; gap:15px; font-size:22px; color:var(--primary); margin-right:10px;">
+      <span onclick="startCall('video')">📹</span>
+      <span onclick="startCall('audio')">📞</span>
+    </div>
+  </div>
+  <div class="messages" id="chat-messages"></div>
+  <div class="chat-input-area">
+    <div class="attach-btn" onclick="document.getElementById('file-input').click()">📎</div>
+    <input type="file" id="file-input" accept="image/*" style="display:none" onchange="handleImageUpload(event)">
+    <input type="text" id="chat-input" placeholder="Message" onkeypress="handleEnter(event)">
+    <div class="send-btn" onclick="sendMessage()">➤</div>
+  </div>
+</div>
+
+<!-- SETTINGS VIEW -->
+<div id="settings-view" class="view">
+  <div class="header" style="padding-top: 40px;">
+    <div style="display:flex; align-items:center; gap:15px;">
+      <div class="back-btn" onclick="goBack()">←</div>
+      <h1>Settings</h1>
+    </div>
+  </div>
+  
+  <div class="settings-content">
+    <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:20px;">
+      <img id="settings-avatar" src="" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); margin-bottom: 15px;">
+      <label style="background:var(--search-bg); padding:10px 20px; border-radius:12px; cursor:pointer; font-size:14px;">
+        Change Picture
+        <input type="file" id="settings-pic-input" accept="image/*" style="display:none;">
+      </label>
+    </div>
+
+    <div class="input-group">
+      <label>Username (Cannot change)</label>
+      <input type="text" id="settings-username" disabled style="color:var(--text-muted); opacity:0.7;">
+    </div>
+    <div class="input-group">
+      <label>Display Name</label>
+      <input type="text" id="settings-name-input" placeholder="Your Name">
+    </div>
+    <div class="input-group">
+      <label>Bio</label>
+      <textarea id="settings-bio" rows="3" placeholder="About me..."></textarea>
+    </div>
+    <div class="input-group">
+      <label>Phone Number</label>
+      <input type="tel" id="settings-phone" placeholder="+256...">
+    </div>
+    <div class="input-group">
+      <label>Location</label>
+      <div style="display:flex; gap:10px; margin-top:5px;">
+        <input type="text" id="settings-location" placeholder="City, Country" style="margin-top:0;">
+        <button onclick="randomizeLocation()" style="background:var(--search-bg); color:var(--text); border:none; border-radius:12px; padding:0 15px; font-size:18px;">🎲</button>
+      </div>
+    </div>
+    <div class="toggle-row">
+      <div style="font-size:14px;">Auto-Switch Location</div>
+      <input type="checkbox" id="settings-auto-location" style="width:20px; height:20px; accent-color:var(--primary);">
+    </div>
+
+    <button class="save-btn" onclick="saveProfile()">Save Profile</button>
+  </div>
+</div>
+
+<!-- CONTACT INFO VIEW -->
+<div id="contact-info-view" class="view">
+  <div class="header" style="padding-top: 40px;">
+    <div style="display:flex; align-items:center; gap:15px;">
+      <div class="back-btn" onclick="closeContactInfo()">←</div>
+      <h1>Contact Info</h1>
+    </div>
+  </div>
+  
+  <div class="settings-content" style="align-items:center; display:flex; flex-direction:column;">
+    <img id="info-avatar" src="" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); margin-bottom: 15px;">
+    <h2 id="info-name" style="font-size:24px; margin-bottom:5px;">Name</h2>
+    <div id="info-username" style="color:var(--text-muted); font-size:16px; margin-bottom:20px;">@username</div>
+    
+    <div style="width:100%; background:var(--search-bg); padding:15px; border-radius:12px; margin-bottom:10px;">
+      <div style="font-size:12px; color:var(--text-muted); margin-bottom:5px;">Bio</div>
+      <div id="info-bio" style="font-size:16px;">No bio yet</div>
+    </div>
+
+    <div style="width:100%; background:var(--search-bg); padding:15px; border-radius:12px; margin-bottom:10px;">
+      <div style="font-size:12px; color:var(--text-muted); margin-bottom:5px;">Phone</div>
+      <div id="info-phone" style="font-size:16px; color:var(--primary);">Not shared</div>
+    </div>
+
+    <div style="width:100%; background:var(--search-bg); padding:15px; border-radius:12px; margin-bottom:10px;">
+      <div style="font-size:12px; color:var(--text-muted); margin-bottom:5px;">Location</div>
+      <div id="info-location" style="font-size:16px;">Unknown</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let myBappId = localStorage.getItem('bapp_username');
+  if (!myBappId) {
+    myBappId = prompt("Welcome to BAPP! Choose a unique username:");
+    while(!myBappId || myBappId.trim() === "") { myBappId = prompt("Username cannot be empty. Choose a username:"); }
+    myBappId = myBappId.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+    localStorage.setItem('bapp_username', myBappId);
+  }
+  document.getElementById('my-id').innerText = "Your ID: @" + myBappId;
+
+  let myProfile = JSON.parse(localStorage.getItem('bapp_profile')) || { name: myBappId, bio: '', phone: '', location: 'Unknown', autoLocation: false, avatar: 'https://ui-avatars.com/api/?name=' + myBappId.charAt(0) + '&background=random' };
+  let autoLocationInterval = null;
+  let activeChatId = null;
+
+  const socket = new WebSocket('ws://' + location.host);
+  socket.onopen = () => {
+    socket.send(JSON.stringify({ type: 'register_user', username: myBappId, profile: myProfile }));
+    loadChatList();
+  };
+
+  function toggleTheme() { document.body.classList.toggle('light-mode'); }
+
+  function getChats() { return JSON.parse(localStorage.getItem('bapp_chats')) || []; }
+  function getUnreads() { return JSON.parse(localStorage.getItem('bapp_unreads')) || {}; }
+  function saveChat(id) {
+    let chats = getChats();
+    if (!chats.includes(id)) { chats.unshift(id); localStorage.setItem('bapp_chats', JSON.stringify(chats)); }
+  }
+
+  function loadChatList() {
+    const chatList = document.getElementById('chat-list-container');
+    chatList.innerHTML = ''; 
+    const chats = getChats();
+    const unreads = getUnreads();
+    let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+    
+    chats.forEach(id => {
+      const msgs = JSON.parse(localStorage.getItem('bapp_msgs_' + id)) || [];
+      let lastMsgText = 'Tap to chat';
+      let lastMsgTime = '';
+      
+      if (msgs.length > 0) {
+        const last = msgs[msgs.length - 1];
+        lastMsgText = last.isImage ? '📷 Photo' : last.text;
+        lastMsgTime = last.time || '';
+      }
+      
+      const p = profiles[id] || { name: id, avatar: 'https://ui-avatars.com/api/?name=' + id.substring(0,2) + '&background=random' };
+      const displayName = p.name || id;
+      const avatarUrl = p.avatar;
+      
+      const unreadCount = unreads[id] || 0;
+      const badgeHtml = unreadCount > 0 ? `<div class="badge">${unreadCount}</div>` : '';
+      const timeClass = unreadCount > 0 ? 'chat-time unread' : 'chat-time';
+
+      const chatHtml = `
+        <div class="chat-item" id="item-${id}" onclick="openChat('${id}')">
+          <img src="${avatarUrl}" class="avatar">
+          <div class="chat-info">
+            <div class="chat-top"><div class="chat-name">${displayName}</div><div class="${timeClass}">${lastMsgTime}</div></div>
+            <div class="chat-bottom"><div class="chat-msg" id="preview-${id}">${lastMsgText}</div>${badgeHtml}</div>
+          </div>
+        </div>
+      `;
+      chatList.insertAdjacentHTML('beforeend', chatHtml);
+    });
+    updateGlobalBadge();
+  }
+
+  function updateGlobalBadge() {
+    const unreads = getUnreads();
+    let total = 0;
+    for (let id in unreads) total += unreads[id];
+    const badge = document.getElementById('global-badge');
+    if (total > 0) { badge.style.display = 'flex'; badge.innerText = total; } else { badge.style.display = 'none'; }
+  }
+
+  let searchTimeout = null;
+  function handleSearchInput() {
+    const query = document.getElementById('search-input').value.trim().toLowerCase();
+    const dropdown = document.getElementById('search-dropdown');
+    if (query.length === 0) { dropdown.style.display = 'none'; return; }
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      socket.send(JSON.stringify({ type: 'search_user', query: query, from: myBappId }));
+    }, 300);
+  }
+
+  function selectSearchUser(userObj) {
+    document.getElementById('search-dropdown').style.display = 'none';
+    document.getElementById('search-input').value = '';
+    let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+    profiles[userObj.username] = userObj.profile;
+    localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+    saveChat(userObj.username);
+    loadChatList();
+    openChat(userObj.username, userObj.profile);
+  }
+
+  function openChat(id, profileObj) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('chat-view').classList.add('active');
+    
+    let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+    let p = profileObj || profiles[id] || { name: id, avatar: 'https://ui-avatars.com/api/?name=' + id.substring(0,2) + '&background=random' };
+    
+    document.getElementById('chat-name').textContent = p.name || id;
+    activeChatId = id.trim();
+    document.getElementById('chat-avatar').src = p.avatar || 'https://ui-avatars.com/api/?name=' + id.substring(0,2) + '&background=random';
+    document.getElementById('chat-subtitle').innerText = '🔒 End-to-End Encrypted';
+    
+    const msgBox = document.getElementById('chat-messages');
+    msgBox.innerHTML = ""; 
+    const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + id)) || [];
+    savedMsgs.forEach(m => appendMessage(m.text, m.type, m.time, m.status, m.isImage));
+    
+    let unreads = getUnreads();
+    if(unreads[id]) { unreads[id] = 0; localStorage.setItem('bapp_unreads', JSON.stringify(unreads)); }
+    socket.send(JSON.stringify({ type: 'read_receipt', to: id, from: myBappId }));
+    
+    let msgs = JSON.parse(localStorage.getItem('bapp_msgs_' + id)) || [];
+    msgs.forEach(m => { if(m.type === 'sent') m.status = 'read'; });
+    localStorage.setItem('bapp_msgs_' + id, JSON.stringify(msgs));
+    
+    loadChatList();
+    setTimeout(() => document.getElementById('chat-input').focus(), 300);
+  }
+
+  function goBack() {
+    activeChatId = null;
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('main-view').classList.add('active');
+  }
+
+  function appendMessage(text, type, timeStr, status = '', isImage = false) {
+    const msgBox = document.getElementById('chat-messages');
+    if (!msgBox) return;
+    const newMsg = document.createElement('div');
+    newMsg.className = 'msg ' + type;
+    
+    if (isImage) {
+      const img = document.createElement('img'); img.src = text; newMsg.appendChild(img);
+    } else {
+      newMsg.appendChild(document.createTextNode(text));
+    }
+
+    const timeSpan = document.createElement('span');
+    timeSpan.className = 'msg-time';
+    timeSpan.textContent = timeStr || new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    newMsg.appendChild(timeSpan);
+
+    if (type === 'sent') {
+      const check = document.createElement('span');
+      check.className = 'msg-status ' + (status === 'read' ? 'read' : '');
+      check.innerText = status === 'read' ? '✓✓' : '✓';
+      newMsg.appendChild(check);
+    }
+    msgBox.appendChild(newMsg);
+    msgBox.scrollTop = msgBox.scrollHeight;
+  }
+
+  function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    const to = document.getElementById('chat-name').textContent.trim();
+    if (text !== "" && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: 'send_message', to: activeChatId, from: myBappId, text: text }));
+      const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      appendMessage(text, 'sent', now, 'sent');
+      input.value = '';
+      const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + activeChatId)) || [];
+      savedMsgs.push({ text: text, type: 'sent', time: now, status: 'sent' });
+      localStorage.setItem('bapp_msgs_' + activeChatId, JSON.stringify(savedMsgs));
+      loadChatList();
+    }
+  }
+  function handleEnter(e) { if (e.key === 'Enter') sendMessage(); }
+
+  function handleImageUpload(event) {
+    const file = event.target.files[0];
+    if(!file) return;
+    const to = activeChatId;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = function() {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 600; const MAX_HEIGHT = 600;
+        let width = img.width; let height = img.height;
+        if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } } 
+        else { if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; } }
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const base64Img = canvas.toDataURL('image/jpeg', 0.6); 
+        socket.send(JSON.stringify({ type: 'send_message', to: to, from: myBappId, text: base64Img, isImage: true }));
+        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        appendMessage(base64Img, 'sent', now, 'sent', true);
+        try {
+            const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+            savedMsgs.push({ text: base64Img, type: 'sent', time: now, isImage: true, status: 'sent' });
+            localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+            loadChatList();
+        } catch(err) { alert("Phone memory is full!"); }
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function openSettings() {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('settings-view').classList.add('active');
+    document.getElementById('settings-username').value = myBappId;
+    document.getElementById('settings-name-input').value = myProfile.name;
+    document.getElementById('settings-bio').value = myProfile.bio || '';
+    document.getElementById('settings-phone').value = myProfile.phone || '';
+    document.getElementById('settings-location').value = myProfile.location || 'Unknown';
+    document.getElementById('settings-avatar').src = myProfile.avatar;
+    document.getElementById('settings-auto-location').checked = myProfile.autoLocation || false;
+    if (myProfile.autoLocation) startAutoLocation(); else stopAutoLocation();
+  }
+
+  const cities = ['Kampala, UG', 'Nairobi, KE', 'London, UK', 'New York, USA', 'Tokyo, JP', 'Dubai, UAE', 'Cape Town, ZA', 'Paris, FR'];
+  function randomizeLocation() { document.getElementById('settings-location').value = cities[Math.floor(Math.random() * cities.length)]; }
+  function startAutoLocation() { stopAutoLocation(); autoLocationInterval = setInterval(() => { randomizeLocation(); }, 3000); }
+  function stopAutoLocation() { if (autoLocationInterval) clearInterval(autoLocationInterval); }
+  document.getElementById('settings-auto-location').addEventListener('change', function(e) { if (e.target.checked) startAutoLocation(); else stopAutoLocation(); });
+
+  function saveProfile() {
+    myProfile.name = document.getElementById('settings-name-input').value || myBappId;
+    myProfile.bio = document.getElementById('settings-bio').value;
+    myProfile.phone = document.getElementById('settings-phone').value;
+    myProfile.location = document.getElementById('settings-location').value;
+    myProfile.autoLocation = document.getElementById('settings-auto-location').checked;
+    try { localStorage.setItem('bapp_profile', JSON.stringify(myProfile)); } 
+    catch(e) { alert("Storage is full!"); return; }
+    let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+    profiles[myBappId] = myProfile;
+    localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+    socket.send(JSON.stringify({ type: 'register_user', username: myBappId, profile: myProfile }));
+    const btn = document.querySelector('.save-btn');
+    const originalText = btn.innerText;
+    btn.innerText = 'Saved! ✅'; btn.style.background = '#2ecc71';
+    setTimeout(() => { btn.innerText = originalText; btn.style.background = 'var(--primary)'; goBack(); }, 1000);
+  }
+
+  document.getElementById('settings-pic-input').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if(!file) return;
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      const MAX_SIZE = 300; canvas.width = MAX_SIZE; canvas.height = MAX_SIZE;
+      const ctx = canvas.getContext('2d');
+      const size = Math.min(img.width, img.height);
+      const xOffset = (img.width - size) / 2; const yOffset = (img.height - size) / 2;
+      ctx.drawImage(img, xOffset, yOffset, size, size, 0, 0, MAX_SIZE, MAX_SIZE);
+      const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+      myProfile.avatar = compressedBase64;
+      document.getElementById('settings-avatar').src = compressedBase64;
+      URL.revokeObjectURL(objectUrl);
+    };
+    img.onerror = function() { alert("Could not load image."); URL.revokeObjectURL(objectUrl); };
+    img.src = objectUrl;
+  });
+
+  function startCall(type) {
+    const name = document.getElementById('chat-name').textContent;
+    if(type === 'video') alert("📹 Starting Video Call with " + name + "...");
+    else alert("📞 Starting Audio Call with " + name + "...");
+  }
+
+  function openContactInfo() {
+    const currentUsername = activeChatId;
+    let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+    let p = profiles[currentUsername] || { name: currentUsername, avatar: 'https://ui-avatars.com/api/?name=' + currentUsername.substring(0,2), bio: 'Hey there! I am using BAPP.', phone: 'Not shared', location: 'Unknown' };
+    document.getElementById('info-name').textContent = p.name || currentUsername;
+    document.getElementById('info-username').textContent = '@' + currentUsername;
+    document.getElementById('info-avatar').src = p.avatar;
+    document.getElementById('info-bio').textContent = p.bio || 'Hey there! I am using BAPP.';
+    document.getElementById('info-phone').textContent = p.phone || 'Not shared';
+    document.getElementById('info-location').textContent = p.location || 'Unknown';
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('contact-info-view').classList.add('active');
+  }
+  function closeContactInfo() {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('chat-view').classList.add('active');
+  }
+
+  socket.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      
+      if (data.type === 'search_result') {
+        const dropdown = document.getElementById('search-dropdown');
+        dropdown.innerHTML = '';
+        if (data.matches.length === 0) {
+          dropdown.innerHTML = '<div style="padding:15px; color:var(--text-muted); text-align:center;">No users found</div>';
+        } else {
+          data.matches.forEach(userObj => {
+            const uName = userObj.username;
+            const uProfile = userObj.profile;
+            const avatarUrl = uProfile.avatar || 'https://ui-avatars.com/api/?name=' + uName.substring(0,2) + '&background=random';
+            const displayName = uProfile.name || uName;
+            const item = `<div style="display:flex; align-items:center; padding:12px 15px; border-bottom:1px solid var(--glass-border); cursor:pointer;" onclick='selectSearchUser(${JSON.stringify(userObj)})'>
+                <img src="${avatarUrl}" style="width:35px; height:35px; border-radius:50%; margin-right:12px;">
+                <div style="font-weight:500;">${displayName} <span style="color:var(--text-muted); font-size:12px;">@${uName}</span></div>
+              </div>`;
+            dropdown.insertAdjacentHTML('beforeend', item);
+          });
+        }
+        dropdown.style.display = 'block';
+      }
+
+      if (data.type === 'typing') {
+        const senderId = (data.from || '').trim();
+        if (activeChatId === senderId) {
+          document.getElementById('chat-subtitle').innerText = data.isTyping ? 'typing...' : '🔒 End-to-End Encrypted';
+          document.getElementById('chat-subtitle').style.color = data.isTyping ? 'var(--primary)' : 'var(--text-muted)';
+        }
+      }
+
+      if (data.type === 'read_receipt') {
+        let msgs = JSON.parse(localStorage.getItem('bapp_msgs_' + data.from)) || [];
+        msgs.forEach(m => { if(m.type === 'sent') m.status = 'read'; });
+        localStorage.setItem('bapp_msgs_' + data.from, JSON.stringify(msgs));
+        if (activeChatId === data.from) {
+          const checks = document.querySelectorAll('.msg.sent .msg-status');
+          checks.forEach(c => { c.innerText = '✓✓'; c.classList.add('read'); });
+        }
+      }
+
+      if (data.type === 'new_message') {
+        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        const senderId = (data.from || '').trim();
+        if (data.senderProfile) {
+            let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+            profiles[senderId] = data.senderProfile;
+            localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+        }
+        try {
+          const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + senderId)) || [];
+          savedMsgs.push({ text: data.text, type: 'received', time: now, isImage: data.isImage });
+          localStorage.setItem('bapp_msgs_' + senderId, JSON.stringify(savedMsgs));
+        } catch(e) { console.error("Local storage full, could not save image."); }
+        saveChat(senderId);
+        if (activeChatId === senderId) {
+          appendMessage(data.text, 'received', now, '', data.isImage);
+          socket.send(JSON.stringify({ type: 'read_receipt', to: senderId, from: myBappId }));
+        } else {
+          let unreads = getUnreads();
+          unreads[senderId] = (unreads[senderId] || 0) + 1;
+          localStorage.setItem('bapp_unreads', JSON.stringify(unreads));
+        }
+        loadChatList();
+      }
+    } catch(err) { console.error("Socket Error:", err); }
+  };
+
+  // Live typing logic
+  let typingTimeout = null;
+  document.getElementById('chat-input').addEventListener('input', function() {
+    const to = activeChatId;
+    if (!to || socket.readyState !== WebSocket.OPEN) return;
+    socket.send(JSON.stringify({ type: 'typing', to: to, from: myBappId, isTyping: true }));
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+      socket.send(JSON.stringify({ type: 'typing', to: to, from: myBappId, isTyping: false }));
+    }, 2000);
+  });
+
+</script>
+</body>
+</html>

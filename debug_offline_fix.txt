@@ -1,0 +1,55 @@
+--- SERVER SEND BLOCK ---
+            
+            const db = JSON.parse(fs.readFileSync(DB_FILE));
+            if (db[data.username] && db[data.username].length > 0) {
+                const msgsToSend = db[data.username];
+                delete db[data.username];
+                try {
+                    fs.writeFileSync(DB_FILE, JSON.stringify(db));
+                } catch(e) { console.log("Failed to write to offline DB (maybe storage full?):", e); }
+                
+                // Send one by one with a 200ms delay
+                msgsToSend.forEach((msg, index) => {
+                    setTimeout(() => {
+                        if (ws.readyState === 1) {
+                            ws.send(JSON.stringify({ type: 'offline_messages', messages: [msg] }));
+                        }
+                    }, index * 200);
+                });
+            }
+        }
+
+        if (data.type === 'search_user') {
+
+--- CLIENT RECEIVE BLOCK (END) ---
+                
+                try {
+                    const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + senderId)) || [];
+                    savedMsgs.push({
+                        text: saveText,
+                        type: 'received',
+                        time: now,
+                        isImage: msg.isImage,
+                        isVoice: msg.isVoice,
+                        msgId: msg.msgId,
+                        replyData: msg.replyData,
+                        isWhisper: msg.isWhisper,
+                        isVideo: msg.isVideo,
+                        bubbleColor: msg.bubbleColor
+                    });
+                    localStorage.setItem('bapp_msgs_' + senderId, JSON.stringify(savedMsgs));
+                } catch(e) { console.error("Storage full", e); }
+                
+                saveChat(senderId);
+                
+                if (activeChatId === senderId) {
+                    // RENDER using the saveText (the img_ref_ ID), NOT the huge base64 string
+                    appendMessage(saveText, 'received', now, '', msg.isImage, msg.isVoice, msg.msgId, msg.replyData, msg.isWhisper, msg.isVideo, msg.bubbleColor);
+                    socket.send(JSON.stringify({ type: 'read_receipt', to: senderId, from: myBappId }));
+                } else {
+                    let unreads = getUnreads();
+                    unreads[senderId] = (unreads[senderId] || 0) + 1;
+                    localStorage.setItem('bapp_unreads', JSON.stringify(unreads));
+                }
+            }
+            loadChatList(); 

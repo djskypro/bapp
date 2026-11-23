@@ -1,0 +1,28 @@
+--- SERVER ONLINE CHECK ---
+156:            if (bappUsers.has(cleanTo)) {
+157-                bappUsers.get(cleanTo).send(JSON.stringify({ 
+158-                    type: 'new_message', 
+159-                    from: from, 
+160-                    text: text, 
+161-                    isImage: isImage || false, 
+162-                    isVoice: isVoice || false,
+163-                    msgId: msgId,
+164-                    replyData: replyData,
+165-                    isWhisper: isWhisper || false,
+166-                    isVideo: isVideo || false
+167-                }));
+168-                // Send confirmation back to sender
+169-                ws.send(JSON.stringify({ type: 'delivered_receipt', to: cleanTo }));
+170-                console.log("✅ Delivered (Receipt Sent)");
+171-            } else {
+
+--- SERVER CLOSE EVENT ---
+189:    ws.on('close', () => {
+190-        for (let [userId, userWs] of bappUsers.entries()) {
+191-            if (userWs === ws) {
+192-                bappUsers.delete(userId);
+193-                console.log(`🔴 Disconnected: ${userId}`);
+194-            }
+195-        }
+196-    });
+197-});

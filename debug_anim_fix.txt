@@ -1,0 +1,92 @@
+--- 1. SETTINGS HTML ---
+<div id="settings-view" class="view">
+  <div class="header" style="padding-top: 40px;">
+    <div style="display:flex; align-items:center; gap:15px;">
+      <div class="back-btn" onclick="goBack()">←</div>
+      <h1>Settings</h1>
+    </div>
+  </div>
+  
+  <div class="settings-content">
+    <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:20px;">
+      <img id="settings-avatar" src="" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); margin-bottom: 15px;">
+      <label style="background:var(--search-bg); padding:10px 20px; border-radius:12px; cursor:pointer; font-size:14px;">
+        Change Picture
+        <input type="file" id="settings-pic-input" accept="image/*" style="display:none;">
+      </label>
+    </div>
+
+    <div class="input-group">
+      <label>Username (Cannot change)</label>
+      <input type="text" id="settings-username" disabled style="color:var(--text-muted); opacity:0.7;">
+    </div>
+    <div class="input-group">
+      <label>Display Name</label>
+      <input type="text" id="settings-name-input" placeholder="Your Name">
+    </div>
+    <div class="input-group">
+      <label>Bio</label>
+      <textarea id="settings-bio" rows="3" placeholder="About me..."></textarea>
+    </div>
+    <div class="input-group">
+      <label>Phone Number</label>
+      <input type="tel" id="settings-phone" placeholder="+256...">
+    </div>
+    <div class="input-group">
+      <label>Location</label>
+      <div style="display:flex; gap:10px; margin-top:5px;">
+        <input type="text" id="settings-location" placeholder="City, Country" style="margin-top:0;">
+        <button onclick="randomizeLocation()" style="background:var(--search-bg); color:var(--text); border:none; border-radius:12px; padding:0 15px; font-size:18px;">🎲</button>
+      </div>
+    </div>
+    
+    <div class="input-group" style="margin-top: 15px; cursor: pointer;" onclick="openThemeModal()">
+      <label style="cursor: pointer;">Chat Bubble Color</label>
+      <div style="display:flex; align-items:center; gap:10px; margin-top:5px; background: var(--search-bg); padding: 15px; border-radius: 12px; justify-content: space-between;">
+        <span style="color: var(--text); font-size: 16px; font-weight: 500;">Customize Theme</span>
+        <div id="settings-color-indicator" style="width: 30px; height: 30px; border-radius: 50%; background: #005c4b; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>
+      </div>
+    </div>
+
+    <div class="toggle-row">
+
+--- 2. SAVE PROFILE FUNCTION ---
+3111:  function saveProfile() {
+3112-    myProfile.name = document.getElementById('settings-name-input').value || myBappId;
+3113-    myProfile.bio = document.getElementById('settings-bio').value;
+3114-    myProfile.phone = document.getElementById('settings-phone').value;
+3115-    myProfile.location = document.getElementById('settings-location').value;
+3116-    myProfile.autoLocation = document.getElementById('settings-auto-location').checked;
+3117-    window.enablePanicMode = document.getElementById('settings-panic-mode').checked;
+3118-    window.enableShakeToUndo = document.getElementById('settings-shake-undo').checked;
+3119-    localStorage.setItem('bapp_panic_mode', window.enablePanicMode);
+3120-    localStorage.setItem('bapp_shake_undo', window.enableShakeToUndo);
+3121-    myProfile.bubbleColor = window.selectedBubbleColor || '#005c4b';
+3122-    try { localStorage.setItem('bapp_profile', JSON.stringify(myProfile)); } 
+3123-    catch(e) { alert("Storage is full!"); return; }
+3124-    let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+3125-    profiles[myBappId] = myProfile;
+3126-    localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+3127-    socket.send(JSON.stringify({ type: 'register_user', username: myBappId, profile: myProfile }));
+3128-    const btn = document.querySelector('.save-btn');
+3129-    const originalText = btn.innerText;
+3130-    btn.innerText = 'Saved! ✅'; btn.style.background = '#2ecc71';
+3131-    setTimeout(() => { btn.innerText = originalText; btn.style.background = 'var(--primary)'; goBack(); }, 1000);
+
+--- 3. OPEN SETTINGS FUNCTION ---
+3086:  function openSettings() {
+3087-    history.pushState({ view: 'settings' }, '', '#settings');
+3088-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+3089-    document.getElementById('settings-view').classList.add('active');
+3090-    document.getElementById('settings-username').value = myBappId;
+3091-    document.getElementById('settings-name-input').value = myProfile.name;
+3092-    document.getElementById('settings-bio').value = myProfile.bio || '';
+3093-    document.getElementById('settings-phone').value = myProfile.phone || '';
+3094-    document.getElementById('settings-location').value = myProfile.location || 'Unknown';
+3095-    document.getElementById('settings-avatar').src = myProfile.avatar;
+3096-    window.selectedBubbleColor = myProfile.bubbleColor || '#005c4b';
+3097-    document.getElementById('settings-color-indicator').style.background = window.selectedBubbleColor;
+3098-    document.getElementById('settings-color-indicator').style.background = window.selectedBubbleColor;
+3099-    document.getElementById('settings-auto-location').checked = myProfile.autoLocation || false;
+3100-    document.getElementById('settings-panic-mode').checked = window.enablePanicMode !== false;
+3101-    document.getElementById('settings-shake-undo').checked = window.enableShakeToUndo === true;

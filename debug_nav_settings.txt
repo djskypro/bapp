@@ -1,0 +1,101 @@
+--- 1. BOTTOM NAV HTML ---
+65:  .bottom-nav { position: absolute; bottom: 15px; left: 15px; right: 15px; border-radius: 30px; display: flex; justify-content: space-around; padding: 12px 0; box-shadow: 0 10px 30px rgba(0,0,0,0.3); z-index: 20; background: var(--glass-bg); backdrop-filter: blur(30px); border: 1px solid var(--glass-border); }
+66-  .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; color: var(--text-muted); cursor: pointer; position: relative; }
+67-  .nav-item.active { color: var(--primary); }
+68-  .nav-item span { font-size: 22px; }
+69-  .nav-badge { position: absolute; top: -5px; right: -10px; background: var(--primary); color: black; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; display: none; }
+70-
+71-  #chat-view, #settings-view, #contact-info-view { background: var(--bg); z-index: 30; }
+72-  .chat-header { display: flex; align-items: center; padding: 15px 20px; background: var(--glass-bg); backdrop-filter: blur(20px); border-bottom: 1px solid var(--glass-border); }
+73-  .back-btn { font-size: 24px; margin-right: 15px; color: var(--primary); cursor: pointer; }
+74-  .chat-header .avatar { width: 40px; height: 40px; margin-right: 12px; }
+75-  .chat-header .name { font-size: 18px; font-weight: 600; }
+76-  .chat-header .lock { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 3px; }
+77-  .messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+78-  .msg { max-width: 80%; padding: 10px 12px; border-radius: 12px; font-size: 15px; line-height: 1.4; position: relative; word-wrap: break-word; }
+79-  .msg.received { background: var(--msg-received); align-self: flex-start; border-top-left-radius: 2px; }
+80-  .msg.sent { background: var(--msg-sent); color: var(--text); align-self: flex-end; border-top-right-radius: 2px; }
+--
+335:  .header, .search-container, .bottom-nav {
+336-    z-index: 100 !important;
+337-  }
+
+--- 2. SETTINGS VIEW HTML ---
+<div id="settings-view" class="view">
+  <div class="header" style="padding-top: 40px;">
+    <div style="display:flex; align-items:center; gap:15px;">
+      <div class="back-btn" onclick="goBack()">←</div>
+      <h1>Settings</h1>
+    </div>
+  </div>
+  
+  <div class="settings-content">
+    <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:20px;">
+      <img id="settings-avatar" src="" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); margin-bottom: 15px;">
+      <label style="background:var(--search-bg); padding:10px 20px; border-radius:12px; cursor:pointer; font-size:14px;">
+        Change Picture
+        <input type="file" id="settings-pic-input" accept="image/*" style="display:none;">
+      </label>
+    </div>
+
+    <div class="input-group">
+      <label>Username (Cannot change)</label>
+      <input type="text" id="settings-username" disabled style="color:var(--text-muted); opacity:0.7;">
+    </div>
+    <div class="input-group">
+      <label>Display Name</label>
+      <input type="text" id="settings-name-input" placeholder="Your Name">
+    </div>
+    <div class="input-group">
+      <label>Bio</label>
+      <textarea id="settings-bio" rows="3" placeholder="About me..."></textarea>
+    </div>
+    <div class="input-group">
+      <label>Phone Number</label>
+      <input type="tel" id="settings-phone" placeholder="+256...">
+    </div>
+    <div class="input-group">
+      <label>Location</label>
+      <div style="display:flex; gap:10px; margin-top:5px;">
+        <input type="text" id="settings-location" placeholder="City, Country" style="margin-top:0;">
+        <button onclick="randomizeLocation()" style="background:var(--search-bg); color:var(--text); border:none; border-radius:12px; padding:0 15px; font-size:18px;">🎲</button>
+      </div>
+    </div>
+    
+    <div class="input-group" style="margin-top: 15px; cursor: pointer;" onclick="openThemeModal()">
+      <label style="cursor: pointer;">Chat Bubble Color</label>
+      <div style="display:flex; align-items:center; gap:10px; margin-top:5px; background: var(--search-bg); padding: 15px; border-radius: 12px; justify-content: space-between;">
+        <span style="color: var(--text); font-size: 16px; font-weight: 500;">Customize Theme</span>
+        <div id="settings-color-indicator" style="width: 30px; height: 30px; border-radius: 50%; background: #005c4b; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>
+      </div>
+    </div>
+
+    <div class="toggle-row">
+      <div style="font-size:14px;">Auto-Switch Location</div>
+      <input type="checkbox" id="settings-auto-location" style="width:20px; height:20px; accent-color:var(--primary);">
+    </div>
+
+    <button class="save-btn" onclick="saveProfile()">Save Profile</button>
+  </div>
+</div>
+
+<!-- CONTACT INFO VIEW -->
+<div id="contact-info-view" class="view">
+
+--- 3. OPEN SETTINGS JS ---
+2126:  function openSettings() {
+2127-    history.pushState({ view: 'settings' }, '', '#settings');
+2128-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+2129-    document.getElementById('settings-view').classList.add('active');
+2130-    document.getElementById('settings-username').value = myBappId;
+2131-    document.getElementById('settings-name-input').value = myProfile.name;
+2132-    document.getElementById('settings-bio').value = myProfile.bio || '';
+2133-    document.getElementById('settings-phone').value = myProfile.phone || '';
+2134-    document.getElementById('settings-location').value = myProfile.location || 'Unknown';
+2135-    document.getElementById('settings-avatar').src = myProfile.avatar;
+2136-    window.selectedBubbleColor = myProfile.bubbleColor || '#005c4b';
+2137-    document.getElementById('settings-color-indicator').style.background = window.selectedBubbleColor;
+2138-    document.getElementById('settings-auto-location').checked = myProfile.autoLocation || false;
+2139-    if (myProfile.autoLocation) startAutoLocation(); else stopAutoLocation();
+2140-  }
+2141-

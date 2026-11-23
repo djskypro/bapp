@@ -1,0 +1,29 @@
+--- 1. SETTINGS HTML ---
+2140:      <div style="font-size:14px;">Auto-Switch Location</div>
+2141-      <input type="checkbox" id="settings-auto-location" style="width:20px; height:20px; accent-color:var(--primary);">
+2142-    </div>
+2143-
+2144-    <button class="save-btn" onclick="saveProfile()">Save Profile</button>
+2145-  </div>
+2146-</div>
+2147-
+2148-<!-- CONTACT INFO VIEW -->
+2149-<div id="contact-info-view" class="view">
+2150-  <div class="header" style="padding-top: 40px;">
+2151-    <div style="display:flex; align-items:center; gap:15px;">
+2152-      <div class="back-btn" onclick="closeContactInfo()">←</div>
+2153-      <h1>Contact Info</h1>
+2154-    </div>
+2155-  </div>
+
+--- 2. ANIMATION CSS ---
+113:  @keyframes typingBounce {
+174:  @keyframes geminiPulse {
+220:  @keyframes geminiPulse {
+320:  @keyframes spinSlowly {
+325:  @keyframes breatheSphere {
+429:  @keyframes spinLeft {
+434:  @keyframes breatheSphere {
+513:  @keyframes spinLeft {
+701:  @keyframes pulse { 0% { opacity: 0.5; } 100% { opacity: 1; } }
+847:  @keyframes pulseRed {

@@ -1,0 +1,3 @@
+--- DEBUG PATCH CHECK ---
+2811:    if (typeof showToast === 'function') showToast("📝 Message tracked for Undo!");
+5742:          if (typeof showToast === 'function') showToast("Shake! DB: " + debugData);

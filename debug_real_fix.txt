@@ -1,0 +1,44 @@
+--- 1. IMAGE RENDERING ---
+2351:    } else if (isImage) {
+2352-      const img = document.createElement('img'); 
+2353-      img.src = text; 
+2354-      img.style.cursor = 'pointer';
+2355-      newMsg.appendChild(img);
+2356-    } else if (isVoice || (text && text.startsWith('data:audio'))) {
+2357-      // Build Custom WhatsApp Player
+2358-      const playerDiv = document.createElement('div');
+2359-      playerDiv.className = 'wa-audio';
+--
+3444:    if (isImage) {
+3445-      const img = document.createElement('img'); img.src = text; newMsg.appendChild(img);
+
+--- 2. BACK GESTURE ---
+4534:  function handleBackGesture() {
+4535-    // 1. Close Full Screen Status Viewer
+4536-    const statusViewer = document.getElementById('status-viewer');
+4537-    if (statusViewer && statusViewer.style.display === 'flex') {
+4538-      closeStatusViewer(); return;
+4539-    }
+4540-    // 2. Close Status Preview Modal
+4541-    const preview = document.getElementById('status-preview-modal');
+4542-    if (preview && preview.style.display === 'flex') {
+4543-      closePreview(); return;
+4544-    }
+4545-    // 3. Close Context Menu
+4546-    const ctxMenu = document.getElementById('msg-context-menu');
+4547-    if (ctxMenu && ctxMenu.style.display === 'flex') {
+4548-      ctxMenu.style.display = 'none'; return;
+4549-    }
+
+--- 3. SYSTEM BACK BUTTON ---
+2286:  window.addEventListener('popstate', function(event) {
+2287-    // When the hardware back button is pressed, reset the UI
+2288-    resetToHome();
+2289-  });
+2290-
+2291-  
+2292-  function appendMessage(text, type, timeStr, status = '', isImage = false, isVoice = false, msgId = null, replyData = null, isWhisper = false, isVideo = false, bubbleColor = null) {
+2293-    const msgBox = document.getElementById('chat-messages');
+2294-    if (!msgBox) return;
+2295-    const newMsg = document.createElement('div');
+2296-    newMsg.className = 'msg ' + type;

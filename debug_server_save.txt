@@ -1,0 +1,51 @@
+--- SERVER SAVE IMG ---
+10:function saveImageToFile(text, isImage) {
+11-    if (!isImage || !text || !text.startsWith('data:image')) return text;
+12-    try {
+13-        const filename = 'img_' + Date.now() + '_' + Math.floor(Math.random()*1000) + '.jpg';
+14-        const base64Data = text.replace(/^data:image\/\w+;base64,/, "");
+15-        fs.writeFileSync(path.join(__dirname, 'media', filename), base64Data, 'base64');
+16-        console.log("💾 Saved image file:", filename);
+17-        return '/media/' + filename;
+18-    } catch(e) { 
+19-        console.error("❌ Failed to save image file:", e); 
+20-        return text; // Fallback to base64
+21-    }
+22-}
+23-
+24-const app = express();
+25-const server = http.createServer(app);
+--
+248:                            from: from, text: saveImageToFile(text, isImage), isImage: isImage || false, isVoice: isVoice || false, isVideo: isVideo || false,
+249-                            msgId: msgId, replyData: replyData, isWhisper: isWhisper || false, bubbleColor: bubbleColor,
+250-                            isGroup: true, groupId: cleanTo, groupMembers: groupMembers
+251-                        });
+252-                        try { fs.writeFileSync(DB_FILE, JSON.stringify(db)); } catch(e) {}
+253-                    }
+254-                });
+255-                ws.send(JSON.stringify({ type: 'delivered_receipt', to: cleanTo }));
+256-                return; // Stop here so it doesn't run the single-user logic below
+257-            }
+258-
+259-            // --- SINGLE USER MESSAGE ROUTING ---
+260-            const targetWs = bappUsers.get(cleanTo);
+261-            let delivered = false;
+262-
+263-            if (targetWs && targetWs.readyState === 1) {
+--
+297:                    savedText = saveImageToFile(text, true);
+298-                }
+299-
+300-                db[cleanTo].push({
+301-                    from: from,
+302-                    text: savedText,
+303-                    isImage: isImage || false,
+304-                    isVoice: isVoice || false,
+305-                    isVideo: isVideo || false,
+306-                    msgId: msgId,
+307-                    replyData: replyData,
+308-                    isWhisper: isWhisper || false,
+309-                    bubbleColor: bubbleColor
+310-                });
+311-                try {
+312-                    const jsonStr = JSON.stringify(db);

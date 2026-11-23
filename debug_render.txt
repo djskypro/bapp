@@ -1,0 +1,22 @@
+--- CURRENT IMAGE RENDER ---
+2593:    } else if (isImage) {
+2594-      const img = document.createElement('img');
+2595-      img.style.cursor = 'pointer';
+2596-      
+2597-      if (text.startsWith('/media/')) {
+2598-          // It's a URL from the server!
+2599-          img.src = text;
+2600-          img.style.borderRadius = '10px';
+2601-          img.style.maxWidth = '100%';
+2602-      } else if (text.startsWith('img_ref_')) {
+2603-          // It's an IndexedDB image. Load it safely.
+2604-          const realId = text.replace('img_ref_', '');
+2605-          img.style.minHeight = '150px';
+2606-          img.style.backgroundColor = 'rgba(255,255,255,0.05)';
+2607-          img.style.borderRadius = '10px';
+2608-          
+2609-          getImgFromDB(realId, function(base64Data) {
+2610-              if(base64Data) {
+2611-                  img.src = base64Data;
+2612-                  img.style.minHeight = 'auto';
+2613-                  img.style.backgroundColor = 'transparent';

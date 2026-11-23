@@ -1,0 +1,35 @@
+--- 1. REPLY PREVIEW CSS ---
+1606:  #reply-preview {
+1607-    position: absolute !important;
+1608-    
+1609-    /* 20px (bottom of box) + 65px (height of box) = exactly the top edge */
+1610-    bottom: calc(max(20px, env(safe-area-inset-bottom)) + 65px) !important; 
+1611-    
+1612-    /* Center it perfectly */
+1613-    left: 50% !important;
+1614-    transform: translateX(-50%) !important;
+1615-    width: 65% !important; 
+1616-    max-width: 300px !important;
+--
+1659:  #main-view.active ~ #reply-preview {
+1660-    display: none !important;
+1661-  }
+1662-</style>
+1663-
+1664-<style>
+1665-  /* MAKE BOTTOM NAV A LITTLE LONGER */
+1666-  .bottom-nav {
+1667-    width: 90% !important; /* Increased from 85% */
+1668-    max-width: 400px !important; /* Increased from 320px */
+1669-    left: 50% !important;
+
+--- 2. REPLY PREVIEW HTML ---
+4101:  <div id="reply-preview">
+4102-    <div style="display:flex; justify-content:space-between; align-items:center;">
+4103-      <strong id="reply-preview-name" style="font-size:12px; color:var(--primary);">Replying to...</strong>
+4104-      <span onclick="cancelReply()" style="cursor:pointer; font-size:16px;">✕</span>
+4105-    </div>
+4106-    <div class="reply-preview-text" id="reply-preview-text"></div>
+
+--- 3. WHERE IT OPENS ---
+4270:    document.getElementById('reply-preview').style.display = 'block';

@@ -1,0 +1,109 @@
+--- CURRENT COMPRESSION SETTINGS ---
+1859:        const MAX_WIDTH = 600; const MAX_HEIGHT = 600;
+1860-        let width = img.width; let height = img.height;
+1861-        if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } } 
+1862-        else { if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; } }
+1863-        canvas.width = width; canvas.height = height;
+1864-        const ctx = canvas.getContext('2d');
+1865-        ctx.drawImage(img, 0, 0, width, height);
+1866-        const base64Img = canvas.toDataURL('image/jpeg', 0.6); 
+1867-        const msgId = Date.now().toString();
+1868-        const reply = currentReplyTo;
+1869-        socket.send(JSON.stringify({ type: 'send_message', to: to, from: myBappId, text: base64Img, isImage: true, msgId: msgId, replyData: reply }));
+1870-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+1871-        appendMessage(base64Img, 'sent', now, 'sent', true, false, msgId, reply);
+1872-
+1873-        const rp = document.getElementById('reply-preview');
+1874-        if (rp) rp.style.display = 'none';
+
+--- SAVE TO STORAGE ---
+1624:    localStorage.setItem('bapp_msgs_' + id, JSON.stringify(msgs));
+1625-    
+1626-    loadChatList();
+1627-
+1628-    // --- FORCE SCROLL TO BOTTOM (NEWEST MESSAGE) ---
+1629-    const scrollToBottom = () => {
+--
+1837:      localStorage.setItem('bapp_msgs_' + activeChatId, JSON.stringify(savedMsgs));
+1838-      loadChatList();
+1839-      
+1840-      
+1841-        const rp = document.getElementById('reply-preview');
+1842-        if (rp) rp.style.display = 'none';
+--
+1881:            localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+1882-            loadChatList();
+1883-            
+1884-            // Force clear the reply box
+1885-            document.getElementById('reply-preview').style.display = 'none';
+1886-            currentReplyTo = null;
+--
+2092:        localStorage.setItem('bapp_msgs_' + data.to, JSON.stringify(msgs));
+2093-        
+2094-        // 2. Update the UI if we are inside the chat
+2095-        if (activeChatId === data.to) {
+2096-          const checks = document.querySelectorAll('.msg.sent .msg-status');
+2097-          checks.forEach(c => { 
+--
+2118:        localStorage.setItem('bapp_msgs_' + data.from, JSON.stringify(msgs));
+2119-        
+2120-        loadChatList(); // Update preview text
+2121-      }
+2122-
+2123-      if (data.type === 'read_receipt') {
+--
+2126:        localStorage.setItem('bapp_msgs_' + data.from, JSON.stringify(msgs));
+2127-        if (activeChatId === data.from) {
+2128-          const checks = document.querySelectorAll('.msg.sent .msg-status');
+2129-          checks.forEach(c => { c.innerText = '✓✓'; c.classList.add('read'); });
+2130-        }
+2131-      }
+--
+2151:            localStorage.setItem('bapp_msgs_' + senderId, JSON.stringify(savedMsgs));
+2152-          } catch(e) { console.error("Storage full"); }
+2153-          
+2154-          saveChat(senderId);
+2155-          
+2156-          if (activeChatId === senderId) {
+--
+2184:          localStorage.setItem('bapp_msgs_' + senderId, JSON.stringify(savedMsgs));
+2185-        } catch(e) { console.error("Storage full"); }
+2186-        
+2187-        saveChat(senderId);
+2188-        
+2189-        if (activeChatId === senderId) {
+--
+2237:      localStorage.setItem('bapp_msgs_' + cleanTarget, JSON.stringify(savedMsgs));
+2238-      
+2239-      saveChat(cleanTarget);
+2240-      loadChatList();
+2241-      alert("Photo forwarded to @" + cleanTarget);
+2242-      closeImageFullscreen();
+--
+2499:            localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+2500-            
+2501-            // Update chat list preview
+2502-            loadChatList();
+2503-          };
+2504-        };
+--
+2648:          localStorage.setItem('bapp_msgs_' + senderId, JSON.stringify(savedMsgs));
+2649-        } catch(e) {}
+2650-        saveChat(senderId);
+2651-        if (activeChatId === senderId) {
+2652-          appendMessage(data.text, 'received', now, '', data.isImage, data.isVoice, data.msgId, data.replyData);
+2653-          socket.send(JSON.stringify({ type: 'read_receipt', to: senderId, from: myBappId }));
+--
+3061:    localStorage.setItem('bapp_msgs_' + to, JSON.stringify(msgs));
+3062-    
+3063-    document.getElementById('msg-context-menu').style.display = 'none';
+3064-  }
+3065-
+3066-  // 2. Override appendMessage to support Reply & Delete
+--
+3228:      localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+3229-      
+3230-      cancelReply();
+3231-      loadChatList();
+3232-    }
+3233-  };

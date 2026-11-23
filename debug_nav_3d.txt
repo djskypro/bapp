@@ -1,0 +1,48 @@
+--- BOTTOM NAV CSS ---
+65:  .bottom-nav { position: absolute; bottom: 15px; left: 15px; right: 15px; border-radius: 30px; display: flex; justify-content: space-around; padding: 12px 0; box-shadow: 0 10px 30px rgba(0,0,0,0.3); z-index: 20; background: var(--glass-bg); backdrop-filter: blur(30px); border: 1px solid var(--glass-border); }
+66-  .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; color: var(--text-muted); cursor: pointer; position: relative; }
+67-  .nav-item.active { color: var(--primary); }
+68-  .nav-item span { font-size: 22px; }
+69-  .nav-badge { position: absolute; top: -5px; right: -10px; background: var(--primary); color: black; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; display: none; }
+70-
+71-  #chat-view, #settings-view, #contact-info-view { background: var(--bg); z-index: 30; }
+72-  .chat-header { display: flex; align-items: center; padding: 15px 20px; background: var(--glass-bg); backdrop-filter: blur(20px); border-bottom: 1px solid var(--glass-border); }
+73-  .back-btn { font-size: 24px; margin-right: 15px; color: var(--primary); cursor: pointer; }
+74-  .chat-header .avatar { width: 40px; height: 40px; margin-right: 12px; }
+75-  .chat-header .name { font-size: 18px; font-weight: 600; }
+--
+335:  .header, .search-container, .bottom-nav {
+336-    z-index: 100 !important;
+337-  }
+338-
+339-  
+340-  /* FIX LAYOUT */
+341-  #main-view {
+342-    position: absolute;
+343-    top: 0; left: 0; width: 100%; height: 100%;
+344-    display: flex;
+345-    flex-direction: column;
+--
+357:  .header, .search-container, .bottom-nav { position: relative; z-index: 100 !important; }
+358-  .chat-list { position: relative; z-index: 50 !important; }
+359-
+360-  
+361-  /* --- FORCE APP TO SHOW OVER BALL --- */
+362-  .header, .search-container, .bottom-nav, .chat-list, .chat-item {
+363-    position: relative;
+364-    z-index: 50 !important;
+365-  }
+366-
+367-  /* --- 3D SPHERE --- */
+--
+461:  .header, .search-container, .chat-list, .bottom-nav { position: relative; z-index: 10; }
+462-
+463-  /* THE DARK BLENDED SPHERE */
+464-  #magic-ball {
+465-    position: fixed;
+466-    top: 50%; left: 50%;
+467-    transform: translate(-50%, -50%);
+468-    width: 600px; /* Made it huge so it feels like a background wall */
+469-    height: 600px;
+470-    border-radius: 50%;
+471-    z-index: 0; 

@@ -1,0 +1,201 @@
+--- 1. INPUT AREA CSS ---
+88:  .chat-input-area { padding: 10px 15px 25px 15px; display: flex; gap: 10px; background: var(--glass-bg); backdrop-filter: blur(20px); border-top: 1px solid var(--glass-border); }
+89-  .chat-input-area input { flex: 1; background: var(--search-bg); border: none; border-radius: 20px; padding: 12px 15px; color: var(--text); font-size: 16px; outline: none; }
+90-  .send-btn { background: var(--primary); width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: black; font-size: 20px; cursor: pointer; }
+91-  .attach-btn { font-size: 24px; color: var(--text-muted); padding: 10px; cursor: pointer; }
+92-
+93-  .settings-content { padding: 20px; flex: 1; overflow-y: auto; }
+94-  .input-group { margin-bottom: 15px; }
+95-  .input-group label { font-size:12px; color:var(--text-muted); margin-left:10px; }
+96-  .input-group input, .input-group textarea { width:100%; padding:15px; border-radius:12px; border:none; background:var(--search-bg); color:var(--text); outline:none; font-size:16px; margin-top:5px; }
+97-  .toggle-row { display:flex; align-items:center; justify-content:space-between; background:var(--search-bg); padding:15px; border-radius:12px; margin-bottom:25px; }
+98-  .save-btn { background:var(--primary); color:black; padding:15px; border:none; border-radius:12px; font-weight:bold; width:100%; font-size:16px; cursor:pointer; }
+99-  ::-webkit-scrollbar { display: none; }
+100-
+101-  /* Bouncing Typing Dots */
+102-  .typing-dots span {
+103-    display: inline-block;
+--
+610:  body.light-mode .chat-input-area {
+611-    background: rgba(255, 255, 255, 0.8) !important;
+612-    border-color: rgba(0, 0, 0, 0.1) !important;
+613-    box-shadow: 0 4px 15px rgba(0,0,0,0.05) !important;
+614-  }
+615-
+616-  /* Invert the Snake Ball for Light Mode */
+617-  body.light-mode #magic-ball {
+618-    /* White sphere base with dark 3D shading */
+619-    background: radial-gradient(circle at 30% 30%, #ffffff 0%, #d0d0d0 80%) !important;
+620-    box-shadow: inset -20px -20px 50px rgba(0, 0, 0, 0.5), inset 10px 10px 30px rgba(255, 255, 255, 1) !important;
+621-    opacity: 0.8;
+622-  }
+623-
+624-  body.light-mode #magic-ball::before {
+625-    /* BLACK snake scales */
+--
+793:  .chat-input-area {
+794-    position: absolute !important;
+795-    bottom: max(15px, env(safe-area-inset-bottom)) !important;
+796-    left: 15px !important;
+797-    right: 15px !important;
+798-    width: auto !important;
+799-    z-index: 1000 !important;
+800-    
+801-    background: var(--glass-bg) !important;
+802-    backdrop-filter: blur(30px) !important;
+803-    -webkit-backdrop-filter: blur(30px) !important;
+804-    border: 1px solid var(--glass-border) !important;
+805-    border-radius: 30px !important;
+806-    box-shadow: 0 10px 30px rgba(0,0,0,0.4) !important;
+807-    
+808-    padding: 8px 15px !important;
+--
+1206:  .chat-input-area {
+1207-    position: relative !important; /* Keep it in the layout so keyboard pushes it */
+1208-    bottom: 0 !important;
+1209-    margin-bottom: 15px; /* Space from the bottom edge */
+1210-  }
+1211-</style>
+1212-
+1213-<style>
+1214-  .whisper-msg {
+1215-    background: rgba(0,0,0,0.6) !important;
+1216-    border: 1px solid #555;
+1217-    border-radius: 12px;
+1218-    padding: 15px;
+1219-    cursor: pointer;
+1220-    position: relative;
+1221-    overflow: hidden;
+--
+1250:  .chat-input-area {
+1251-    position: absolute !important;
+1252-    bottom: max(20px, env(safe-area-inset-bottom)) !important;
+1253-    left: 25px !important;
+1254-    right: 25px !important;
+1255-    width: auto !important;
+1256-    border-radius: 30px !important; /* Curved edges */
+1257-    padding: 10px 15px !important;
+1258-    background: var(--glass-bg) !important;
+1259-    backdrop-filter: blur(20px) !important;
+1260-    border: 1px solid var(--glass-border) !important;
+1261-    box-shadow: 0 8px 30px rgba(0,0,0,0.4) !important;
+1262-    display: flex !important;
+1263-    align-items: center !important;
+1264-    gap: 10px !important;
+1265-    z-index: 1000 !important;
+--
+1428:  .chat-input-area {
+1429-    border-top: 2px solid rgba(255, 255, 255, 0.3) !important;
+1430-    border-bottom: 4px solid rgba(0, 0, 0, 0.8) !important;
+1431-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.6), inset 0 1px 3px rgba(255,255,255,0.1) !important;
+1432-    transform: translateY(-2px);
+1433-  }
+1434-
+1435-  /* Make the send and mic buttons look like 3D physical buttons */
+1436-  .send-btn, .mic-btn {
+1437-    border-top: 1px solid rgba(255,255,255,0.5) !important;
+1438-    border-bottom: 3px solid rgba(0,0,0,0.5) !important;
+1439-    box-shadow: 0 4px 10px rgba(0,0,0,0.4) !important;
+1440-    transform: translateY(-1px);
+1441-  }
+1442-</style>
+1443-
+
+--- 2. REPLY PREVIEW CSS ---
+981:  #reply-preview {
+982-    display: none;
+983-    position: absolute;
+984-    bottom: 75px; left: 15px; right: 15px;
+985-    background: var(--glass-bg);
+986-    backdrop-filter: blur(20px);
+987-    -webkit-backdrop-filter: blur(20px);
+988-    border: 1px solid var(--glass-border);
+989-    border-left: 4px solid var(--primary);
+990-    border-radius: 10px;
+991-    padding: 10px;
+992-    z-index: 99;
+993-  }
+994-  .reply-preview-text { font-size: 12px; color: var(--text-muted); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+995-  
+996-  /* Quoted Message inside bubble */
+--
+1094:  #main-view.active ~ #reply-preview {
+1095-    display: none !important;
+1096-  }
+1097-</style>
+1098-
+1099-<style>
+1100-  .msg.highlight-flash {
+1101-    background-color: rgba(37, 211, 102, 0.8) !important; /* WhatsApp Green */
+1102-    transition: background-color 0.5s ease;
+1103-  }
+1104-</style>
+1105-
+1106-<style>
+1107-  /* STOP THE DESKTOP BOUNCE AND ZOOM */
+1108-  html, body {
+1109-    position: fixed !important;
+--
+1569:  #reply-preview {
+1570-    bottom: max(75px, calc(env(safe-area-inset-bottom) + 75px)) !important; /* Sits right on top of the input bar */
+1571-    left: 25px !important;  /* Matches input bar */
+1572-    right: 25px !important; /* Matches input bar */
+1573-    border-radius: 18px 18px 0 0 !important; /* Curved top, flat bottom */
+1574-    border: 1px solid var(--glass-border) !important;
+1575-    border-bottom: none !important; /* Blends into the input bar */
+1576-    border-left: 4px solid var(--primary) !important; /* Nice green accent */
+1577-    padding: 6px 12px !important; /* Half the size */
+1578-    margin-bottom: -2px !important; /* Tucks it slightly behind the input board */
+1579-    box-shadow: 0 -4px 15px rgba(0,0,0,0.2) !important;
+1580-    z-index: 999 !important;
+1581-  }
+1582-
+1583-  /* Make the text smaller and cuter */
+1584-  #reply-preview strong {
+--
+1606:  #reply-preview {
+1607-    /* Position it perfectly on top of the input bar */
+1608-    bottom: calc(max(20px, env(safe-area-inset-bottom)) + 64px) !important; 
+1609-    
+1610-    left: 25px !important; 
+1611-    width: 55% !important;  /* HALF THE WIDTH */
+1612-    right: auto !important; /* Remove the right constraint */
+1613-    
+1614-    border-radius: 15px 15px 0 0 !important; /* Curved top, flat bottom */
+1615-    border: 1px solid var(--glass-border) !important;
+1616-    border-bottom: none !important; /* Blends into the input bar */
+1617-    border-left: 4px solid var(--primary) !important; /* Nice green accent */
+1618-    
+1619-    padding: 6px 12px !important; 
+1620-    margin-bottom: -2px !important; /* Tucks it slightly behind the input board */
+1621-    box-shadow: 0 -4px 15px rgba(0,0,0,0.2) !important;
+--
+1648:  #reply-preview {
+1649-    /* Center it horizontally */
+1650-    left: 50% !important;
+1651-    right: auto !important;
+1652-    transform: translateX(-50%) !important;
+1653-    width: 65% !important; /* Nice, cute size */
+1654-    max-width: 300px !important;
+1655-    
+1656-    /* Sit exactly on top of the input bar */
+1657-    bottom: calc(max(20px, env(safe-area-inset-bottom)) + 62px) !important; 
+1658-    
+1659-    /* Visual styling: round top, flat bottom */
+1660-    border-radius: 15px 15px 0 0 !important; 
+1661-    border: 1px solid var(--glass-border) !important;
+1662-    border-bottom: none !important; /* Blends perfectly with the input box top */
+1663-    border-left: 4px solid var(--primary) !important;
+
+--- 3. INPUT AREA HTML ---
+1795:  <div class="chat-input-area">
+1796-    <div class="attach-btn" onclick="document.getElementById('file-input').click()">📎</div>
+1797-    <input type="file" id="file-input" accept="image/*,video/*" style="display:none" onchange="handleImageUpload(event)">
+1798-    
+1799-    <input type="text" id="chat-input" placeholder="Message" onkeypress="handleEnter(event)">
+1800-    
+1801-    
+1802-    <div class="mic-btn" id="mic-btn" onclick="toggleRecording()" style="background:var(--primary); width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: black; font-size: 20px; cursor: pointer; margin-left: 5px;">🎤</div>
+1803-    <div id="whisper-toggle" onclick="toggleWhisperMode()" style="display:none; width: 45px; height: 45px; border-radius: 50%; background: var(--search-bg); justify-content: center; align-items: center; font-size: 20px; cursor: pointer; margin-right: 5px; transition: 0.2s;">👻</div>
+1804-    <div class="send-btn" onclick="sendMessage()" id="send-btn" style="display:none;">➤</div>
+1805-

@@ -1,0 +1,33 @@
+--- 1. SETTINGS HTML (WHERE TOGGLES GO) ---
+2133:      <div style="font-size:14px;">Auto-Switch Location</div>
+2134-      <input type="checkbox" id="settings-auto-location" style="width:20px; height:20px; accent-color:var(--primary);">
+2135-    </div>
+2136-
+2137-    <button class="save-btn" onclick="saveProfile()">Save Profile</button>
+2138-  </div>
+2139-</div>
+2140-
+2141-<!-- CONTACT INFO VIEW -->
+2142-<div id="contact-info-view" class="view">
+2143-  <div class="header" style="padding-top: 40px;">
+
+--- 2. SHAKE / DEVICEMOTION CODE ---
+5680:  window.addEventListener('devicemotion', function(event) {
+5681-    const acc = event.accelerationIncludingGravity;
+5682-    if (!acc) return;
+5683-    
+5684-    // Calculate the force of the movement
+5685-    const force = Math.abs(acc.x) + Math.abs(acc.y) + Math.abs(acc.z);
+5686-    const now = Date.now();
+5687-    
+5688-    // If the force is strong and we haven't shaken in the last 2 seconds
+5689-    if (force > 35 && (now - lastShake) > 2000) {
+5690-      lastShake = now;
+
+--- 3. LAST SENT MESSAGE ID (FOR UNDO) ---
+2783:    const msgId = Date.now().toString();
+2906:    const msgId = Date.now().toString();
+3638:            const msgId = Date.now().toString();
+4487:      const msgId = Date.now().toString();
+4944:    const msgId = Date.now().toString();
+5064:    const msgId = Date.now().toString();

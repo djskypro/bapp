@@ -1,0 +1,32 @@
+--- SERVER DIRECT MESSAGE SAVE ---
+203:            if (isGroup && groupMembers && groupMembers.length > 0) {
+204-                groupMembers.forEach(member => {
+205-                    if (member === from) return; // Don't send to yourself
+206-                    const targetWs = bappUsers.get(member);
+207-                    if (targetWs && targetWs.readyState === 1) {
+208-                        targetWs.send(JSON.stringify({
+209-                            type: 'new_message', from: from, text: text, isImage: isImage || false, isVoice: isVoice || false,
+210-                            msgId: msgId, replyData: replyData, isWhisper: isWhisper || false, isVideo: isVideo || false, 
+211-                            bubbleColor: bubbleColor, isGroup: true, groupId: cleanTo, groupMembers: groupMembers
+212-                        }));
+213-                    } else {
+214-                        // Save for offline member
+215-                        let db = {};
+216-                        try { db = JSON.parse(fs.readFileSync(DB_FILE)); } catch(e) {}
+217-                        if (!db[member]) db[member] = [];
+218-                        db[member].push({
+219-                            from: from, text: text, isImage: isImage || false, isVoice: isVoice || false, isVideo: isVideo || false,
+220-                            msgId: msgId, replyData: replyData, isWhisper: isWhisper || false, bubbleColor: bubbleColor,
+221-                            isGroup: true, groupId: cleanTo, groupMembers: groupMembers
+222-                        });
+223-                        try { fs.writeFileSync(DB_FILE, JSON.stringify(db)); } catch(e) {}
+224-                    }
+225-                });
+226-                ws.send(JSON.stringify({ type: 'delivered_receipt', to: cleanTo }));
+227-                return; // Stop here so it doesn't run the single-user logic below
+228-            }
+229-
+230-            // --- SINGLE USER MESSAGE ROUTING ---
+231-            const targetWs = bappUsers.get(cleanTo);
+232-            let delivered = false;
+233-

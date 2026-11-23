@@ -1,0 +1,76 @@
+--- 1. CSS HEADER & INPUT ---
+72:  .chat-header { display: flex; align-items: center; padding: 15px 20px; background: var(--glass-bg); backdrop-filter: blur(20px); border-bottom: 1px solid var(--glass-border); }
+73-  .back-btn { font-size: 24px; margin-right: 15px; color: var(--primary); cursor: pointer; }
+74-  .chat-header .avatar { width: 40px; height: 40px; margin-right: 12px; }
+75-  .chat-header .name { font-size: 18px; font-weight: 600; }
+76-  .chat-header .lock { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 3px; }
+77-  .messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+--
+758:  .chat-header {
+759-    position: absolute !important;
+760-    top: 15px !important;
+761-    left: 15px !important;
+762-    right: 15px !important;
+763-    width: auto !important;
+88:  .chat-input-area { padding: 10px 15px 25px 15px; display: flex; gap: 10px; background: var(--glass-bg); backdrop-filter: blur(20px); border-top: 1px solid var(--glass-border); }
+89-  .chat-input-area input { flex: 1; background: var(--search-bg); border: none; border-radius: 20px; padding: 12px 15px; color: var(--text); font-size: 16px; outline: none; }
+90-  .send-btn { background: var(--primary); width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: black; font-size: 20px; cursor: pointer; }
+91-  .attach-btn { font-size: 24px; color: var(--text-muted); padding: 10px; cursor: pointer; }
+92-
+93-  .settings-content { padding: 20px; flex: 1; overflow-y: auto; }
+94-  .input-group { margin-bottom: 15px; }
+95-  .input-group label { font-size:12px; color:var(--text-muted); margin-left:10px; }
+96-  .input-group input, .input-group textarea { width:100%; padding:15px; border-radius:12px; border:none; background:var(--search-bg); color:var(--text); outline:none; font-size:16px; margin-top:5px; }
+97-  .toggle-row { display:flex; align-items:center; justify-content:space-between; background:var(--search-bg); padding:15px; border-radius:12px; margin-bottom:25px; }
+98-  .save-btn { background:var(--primary); color:black; padding:15px; border:none; border-radius:12px; font-weight:bold; width:100%; font-size:16px; cursor:pointer; }
+--
+610:  body.light-mode .chat-input-area {
+611-    background: rgba(255, 255, 255, 0.8) !important;
+612-    border-color: rgba(0, 0, 0, 0.1) !important;
+613-    box-shadow: 0 4px 15px rgba(0,0,0,0.05) !important;
+614-  }
+615-
+616-  /* Invert the Snake Ball for Light Mode */
+617-  body.light-mode #magic-ball {
+618-    /* White sphere base with dark 3D shading */
+619-    background: radial-gradient(circle at 30% 30%, #ffffff 0%, #d0d0d0 80%) !important;
+620-    box-shadow: inset -20px -20px 50px rgba(0, 0, 0, 0.5), inset 10px 10px 30px rgba(255, 255, 255, 1) !important;
+--
+793:  .chat-input-area {
+794-    position: absolute !important;
+795-    bottom: max(15px, env(safe-area-inset-bottom)) !important;
+796-    left: 15px !important;
+797-    right: 15px !important;
+798-    width: auto !important;
+799-    z-index: 1000 !important;
+800-    
+801-    background: var(--glass-bg) !important;
+802-    backdrop-filter: blur(30px) !important;
+803-    -webkit-backdrop-filter: blur(30px) !important;
+--
+1206:  .chat-input-area {
+1207-    position: relative !important; /* Keep it in the layout so keyboard pushes it */
+1208-    bottom: 0 !important;
+1209-    margin-bottom: 15px; /* Space from the bottom edge */
+1210-  }
+1211-</style>
+1212-
+1213-<style>
+1214-  .whisper-msg {
+1215-    background: rgba(0,0,0,0.6) !important;
+1216-    border: 1px solid #555;
+
+--- 2. HTML HEADER ICONS ---
+  <div class="chat-header">
+    <div class="back-btn" onclick="goBack()">←</div>
+
+--- 3. HTML INPUT AREA ---
+1332:  <div class="chat-input-area">
+1333-    <div class="attach-btn" onclick="document.getElementById('file-input').click()">📎</div>
+1334-    <input type="file" id="file-input" accept="image/*,video/*" style="display:none" onchange="handleImageUpload(event)">
+1335-    
+1336-    <input type="text" id="chat-input" placeholder="Message" onkeypress="handleEnter(event)">
+1337-    
+1338-    
+1339-    <div class="mic-btn" id="mic-btn" onclick="toggleRecording()" style="background:var(--primary); width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: black; font-size: 20px; cursor: pointer; margin-left: 5px;">🎤</div>
+1340-    <div id="whisper-toggle" onclick="toggleWhisperMode()" style="display:none; width: 45px; height: 45px; border-radius: 50%; background: var(--search-bg); justify-content: center; align-items: center; font-size: 20px; cursor: pointer; margin-right: 5px; transition: 0.2s;">👻</div>

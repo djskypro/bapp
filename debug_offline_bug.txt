@@ -1,0 +1,73 @@
+--- SERVER: SEND MESSAGE & OFFLINE SAVE ---
+150:        if (data.type === 'send_message') {
+151-            const { to, from, text, isImage, isVoice, msgId, replyData, isWhisper, isVideo } = data;
+152-            const cleanTo = to.trim();
+153-            
+154-            console.log(`📩 Msg from [${from}] to [${cleanTo}] isVoice: ${isVoice}`);
+155-
+156-            if (bappUsers.has(cleanTo)) {
+157-                bappUsers.get(cleanTo).send(JSON.stringify({ 
+158-                    type: 'new_message', 
+159-                    from: from, 
+160-                    text: text, 
+161-                    isImage: isImage || false, 
+162-                    isVoice: isVoice || false,
+163-                    msgId: msgId,
+164-                    replyData: replyData,
+165-                    isWhisper: isWhisper || false,
+166-                    isVideo: isVideo || false
+167-                }));
+168-                // Send confirmation back to sender
+169-                ws.send(JSON.stringify({ type: 'delivered_receipt', to: cleanTo }));
+170-                console.log("✅ Delivered (Receipt Sent)");
+171-            } else {
+172-                const db = JSON.parse(fs.readFileSync(DB_FILE));
+173-                if (!db[cleanTo]) db[cleanTo] = [];
+174-                db[cleanTo].push({ 
+175-                    from: from, 
+
+--- SERVER: OFFLINE FETCH ON LOGIN ---
+81:        if (data.type === 'register_user') {
+82-            const users = JSON.parse(fs.readFileSync(USERS_FILE));
+83-            users[data.username] = data.profile || { name: data.username };
+84-            allUsers = users;
+85-            fs.writeFileSync(USERS_FILE, JSON.stringify(users));
+86-            
+87-            bappUsers.set(data.username, ws);
+88-            console.log(`🟢 BAPP Connected: ${data.username}`);
+89-            ws.send(JSON.stringify({ type: 'register_success', username: data.username }));
+90-            
+91-            const db = JSON.parse(fs.readFileSync(DB_FILE));
+92-            if (db[data.username] && db[data.username].length > 0) {
+93-                const msgsToSend = db[data.username];
+94-                delete db[data.username];
+95-                fs.writeFileSync(DB_FILE, JSON.stringify(db));
+96-                
+
+--- CLIENT: SEND MESSAGE ---
+1891:  function sendMessage() {
+1892-    const input = document.getElementById('chat-input');
+1893-    const text = input.value.trim();
+1894-    const to = document.getElementById('chat-name').textContent.trim();
+1895-    if (text !== "" && socket.readyState !== WebSocket.OPEN) {
+1896-      alert("⚠️ You are offline or the server is down. Message not sent.");
+1897-      return;
+1898-    }
+1899-    
+1900-    if (text !== "" && socket.readyState !== WebSocket.OPEN) {
+1901-      alert("⚠️ You are offline. Message not sent. Please wait for reconnection.");
+1902-      return;
+1903-    }
+1904-
+1905-    if (text !== "" && socket.readyState === WebSocket.OPEN) {
+1906-      const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+1907-      const msgId = Date.now().toString();
+1908-
+1909-      socket.send(JSON.stringify({ 
+1910-          type: 'send_message', 
+1911-          to: activeChatId, 
+1912-          from: myBappId, 
+1913-          text: text,
+1914-          msgId: msgId,
+1915-          replyData: currentReplyTo
+1916-      }));

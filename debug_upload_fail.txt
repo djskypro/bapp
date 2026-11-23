@@ -1,0 +1,20 @@
+--- 1. UPLOAD ENDPOINT ---
+53:app.post('/upload', upload.single('image'), (req, res) => {
+54-    try {
+55-        console.log("📤 File uploaded:", req.file.filename);
+56-        res.json({ url: '/media/' + req.file.filename });
+57-    } catch(e) { 
+58-        console.log("Upload error:", e);
+59-        res.status(500).json({ error: 'Upload failed' }); 
+60-    }
+61-});
+62-
+63-app.use(express.static(__dirname));
+64-
+65-server.listen(2222, () => {
+
+--- 2. MULTER SETUP ---
+2:const multer = require('multer');
+26:const storage = multer.diskStorage({
+35:const upload = multer({ storage: storage, limits: { fileSize: 500 * 1024 * 1024 } });
+35:const upload = multer({ storage: storage, limits: { fileSize: 500 * 1024 * 1024 } });

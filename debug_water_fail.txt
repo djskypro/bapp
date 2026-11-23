@@ -1,0 +1,17 @@
+--- 1. CSS CHECK ---
+1764:  @keyframes makeDrop {
+1770:    animation: makeDrop 0.4s ease-in forwards !important;
+1774:  @keyframes splashUp {
+1792:    animation: splashUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
+
+--- 2. APPEND MESSAGE CLASS CHECK ---
+1791:  .msg-water-pop {
+2722:        newMsg.classList.add('msg-water-pop');
+2723:        setTimeout(() => newMsg.classList.remove('msg-water-pop'), 550); 
+
+--- 3. SEND MESSAGE CLASS CHECK ---
+1769:  .input-drop-anim {
+
+--- 4. DUPLICATE FUNCTIONS ---
+1
+1

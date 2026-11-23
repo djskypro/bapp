@@ -1,0 +1,5 @@
+--- MESSAGES CSS ---
+1867:  body:not(.no-animations) .msg {
+1868-    animation: fadeUpSmooth 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+1869-  }
+1870-

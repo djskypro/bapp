@@ -1,0 +1,55 @@
+--- 1. VIDEO OBSERVER ---
+7252:  const fixVideos = () => {
+7253-      document.querySelectorAll('#chat-messages img').forEach(img => {
+7254-          if (img.src.includes('.mp4')) {
+7255-              const video = document.createElement('video');
+7256-              video.src = img.src;
+7257-              video.controls = true;
+7258-              video.style.maxWidth = '250px'; video.style.width = 'auto';
+7259-              video.style.borderRadius = '10px';
+7260-              img.parentNode.replaceChild(video, img);
+7261-          }
+7262-      });
+--
+7266:  const observer = new MutationObserver(() => { fixVideos(); });
+7267-  const chatBox = document.getElementById('chat-messages');
+7268-  if (chatBox) observer.observe(chatBox, { childList: true, subtree: true });
+7269-
+7270-  // Also run it once when the chat opens
+7271:  setInterval(fixVideos, 1000);
+7272-
+7273-  // --- KEYBOARD VISUAL VIEWPORT FIX ---
+7274-  if (window.visualViewport) {
+7275-  const handleResize = () => {
+7276-    const vv = window.visualViewport;
+7277-    const keyboardHeight = window.innerHeight - vv.height;
+7278-    
+7279-    const chatInput = document.querySelector('.chat-input-area');
+7280-    const chatHeader = document.querySelector('.chat-header');
+7281-
+
+--- 2. VIDEO RENDER IN APPEND ---
+3374:          video.style.maxWidth = '250px'; video.style.width = 'auto';
+3375-          video.style.borderRadius = '10px';
+3376-          newMsg.appendChild(video);
+3377-          return; // Stop, don't append img
+3378-      } else if (text.startsWith('/media/')) {
+3379-          // It's an IMAGE URL from the server
+--
+6181:          video.style.maxWidth = '250px'; video.style.width = 'auto';
+6182-          video.style.borderRadius = '10px';
+6183-          newMsg.appendChild(video);
+6184-      } else {
+6185-          const img = document.createElement('img'); img.src = text; img.style.cursor = 'pointer';
+6186-          img.onclick = function(e) { e.stopPropagation(); openFullscreenMedia(this.src, false); };
+--
+7258:              video.style.maxWidth = '250px'; video.style.width = 'auto';
+7259-              video.style.borderRadius = '10px';
+7260-              img.parentNode.replaceChild(video, img);
+7261-          }
+7262-      });
+7263-  };
+
+--- 3. ISVIDEO FLAG PASSING ---
+3814:            isVideo: isVid,
+3835:            savedMsgs.push({ text: data.url, type: 'sent', time: now, isImage: true, isVideo: isVid, status: 'sent', msgId: msgId });

@@ -1,0 +1,10 @@
+--- 1. BODY TAG & MAIN VIEW ---
+1710:<body>
+1711-<canvas id="bg-canvas"></canvas>
+1712-<div id="magic-ball"></div>
+1713-
+1715:<div id="main-view" class="view active">
+
+--- 2. EXISTING KEYBOARD LISTENERS ---
+
+--- 3. DEVICE MOTION / SHAKE ---

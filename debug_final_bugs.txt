@@ -1,0 +1,45 @@
+--- SERVER SEND MESSAGE ---
+181:        if (data.type === 'send_message') {
+182-            const { to, from, text, isImage, isVoice, msgId, replyData, isWhisper, isVideo, bubbleColor, isGroup, groupMembers } = data;
+183-            const cleanTo = to.trim();
+184-            
+185-            console.log(`📩 Msg from [${from}] to [${cleanTo}] isGroup: ${isGroup}`);
+186-
+187-            // --- GROUP MESSAGE ROUTING ---
+188-            if (isGroup && groupMembers && groupMembers.length > 0) {
+189-                groupMembers.forEach(member => {
+190-                    if (member === from) return; // Don't send to yourself
+191-                    const targetWs = bappUsers.get(member);
+192-                    if (targetWs && targetWs.readyState === 1) {
+193-                        targetWs.send(JSON.stringify({
+194-                            type: 'new_message', from: from, text: text, isImage: isImage || false, isVoice: isVoice || false,
+195-                            msgId: msgId, replyData: replyData, isWhisper: isWhisper || false, isVideo: isVideo || false, 
+196-                            bubbleColor: bubbleColor, isGroup: true, groupId: cleanTo, groupMembers: groupMembers
+197-                        }));
+198-                    } else {
+199-                        // Save for offline member
+200-                        let db = {};
+201-                        try { db = JSON.parse(fs.readFileSync(DB_FILE)); } catch(e) {}
+202-                        if (!db[member]) db[member] = [];
+203-                        db[member].push({
+204-                            from: from, text: text, isImage: isImage || false, isVoice: isVoice || false, isVideo: isVideo || false,
+205-                            msgId: msgId, replyData: replyData, isWhisper: isWhisper || false, bubbleColor: bubbleColor,
+206-                            isGroup: true, groupId: cleanTo, groupMembers: groupMembers
+
+--- SERVER CREATE GROUP ---
+148:        if (data.type === 'create_group') {
+149-            const { groupId, groupName, members, creator } = data;
+150-            members.forEach(member => {
+151-                if (member !== creator) {
+152-                    const targetWs = bappUsers.get(member);
+153-                    if (targetWs && targetWs.readyState === 1) {
+154-                        // 1. Tell them the group exists
+155-                        targetWs.send(JSON.stringify({ type: 'group_created', groupId, groupName, members }));
+156-                        
+157-                        // 2. Send them a normal message that looks like a welcome system text
+158-                        targetWs.send(JSON.stringify({
+159-                            type: 'new_message',
+160-                            from: creator,
+161-                            text: "👋 You were added to the group: " + groupName,
+162-                            msgId: Date.now().toString(),
+163-                            isGroup: true,

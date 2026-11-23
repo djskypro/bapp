@@ -1,0 +1,40 @@
+--- SERVER OFFLINE DB SAVE ---
+265:                db[cleanTo].push({
+266-                    from: from,
+267-                    text: text,
+268-                    isImage: isImage || false,
+269-                    isVoice: isVoice || false,
+270-                    isVideo: isVideo || false,
+271-                    msgId: msgId,
+272-                    replyData: replyData,
+273-                    isWhisper: isWhisper || false,
+274-                    bubbleColor: bubbleColor
+275-                });
+276-                fs.writeFileSync(DB_FILE, JSON.stringify(db));
+277-                console.log("💾 Offline Saved");
+278-            }
+279-        }
+280-    });
+281-
+282-    ws.on('close', () => {
+283-        for (let [userId, userWs] of bappUsers.entries()) {
+284-            if (userWs === ws) {
+285-                bappUsers.delete(userId);
+
+--- SERVER OFFLINE DELIVERY ---
+102:                        ws.send(JSON.stringify({ type: 'offline_messages', messages: msgsToSend }));
+103-                        console.log("📬 Sent " + msgsToSend.length + " offline messages to " + data.username);
+104-                    }
+105-                console.log("📬 Queued " + msgsToSend.length + " offline messages for " + data.username);
+106-            }
+107-        }
+108-
+109-        
+110-        if (data.type === 'sync_ack') {
+111-            const db = JSON.parse(fs.readFileSync(DB_FILE));
+112-            if (db[data.username]) {
+113-                delete db[data.username];
+114-                fs.writeFileSync(DB_FILE, JSON.stringify(db));
+115-                console.log("✅ Sync ACK received. Cleared offline DB for " + data.username);
+116-            }
+117-        }

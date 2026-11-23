@@ -1,0 +1,47 @@
+--- OFFLINE RECEIVER IMAGE BLOCK ---
+        if (msgToDelete) {
+            msgToDelete.style.transition = 'opacity 0.2s';
+            msgToDelete.style.opacity = '0';
+            setTimeout(() => msgToDelete.remove(), 200);
+        }
+        
+        // 2. Remove from local memory
+        let msgs = JSON.parse(localStorage.getItem('bapp_msgs_' + data.from)) || [];
+        msgs = msgs.filter(m => m.msgId !== data.msgId);
+        localStorage.setItem('bapp_msgs_' + data.from, JSON.stringify(msgs));
+        
+        loadChatList(); // Update preview text
+      }
+
+      if (data.type === 'read_receipt') {
+        let msgs = JSON.parse(localStorage.getItem('bapp_msgs_' + data.from)) || [];
+        msgs.forEach(m => { if(m.type === 'sent') m.status = 'read'; });
+        localStorage.setItem('bapp_msgs_' + data.from, JSON.stringify(msgs));
+        if (activeChatId === data.from) {
+          const checks = document.querySelectorAll('.msg.sent .msg-status');
+          checks.forEach(c => { c.innerText = '✓✓'; c.classList.add('read'); });
+        }
+      }
+
+      if (data.type === 'offline_messages') {
+        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        (async () => {
+            for (const msg of data.messages) {
+                try {
+                    const senderId = (msg.isGroup && msg.groupId) ? msg.groupId : (msg.from || '').trim();
+                    
+                    if (msg.isGroupEvent) {
+                        let groups = JSON.parse(localStorage.getItem('bapp_groups')) || {};
+                        groups[msg.groupId] = { name: msg.groupName, members: msg.members };
+                        localStorage.setItem('bapp_groups', JSON.stringify(groups));
+                        
+                        let msgs = JSON.parse(localStorage.getItem('bapp_msgs_' + msg.groupId)) || [];
+                        msgs.push({ text: msg.text, type: 'received', time: now, msgId: msg.msgId });
+                        localStorage.setItem('bapp_msgs_' + msg.groupId, JSON.stringify(msgs));
+                        saveChat(msg.groupId);
+                    } 
+                    else {
+                        let saveText = msg.text;
+                        
+                        // --- CRITICAL FIX: AWAIT THE DATABASE SAVE ---

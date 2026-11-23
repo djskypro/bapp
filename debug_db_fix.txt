@@ -1,0 +1,40 @@
+--- 1. DB SETUP ---
+2010:  const dbRequest = indexedDB.open("BappMediaDB", 1);
+2011-  dbRequest.onupgradeneeded = function(e) {
+2012-      let db = e.target.result;
+2013-      if (!db.objectStoreNames.contains("images")) {
+2014-          db.createObjectStore("images");
+2015-      }
+2016-  };
+2017-  dbRequest.onsuccess = function(e) {
+2018-      bappDB = e.target.result;
+2019-  };
+2020-  
+2021-  function saveImgToDB(id, base64) {
+2022-      if(!bappDB) return;
+2023-      try {
+2024-          let tx = bappDB.transaction("images", "readwrite");
+2025-          tx.objectStore("images").put(base64, id);
+
+--- 2. OFFLINE MESSAGES RECEIVER ---
+3008:      if (data.type === 'offline_messages') {
+3009-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+3010-        
+3011-        data.messages.forEach(msg => {
+3012-          const senderId = (msg.from || '').trim();
+3013-          
+3014-          try {
+3015-            const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + senderId)) || [];
+3016-            // SAVE ALL MEDIA TYPES AND REPLIES
+3017-            savedMsgs.push({ 
+3018-                text: msg.text, 
+3019-                type: 'received', 
+3020-                time: now, 
+3021-                isImage: msg.isImage, 
+3022-                isVoice: msg.isVoice,
+3023-                msgId: msg.msgId,
+3024-                replyData: msg.replyData
+3025-            });
+3026-            localStorage.setItem('bapp_msgs_' + senderId, JSON.stringify(savedMsgs));
+3027-          } catch(e) { console.error("Storage full"); }
+3028-          

@@ -1,0 +1,78 @@
+--- 1. SEND MESSAGE ---
+  function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if (text === "") return;
+
+    const to = activeChatId;
+    const reply = currentReplyTo;
+    const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    const msgId = Date.now().toString();
+    
+    const isConnected = socket.readyState === WebSocket.OPEN;
+    const status = isConnected ? 'sent' : 'pending';
+
+    // 1. Show on screen immediately
+    appendMessage(text, 'sent', now, status, false, false, msgId, reply, false, false, myProfile.bubbleColor || '#005c4b');
+      
+      
+    input.value = ''; 
+    // Snap the keyboard back open instantly after sending
+    setTimeout(() => {
+        const chatIn = document.getElementById('chat-input');
+        const chatView = document.getElementById('chat-view');
+        if (chatIn && chatView && chatView.classList.contains('active')) {
+            chatIn.focus();
+        }
+    }, 10);
+
+    // 2. Save to local memory
+    try {
+        const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+        savedMsgs.push({ text: text, type: 'sent', time: now, status: status, msgId: msgId, replyData: reply, bubbleColor: myProfile.bubbleColor || '#005c4b' });
+        localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+        loadChatList();
+    } catch(e) { console.error("Storage full"); }
+
+    const rp = document.getElementById('reply-preview');
+    if (rp) rp.style.display = 'none';
+    currentReplyTo = null;
+    if (window.replyState && activeChatId) delete window.replyState[activeChatId];
+
+    // 3. Send now OR save to Offline Queue
+    const payload = {
+        type: 'send_message',
+        to: to,
+        from: myBappId,
+        text: text,
+        msgId: msgId,
+        replyData: reply,
+        bubbleColor: myProfile.bubbleColor || '#005c4b'
+    };
+
+    if (isConnected) {
+        socket.send(JSON.stringify(payload));
+    } else {
+        let queue = JSON.parse(localStorage.getItem('bapp_offline_queue')) || [];
+        queue.push(payload);
+        localStorage.setItem('bapp_offline_queue', JSON.stringify(queue));
+        console.log("📩 Message queued. Will send when online.");
+    }
+  }
+
+--- 2. APPEND MESSAGE END ---
+2685:    const spacer = document.getElementById('chat-spacer');
+2686-    if (spacer) {
+2687-        msgBox.insertBefore(newMsg, spacer);
+2688-    } else {
+2689-        msgBox.appendChild(newMsg);
+2690-    }
+2691-    msgBox.scrollTop = msgBox.scrollHeight;
+2692-  }
+2693-
+2694-  function sendMessage() {
+2695-    const input = document.getElementById('chat-input');
+--
+3929:    const spacer = document.getElementById('chat-spacer');
+3930-    if (spacer) msgBox.insertBefore(newMsg, spacer);
+3931-    else msgBox.appendChild(newMsg);

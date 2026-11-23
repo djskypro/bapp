@@ -1,0 +1,13 @@
+--- PUSHSTATE ---
+1594:    history.pushState({ view: 'chat' }, '', '#chat');
+1992:    history.pushState({ view: 'settings' }, '', '#settings');
+2057:    history.pushState({ view: 'contact' }, '', '#contact');
+3375:    history.pushState({ view: 'updates' }, '', '#updates');
+
+--- POPSTATE ---
+1668:  window.addEventListener('popstate', function(event) {
+1669-    // When the hardware back button is pressed, reset the UI
+1670-    resetToHome();
+1671-  });
+1672-
+1673-  

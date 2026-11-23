@@ -1,0 +1,87 @@
+--- SETTINGS HTML ---
+<div id="settings-view" class="view">
+  <div class="header" style="padding-top: 40px;">
+    <div style="display:flex; align-items:center; gap:15px;">
+      <div class="back-btn" onclick="goBack()">←</div>
+      <h1>Settings</h1>
+    </div>
+  </div>
+  
+  <div class="settings-content">
+    <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:20px;">
+      <img id="settings-avatar" src="" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); margin-bottom: 15px;">
+      <label style="background:var(--search-bg); padding:10px 20px; border-radius:12px; cursor:pointer; font-size:14px;">
+        Change Picture
+        <input type="file" id="settings-pic-input" accept="image/*" style="display:none;">
+      </label>
+    </div>
+
+    <div class="input-group">
+      <label>Username (Cannot change)</label>
+      <input type="text" id="settings-username" disabled style="color:var(--text-muted); opacity:0.7;">
+    </div>
+    <div class="input-group">
+      <label>Display Name</label>
+      <input type="text" id="settings-name-input" placeholder="Your Name">
+    </div>
+    <div class="input-group">
+      <label>Bio</label>
+      <textarea id="settings-bio" rows="3" placeholder="About me..."></textarea>
+    </div>
+    <div class="input-group">
+      <label>Phone Number</label>
+      <input type="tel" id="settings-phone" placeholder="+256...">
+    </div>
+    <div class="input-group">
+      <label>Location</label>
+      <div style="display:flex; gap:10px; margin-top:5px;">
+        <input type="text" id="settings-location" placeholder="City, Country" style="margin-top:0;">
+        <button onclick="randomizeLocation()" style="background:var(--search-bg); color:var(--text); border:none; border-radius:12px; padding:0 15px; font-size:18px;">🎲</button>
+      </div>
+    </div>
+    
+    <div class="input-group" style="margin-top: 15px;">
+      <label>Chat Bubble Color</label>
+      <div style="display:flex; align-items:center; gap:10px; margin-top:5px;">
+        <input type="color" id="settings-bubble-color" style="width: 50px; height: 50px; padding: 0; border: none; border-radius: 50%; cursor: pointer; background: transparent;">
+        <span style="color: var(--text-muted); font-size: 14px;">Pick your custom theme color</span>
+      </div>
+    </div>
+
+    <div class="toggle-row">
+
+--- OPEN SETTINGS ---
+2093:  function openSettings() {
+2094-    history.pushState({ view: 'settings' }, '', '#settings');
+2095-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+2096-    document.getElementById('settings-view').classList.add('active');
+2097-    document.getElementById('settings-username').value = myBappId;
+2098-    document.getElementById('settings-name-input').value = myProfile.name;
+2099-    document.getElementById('settings-bio').value = myProfile.bio || '';
+2100-    document.getElementById('settings-phone').value = myProfile.phone || '';
+2101-    document.getElementById('settings-location').value = myProfile.location || 'Unknown';
+2102-    document.getElementById('settings-avatar').src = myProfile.avatar;
+2103-    document.getElementById('settings-bubble-color').value = myProfile.bubbleColor || '#005c4b';
+2104-    document.getElementById('settings-auto-location').checked = myProfile.autoLocation || false;
+2105-    if (myProfile.autoLocation) startAutoLocation(); else stopAutoLocation();
+2106-  }
+2107-
+2108-  const cities = ['Kampala, UG', 'Nairobi, KE', 'London, UK', 'New York, USA', 'Tokyo, JP', 'Dubai, UAE', 'Cape Town, ZA', 'Paris, FR'];
+
+--- SAVE PROFILE ---
+2114:  function saveProfile() {
+2115-    myProfile.name = document.getElementById('settings-name-input').value || myBappId;
+2116-    myProfile.bio = document.getElementById('settings-bio').value;
+2117-    myProfile.phone = document.getElementById('settings-phone').value;
+2118-    myProfile.location = document.getElementById('settings-location').value;
+2119-    myProfile.autoLocation = document.getElementById('settings-auto-location').checked;
+2120-    myProfile.bubbleColor = document.getElementById('settings-bubble-color').value;
+2121-    try { localStorage.setItem('bapp_profile', JSON.stringify(myProfile)); } 
+2122-    catch(e) { alert("Storage is full!"); return; }
+2123-    let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+2124-    profiles[myBappId] = myProfile;
+2125-    localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+2126-    socket.send(JSON.stringify({ type: 'register_user', username: myBappId, profile: myProfile }));
+2127-    const btn = document.querySelector('.save-btn');
+2128-    const originalText = btn.innerText;
+2129-    btn.innerText = 'Saved! ✅'; btn.style.background = '#2ecc71';

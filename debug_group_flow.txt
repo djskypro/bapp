@@ -1,0 +1,60 @@
+--- 1. SENDER (createGroupWith) ---
+3109:  function createGroupWith() {
+3110-    const targetUser = activeChatId;
+3111-    const groupName = prompt("Enter Group Name:", "Group with " + targetUser);
+3112-    if (!groupName) return;
+3113-    const groupId = "group_" + Date.now();
+3114-    const members = [myBappId, targetUser];
+3115-    let groups = JSON.parse(localStorage.getItem('bapp_groups')) || {};
+3116-    groups[groupId] = { name: groupName, members: members };
+3117-    localStorage.setItem('bapp_groups', JSON.stringify(groups));
+3118-    if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'create_group', groupId, groupName, members, creator: myBappId }));
+3119-    saveChat(groupId);
+3120-    loadChatList();
+3121-    closeContactInfo();
+3122-    openChat(groupId);
+3123-  }
+3124-
+--
+6133:  function createGroupWith() {
+6134-    const targetUser = activeChatId;
+6135-    const groupName = prompt("Enter Group Name:", "Group with " + targetUser);
+6136-    if (!groupName) return;
+6137-
+6138-    const groupId = "group_" + Date.now();
+6139-    const members = [myBappId, targetUser];
+6140-
+6141-    let groups = JSON.parse(localStorage.getItem('bapp_groups')) || {};
+6142-    groups[groupId] = { name: groupName, members: members };
+6143-    localStorage.setItem('bapp_groups', JSON.stringify(groups));
+6144-
+6145-    if (socket.readyState === WebSocket.OPEN) {
+6146-        socket.send(JSON.stringify({ type: 'create_group', groupId, groupName, members, creator: myBappId }));
+6147-    }
+6148-
+
+--- 2. SERVER (create_group) ---
+153:        if (data.type === 'create_group') {
+154-            const { groupId, groupName, members, creator } = data;
+155-            members.forEach(member => {
+156-                if (member !== creator) {
+157-                    const targetWs = bappUsers.get(member);
+158-                    if (targetWs && targetWs.readyState === 1) {
+159-                        // 1. Tell them the group exists
+160-                        targetWs.send(JSON.stringify({ type: 'group_created', groupId, groupName, members }));
+161-                        
+162-                        // 2. Send them a normal message that looks like a welcome system text
+163-                        targetWs.send(JSON.stringify({
+164-                            type: 'new_message',
+165-                            from: creator,
+166-                            text: "👋 You were added to the group: " + groupName,
+167-                            msgId: Date.now().toString(),
+168-                            isGroup: true,
+
+--- 3. RECEIVER (group_created) ---
+3334:      if (data.type === 'group_created') {
+3335-          let groups = JSON.parse(localStorage.getItem('bapp_groups')) || {};
+3336-          groups[data.groupId] = { name: data.groupName, members: data.members };
+3337-          localStorage.setItem('bapp_groups', JSON.stringify(groups));
+3338-          saveChat(data.groupId); loadChatList();
+3339-      }

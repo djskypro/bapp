@@ -1,0 +1,66 @@
+--- OFFLINE MESSAGES HANDLER ---
+3039:      if (data.type === 'offline_messages') {
+3040-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+3041-        
+3042-        data.messages.forEach(msg => {
+3043-          const senderId = (msg.from || '').trim();
+3044-          
+3045-          try {
+3046-            let saveText = msg.text;
+3047-            // If it's an image, save it to IndexedDB, not localStorage
+3048-            if (msg.isImage && !msg.isVideo && msg.msgId) {
+3049-                if (typeof saveImgToDB === 'function') {
+3050-                    // The saveImgToDB function has a retry, but we need to pass the image ref anyway
+3051-                    saveImgToDB(msg.msgId, msg.text);
+3052-                }
+3053-                saveText = "img_ref_" + msg.msgId;
+3054-            }
+3055-
+3056-            const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + senderId)) || [];
+3057-            savedMsgs.push({
+3058-                text: saveText,
+3059-                type: 'received',
+3060-                time: now,
+3061-                isImage: msg.isImage,
+3062-                isVoice: msg.isVoice,
+3063-                msgId: msg.msgId,
+3064-                replyData: msg.replyData,
+3065-                isWhisper: msg.isWhisper,
+3066-                isVideo: msg.isVideo,
+3067-                bubbleColor: msg.bubbleColor
+3068-            });
+3069-            localStorage.setItem('bapp_msgs_' + senderId, JSON.stringify(savedMsgs));
+
+--- INDEXEDDB SAVE/LOAD ---
+2021:  function saveImgToDB(id, base64) {
+2022-      if(!bappDB) {
+2023-          setTimeout(() => saveImgToDB(id, base64), 100);
+2024-          return;
+2025-      }
+2026-      try {
+2027-          let tx = bappDB.transaction("images", "readwrite");
+2028-          tx.objectStore("images").put(base64, id);
+2029-      } catch(e) { console.log("DB Save Error", e); }
+2030-  }
+2031-  
+2032-  function getImgFromDB(id, callback) {
+2033-      if(!bappDB) { 
+2034-          setTimeout(() => getImgFromDB(id, callback), 100);
+2035-          return; 
+2036-      }
+2032:  function getImgFromDB(id, callback) {
+2033-      if(!bappDB) { 
+2034-          setTimeout(() => getImgFromDB(id, callback), 100);
+2035-          return; 
+2036-      }
+2037-      try {
+2038-          let tx = bappDB.transaction("images", "readonly");
+2039-          let req = tx.objectStore("images").get(id);
+2040-          req.onsuccess = function() { callback(req.result); };
+2041-          req.onerror = function() { callback(null); };
+2042-      } catch(e) { callback(null); }
+2043-  }
+2044-
+2045-  let myBappId = localStorage.getItem('bapp_username');
+2046-  if (!myBappId) {
+2047-    myBappId = prompt("Welcome to BAPP! Choose a unique username:");

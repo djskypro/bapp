@@ -1,0 +1,100 @@
+--- 1. CLIENT SEND IMAGE ---
+  function confirmMediaSend() {
+    if(!pendingMediaBase64) return;
+    
+    // Instantly close modal
+    document.getElementById('media-preview-modal').style.display = 'none';
+    
+    const to = activeChatId;
+    const base64Img = pendingMediaBase64;
+    const isVid = pendingIsVideo;
+    const msgId = Date.now().toString();
+    const reply = currentReplyTo;
+    
+    const payload = { 
+        type: 'send_message', 
+        to: to, 
+        from: myBappId, 
+        text: base64Img, 
+        isImage: !isVid, 
+        isVideo: isVid, 
+        msgId: msgId, 
+        replyData: reply 
+    };
+    
+    // CHECK IF ONLINE, IF NOT, QUEUE IT
+    if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify(payload));
+    } else {
+        let queue = JSON.parse(localStorage.getItem('bapp_offline_queue')) || [];
+        queue.push(payload);
+        localStorage.setItem('bapp_offline_queue', JSON.stringify(queue));
+        console.log("📩 Image queued. Will send when online.");
+    }
+    const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    appendMessage(base64Img, 'sent', now, 'sent', !isVid, false, msgId, reply, false, isVid);
+
+    const rp = document.getElementById('reply-preview');
+    if (rp) rp.style.display = 'none';
+    currentReplyTo = null;
+    if (window.replyState && activeChatId) delete window.replyState[activeChatId];
+
+    try {
+        const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+        savedMsgs.push({ text: base64Img, type: 'sent', time: now, isImage: !isVid, isVideo: isVid, status: 'sent' });
+        localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+        loadChatList();
+
+        document.getElementById('reply-preview').style.display = 'none';
+        currentReplyTo = null;
+        if (window.replyState) delete window.replyState[to];
+    } catch(err) { 
+        // Auto-cleanup
+        for (let i = 0; i < localStorage.length; i++) {
+            let key = localStorage.key(i);
+            if (key.startsWith('bapp_msgs_')) {
+                let msgs = JSON.parse(localStorage.getItem(key)) || [];
+                let changed = false;
+                msgs.forEach(m => {
+                    if (m.isImage && m.text && m.text.startsWith('data:image')) {
+                        m.text = "📷 [Image removed to save space]";
+                        m.isImage = false;
+                        changed = true;
+                    }
+                });
+                if (changed) localStorage.setItem(key, JSON.stringify(msgs));
+            }
+        }
+        try {
+            const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+            savedMsgs.push({ text: base64Img, type: 'sent', time: now, isImage: !isVid, isVideo: isVid, status: 'sent' });
+            localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+            loadChatList();
+        } catch(e2) { alert("Phone storage is completely full."); }
+    }
+    
+    pendingMediaBase64 = null;
+  }
+
+--- 2. SERVER OFFLINE SAVE ---
+286:                db[cleanTo].push({
+287-                    from: from,
+288-                    text: savedText,
+289-                    isImage: isImage || false,
+290-                    isVoice: isVoice || false,
+291-                    isVideo: isVideo || false,
+292-                    msgId: msgId,
+293-                    replyData: replyData,
+294-                    isWhisper: isWhisper || false,
+295-                    bubbleColor: bubbleColor
+296-                });
+297-                try {
+298-                    const jsonStr = JSON.stringify(db);
+299-                    if (jsonStr.length > 100 * 1024 * 1024) {
+300-                        console.warn("⚠️ Offline DB is over 100MB! Clearing old images...");
+301-                        for (let user in db) {
+302-                            db[user].forEach(m => {
+303-                                if (m.isImage) { m.text = "📷 [Image removed - too large]"; m.isImage = false; }
+304-                            });
+305-                        }
+306-                    }

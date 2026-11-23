@@ -1,0 +1,33 @@
+--- 1. APPEND MESSAGE START ---
+1758:  function appendMessage(text, type, timeStr, status = '', isImage = false, isVoice = false, msgId = null, replyData = null, isWhisper = false) {
+1759-    const msgBox = document.getElementById('chat-messages');
+1760-    if (!msgBox) return;
+1761-    const newMsg = document.createElement('div');
+1762-    newMsg.className = 'msg ' + type;
+1763-    if (bubbleColor && type === 'sent') newMsg.style.backgroundColor = bubbleColor;
+1764-    
+1765-    const id = msgId || Date.now().toString();
+1766-    newMsg.id = 'msg-' + id;
+1767-
+1768-    if (replyData) {
+1769-        const quote = document.createElement('div');
+1770-        quote.className = 'quoted-msg';
+1771-        quote.innerHTML = '<strong>' + replyData.name + '</strong>' + (replyData.text.startsWith('data:image') ? '📷 Photo' : (replyData.text.startsWith('data:audio') ? '🎤 Voice Note' : replyData.text));
+1772-        quote.style.cursor = 'pointer';
+1773-        quote.style.pointerEvents = 'auto'; // Force it to be clickable
+
+--- 2. HOW SEND MESSAGE CALLS IT ---
+1940:    appendMessage(text, 'sent', now, status, false, false, msgId, reply, false, false, myProfile.bubbleColor || '#005c4b');
+3489:      appendMessage(text, 'sent', now, 'sent', false, false, msgId, currentReplyTo);
+3944:        appendMessage(text, 'sent', now, status, false, false, msgId, reply);
+
+--- 3. SAVED MSG FOR EACH OPEN CHAT ---
+1708:    savedMsgs.forEach(m => appendMessage(m.text, m.type, m.time, m.status, m.isImage, m.isVoice, m.msgId, m.replyData, m.isWhisper, m.isVideo, m.bubbleColor));
+
+--- 4. MSG CSS ---
+80:  .msg.sent { background: var(--msg-sent); color: var(--text); align-self: flex-end; border-top-right-radius: 2px; }
+82:  .msg.sent .msg-time { color: rgba(255,255,255,0.7); }
+83:  .light-mode .msg.sent .msg-time { color: #666; }
+600:  body.light-mode .messages .msg.sent,
+2316:          const checks = document.querySelectorAll('.msg.sent .msg-status');
+2348:          const checks = document.querySelectorAll('.msg.sent .msg-status');

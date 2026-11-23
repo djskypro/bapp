@@ -1,0 +1,40 @@
+--- APPEND MESSAGE IMAGE BLOCK ---
+1706:    } else if (isImage) {
+1707-      const img = document.createElement('img'); 
+1708-     img.src = text; 
+1709-     img.style.cursor = 'pointer'; 
+1710-     img.onclick = function(e) { e.stopPropagation(); openFullscreenMedia(this.src, false); }; img.onclick = function(e) { e.stopPropagation(); openFullscreenMedia(this.src, false); }; 
+1711-     img.style.cursor = 'pointer'; 
+1712-     img.onclick = function(e) { e.stopPropagation(); openFullscreenMedia(this.src, false); }; img.onclick = function() { openFullscreenMedia(this.src, false); };
+1713-      newMsg.appendChild(img);
+1714-    } else if (text && text.startsWith('data:video')) {
+--
+2616:    if (isImage) {
+2617-      const img = document.createElement('img'); 
+2618-     img.src = text; 
+2619-     img.style.cursor = 'pointer'; 
+2620-     img.onclick = function(e) { e.stopPropagation(); openFullscreenMedia(this.src, false); }; img.onclick = function(e) { e.stopPropagation(); openFullscreenMedia(this.src, false); }; 
+2621-     img.style.cursor = 'pointer'; 
+2622-     img.onclick = function(e) { e.stopPropagation(); openFullscreenMedia(this.src, false); }; img.onclick = function() { openFullscreenMedia(this.src, false); }; newMsg.appendChild(img);
+2623-    } else if (isVoice) {
+2624-      const audio = document.createElement('audio');
+--
+2695:    if (isImage) {
+2696-      const img = document.createElement('img'); 
+2697-     img.src = text; 
+2698-     img.style.cursor = 'pointer'; 
+2699-     img.onclick = function(e) { e.stopPropagation(); openFullscreenMedia(this.src, false); }; img.onclick = function(e) { e.stopPropagation(); openFullscreenMedia(this.src, false); }; 
+2700-     img.style.cursor = 'pointer'; 
+2701-     img.onclick = function(e) { e.stopPropagation(); openFullscreenMedia(this.src, false); }; img.onclick = function() { openFullscreenMedia(this.src, false); };
+2702-      newMsg.appendChild(img);
+2703-    } else if (isVoice || (text && text.startsWith('data:audio'))) {
+--
+3108:        if (isImage) {
+3109-          const img = document.createElement('img'); 
+3110-     img.src = text; 
+3111-     img.style.cursor = 'pointer'; 
+3112-     img.onclick = function(e) { e.stopPropagation(); openFullscreenMedia(this.src, false); }; img.onclick = function(e) { e.stopPropagation(); openFullscreenMedia(this.src, false); }; 
+3113-     img.style.cursor = 'pointer'; 
+3114-     img.onclick = function(e) { e.stopPropagation(); openFullscreenMedia(this.src, false); }; img.onclick = function() { openFullscreenMedia(this.src, false); };
+3115-          newMsg.appendChild(img);
+3116-        } else if (isVoice || (text && text.startsWith('data:audio'))) {

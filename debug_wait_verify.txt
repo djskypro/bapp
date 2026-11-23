@@ -1,0 +1,60 @@
+--- OFFLINE MESSAGES HANDLER ---
+3040:      if (data.type === 'offline_messages') {
+3041-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+3042-        
+3043-        data.messages.forEach(msg => {
+3044-          const senderId = (msg.from || '').trim();
+3045-          
+3046-          try {
+3047-            let saveText = msg.text;
+3048-            // If it's an image, save it to IndexedDB, not localStorage
+3049-            if (msg.isImage && !msg.isVideo && msg.msgId) {
+3050-                if (typeof saveImgToDB === 'function') {
+3051-                    // The saveImgToDB function has a retry, but we need to pass the image ref anyway
+3052-                    saveImgToDB(msg.msgId, msg.text);
+3053-                }
+3054-                saveText = "img_ref_" + msg.msgId;
+3055-            }
+3056-
+3057-            const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + senderId)) || [];
+3058-            savedMsgs.push({
+3059-                text: saveText,
+3060-                type: 'received',
+3061-                time: now,
+3062-                isImage: msg.isImage,
+3063-                isVoice: msg.isVoice,
+3064-                msgId: msg.msgId,
+3065-                replyData: msg.replyData,
+3066-                isWhisper: msg.isWhisper,
+3067-                isVideo: msg.isVideo,
+3068-                bubbleColor: msg.bubbleColor
+3069-            });
+3070-            localStorage.setItem('bapp_msgs_' + senderId, JSON.stringify(savedMsgs));
+3071-          } catch(e) { console.error("Storage full", e); }
+3072-          
+3073-          saveChat(senderId);
+3074-          
+3075-          if (activeChatId === senderId) {
+3076-            // RENDER ALL MEDIA TYPES AND REPLIES
+3077-            appendMessage(msg.text, 'received', now, '', msg.isImage, msg.isVoice, msg.msgId, msg.replyData);
+3078-            socket.send(JSON.stringify({ type: 'read_receipt', to: senderId, from: myBappId }));
+3079-          } else {
+3080-            let unreads = getUnreads();
+
+--- SAVE TO DB FUNCTION ---
+2021:  function saveImgToDB(id, base64) {
+2022-      if(!bappDB) {
+2023-          setTimeout(() => saveImgToDB(id, base64), 100);
+2024-          return;
+2025-      }
+2026-      try {
+2027-          let tx = bappDB.transaction("images", "readwrite");
+2028-          let req = tx.objectStore("images").put(base64, id);
+2029-          req.onerror = function(e) { console.log("DB Save Error", e); };
+2030-      } catch(e) { console.log("DB Save Error", e); }
+2031-  }
+2032-  
+2033-  function getImgFromDB(id, callback) {
+2034-      if(!bappDB) { 
+2035-          setTimeout(() => getImgFromDB(id, callback), 100);
+2036-          return; 

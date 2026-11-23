@@ -1,0 +1,80 @@
+--- SEND MESSAGE ---
+1863:  function sendMessage() {
+1864-    const input = document.getElementById('chat-input');
+1865-    const text = input.value.trim();
+1866-    const to = document.getElementById('chat-name').textContent.trim();
+1867-    if (text !== "" && socket.readyState === WebSocket.OPEN) {
+1868-      const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+1869-      const msgId = Date.now().toString();
+1870-
+1871-      socket.send(JSON.stringify({ 
+1872-          type: 'send_message', 
+1873-          to: activeChatId, 
+1874-          from: myBappId, 
+1875-          text: text,
+1876-          msgId: msgId,
+1877-          replyData: currentReplyTo
+1878-      }));
+1879-      
+1880-      appendMessage(text, 'sent', now, 'sent', false, false, msgId, currentReplyTo);
+1881-      input.value = '';
+1882-      
+1883-      const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + activeChatId)) || [];
+
+--- RECEIVE MESSAGE ---
+2219:      if (data.type === 'new_message') {
+2220-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+2221-        const senderId = (data.from || '').trim();
+2222-        
+2223-        if (data.senderProfile) {
+2224-            let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+2225-            profiles[senderId] = data.senderProfile;
+2226-            localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+2227-        }
+2228-        
+2229-        try {
+2230-          const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + senderId)) || [];
+2231-          savedMsgs.push({ text: data.text, type: 'received', time: now, isImage: data.isImage, isVoice: data.isVoice, msgId: data.msgId, replyData: data.replyData, isWhisper: data.isWhisper });
+2232-          localStorage.setItem('bapp_msgs_' + senderId, JSON.stringify(savedMsgs));
+2233-        } catch(e) { console.error("Storage full"); }
+2234-        
+--
+2685:      if (data.type === 'new_message') {
+2686-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+2687-        const senderId = (data.from || '').trim();
+2688-        if (data.senderProfile) {
+2689-            let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+2690-            profiles[senderId] = data.senderProfile;
+2691-            localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+2692-        }
+2693-        try {
+2694-          const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + senderId)) || [];
+2695-          savedMsgs.push({ text: data.text, type: 'received', time: now, isImage: data.isImage, isVoice: data.isVoice, msgId: data.msgId, replyData: data.replyData });
+2696-          localStorage.setItem('bapp_msgs_' + senderId, JSON.stringify(savedMsgs));
+2697-        } catch(e) {}
+2698-        saveChat(senderId);
+2699-        if (activeChatId === senderId) {
+2700-          appendMessage(data.text, 'received', now, '', data.isImage, data.isVoice, data.msgId, data.replyData);
+
+--- OPEN CHAT ---
+1588:  function openChat(id, profileObj) {
+1589-    // --- RESTORE REPLY STATE FOR THIS CHAT ---
+1590-    const replyBox = document.getElementById('reply-preview');
+1591-    if (window.replyState && window.replyState[id]) {
+1592-        currentReplyTo = window.replyState[id];
+1593-        if (replyBox) {
+1594-            replyBox.style.display = 'block';
+1595-            document.getElementById('reply-preview-name').innerText = 'Replying to ' + currentReplyTo.name;
+1596-            document.getElementById('reply-preview-text').innerText = currentReplyTo.text.startsWith('data:image') ? '📷 Photo' : (currentReplyTo.text.startsWith('data:audio') ? '🎤 Voice Note' : currentReplyTo.text);
+1597-        }
+1598-    } else {
+1599-        currentReplyTo = null;
+1600-        if (replyBox) replyBox.style.display = 'none';
+1601-    }
+1602-    // ---------------------------------------
+1603-
+1604-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+1605-    document.getElementById('chat-view').classList.add('active');
+1606-    
+1607-    let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+1608-    let p = profileObj || profiles[id] || { name: id, avatar: 'https://ui-avatars.com/api/?name=' + id.substring(0,2) + '&background=random' };

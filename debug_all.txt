@@ -1,0 +1,96 @@
+--- 1. WHISPER BUTTON HTML ---
+1353:    <div id="whisper-toggle" onclick="toggleWhisperMode()" style="display:none; width: 45px; height: 45px; border-radius: 50%; background: var(--search-bg); justify-content: center; align-items: center; font-size: 20px; cursor: pointer; margin-right: 5px; transition: 0.2s;">👻</div>
+1823:    const btn = document.getElementById('whisper-toggle');
+2502:    const whisperBtn = document.getElementById('whisper-toggle');
+
+--- 2. TOGGLE FUNCTION ---
+1821:  function toggleWhisperMode() {
+1822-    window.isWhisperMode = !window.isWhisperMode;
+1823-    const btn = document.getElementById('whisper-toggle');
+1824-    if (window.isWhisperMode) {
+1825-      btn.style.background = '#25D366'; // Green when active
+1826-      btn.style.boxShadow = '0 0 15px rgba(37,211,102,0.5)';
+1827-      document.getElementById('chat-input').placeholder = "Whisper message...";
+1828-    } else {
+1829-      btn.style.background = 'var(--search-bg)'; // Normal when inactive
+1830-      btn.style.boxShadow = 'none';
+1831-      document.getElementById('chat-input').placeholder = "Message";
+1832-    }
+1833-  }
+
+--- 3. SEND MESSAGE FUNCTION ---
+1738:  function sendMessage() {
+1739-    const input = document.getElementById('chat-input');
+1740-    const text = input.value.trim();
+1741-    const to = document.getElementById('chat-name').textContent.trim();
+1742-    if (text !== "" && socket.readyState === WebSocket.OPEN) {
+1743-      const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+1744-      const msgId = Date.now().toString();
+1745-
+1746-      socket.send(JSON.stringify({ 
+1747-          type: 'send_message', 
+1748-          to: activeChatId, 
+1749-          from: myBappId, 
+1750-          text: text,
+1751-          msgId: msgId,
+1752-          replyData: currentReplyTo
+1753-      }));
+1754-      
+1755-      appendMessage(text, 'sent', now, 'sent', false, false, msgId, currentReplyTo, window.isWhisperMode);
+1756-      input.value = '';
+1757-      
+1758-      const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + activeChatId)) || [];
+1759-      savedMsgs.push({ text: text, type: 'sent', time: now, status: 'sent', msgId: msgId, replyData: currentReplyTo });
+1760-      localStorage.setItem('bapp_msgs_' + activeChatId, JSON.stringify(savedMsgs));
+
+--- 4. RECEIVE MESSAGE BLOCK ---
+2094:      if (data.type === 'new_message') {
+2095-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+2096-        const senderId = (data.from || '').trim();
+2097-        
+2098-        if (data.senderProfile) {
+2099-            let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+2100-            profiles[senderId] = data.senderProfile;
+2101-            localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+2102-        }
+2103-        
+2104-        try {
+2105-          const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + senderId)) || [];
+2106-          savedMsgs.push({ text: data.text, type: 'received', time: now, isImage: data.isImage, isVoice: data.isVoice, msgId: data.msgId, replyData: data.replyData, isWhisper: data.isWhisper });
+--
+2560:      if (data.type === 'new_message') {
+2561-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+2562-        const senderId = (data.from || '').trim();
+2563-        if (data.senderProfile) {
+2564-            let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+2565-            profiles[senderId] = data.senderProfile;
+2566-            localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+2567-        }
+2568-        try {
+2569-          const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + senderId)) || [];
+2570-          savedMsgs.push({ text: data.text, type: 'received', time: now, isImage: data.isImage, isVoice: data.isVoice, msgId: data.msgId, replyData: data.replyData, isWhisper: data.isWhisper });
+2571-          localStorage.setItem('bapp_msgs_' + senderId, JSON.stringify(savedMsgs));
+2572-        } catch(e) {}
+
+--- 5. APPEND MESSAGE START ---
+1669:  function appendMessage(text, type, timeStr, status = '', isImage = false, isVoice = false, msgId = null, replyData = null, isWhisper = false) {
+1670-    const msgBox = document.getElementById('chat-messages');
+1671-    if (!msgBox) return;
+1672-    const newMsg = document.createElement('div');
+1673-    newMsg.className = 'msg ' + type;
+1674-    
+1675-    const id = msgId || Date.now().toString();
+1676-    newMsg.id = 'msg-' + id;
+1677-
+1678-    // --- WHISPER LOGIC ---
+1679-    // If it's a whisper AND it's a received message, lock it!
+1680-    if (isWhisper && type === 'received') {
+1681-        newMsg.classList.add('whisper-locked');
+1682-        newMsg.innerHTML = '🔒 Tap here to view secret message';
+1683-        
+1684-        newMsg.onclick = function() {
+1685-            // Unlock the message
+1686-            newMsg.classList.remove('whisper-locked');
+1687-            newMsg.innerHTML = ''; // Clear the lock text
+1688-            
+1689-            // Render the real message (without the whisper flag)

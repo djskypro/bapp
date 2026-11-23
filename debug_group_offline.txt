@@ -1,0 +1,27 @@
+--- OFFLINE RECEIVER ---
+3318:      if (data.type === 'offline_messages') {
+3319-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+3320-        
+3321-        (async () => {
+3322-            for (const msg of data.messages) {
+3323-                try {
+3324-                    const senderId = (msg.isGroup && msg.groupId) ? msg.groupId : (msg.from || '').trim();
+3325-                    
+3326-                    if (msg.isGroupEvent) {
+3327-                        let groups = JSON.parse(localStorage.getItem('bapp_groups')) || {};
+3328-                        groups[msg.groupId] = { name: msg.groupName, members: msg.members };
+3329-                        localStorage.setItem('bapp_groups', JSON.stringify(groups));
+3330-                        
+3331-                        let msgs = JSON.parse(localStorage.getItem('bapp_msgs_' + msg.groupId)) || [];
+3332-                        msgs.push({ text: msg.text, type: 'received', time: now, msgId: msg.msgId });
+3333-                        localStorage.setItem('bapp_msgs_' + msg.groupId, JSON.stringify(msgs));
+3334-                        saveChat(msg.groupId);
+3335-                    } 
+3336-                    else {
+3337-                        let saveText = msg.text;
+3338-                        
+3339-                        // --- CRITICAL FIX: AWAIT THE DATABASE SAVE ---
+3340-                        if (msg.isImage && !msg.isVideo && msg.msgId) {
+3341-                            // If it's a /media/ URL, use it directly
+3342-                            if (msg.text.startsWith('/media/') || msg.text.startsWith('http')) {
+3343-                                console.log("✅ Offline Image URL used:", msg.text);

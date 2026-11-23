@@ -1,0 +1,111 @@
+--- CURRENT BACKGROUND CSS ---
+464:  #magic-ball {
+465-    position: fixed;
+466-    top: 50%; left: 50%;
+467-    transform: translate(-50%, -50%);
+468-    width: 600px; /* Made it huge so it feels like a background wall */
+469-    height: 600px;
+470-    border-radius: 50%;
+471-    z-index: 0; 
+472-    pointer-events: none;
+473-    
+474-    /* Extremely dark 3D lighting */
+475-    background: radial-gradient(circle at 30% 30%, #0a0a0a 0%, #000 80%);
+476-    
+477-    /* Fade the edges completely into the black background so there are no borders */
+478-    mask-image: radial-gradient(circle at center, black 10%, transparent 60%);
+479-    -webkit-mask-image: radial-gradient(circle at center, black 10%, transparent 60%);
+--
+483:  #magic-ball::before {
+484-    content: '';
+485-    position: absolute;
+486-    top: -50%; left: -50%;
+487-    width: 200%; height: 200%;
+488-    
+489-    /* Dark grey overlapping scales */
+490-    background-image: 
+491-      radial-gradient(circle at 50% 0, transparent 20%, rgba(255, 255, 255, 0.04) 21%, rgba(255, 255, 255, 0.04) 34%, transparent 35%, transparent),
+492-      radial-gradient(circle at 0 50%, transparent 20%, rgba(255, 255, 255, 0.04) 21%, rgba(255, 255, 255, 0.04) 34%, transparent 35%, transparent),
+493-      radial-gradient(circle at 100% 50%, transparent 20%, rgba(255, 255, 255, 0.04) 21%, rgba(255, 255, 255, 0.04) 34%, transparent 35%, transparent),
+494-      radial-gradient(circle at 50% 100%, transparent 20%, rgba(255, 255, 255, 0.04) 21%, rgba(255, 255, 255, 0.04) 34%, transparent 35%, transparent);
+495-    background-size: 25px 25px; /* Smaller, tighter scales */
+496-    
+497-    /* Spin to the left */
+498-    animation: spinLeft 15s linear infinite;
+--
+502:  .light-mode #magic-ball {
+503-    background: radial-gradient(circle at 30% 30%, #f0f0f0 0%, #e0e0e0 80%);
+504-  }
+505:  .light-mode #magic-ball::before {
+506-    background-image: 
+507-      radial-gradient(circle at 50% 0, transparent 20%, rgba(0, 0, 0, 0.04) 21%, rgba(0, 0, 0, 0.04) 34%, transparent 35%, transparent),
+508-      radial-gradient(circle at 0 50%, transparent 20%, rgba(0, 0, 0, 0.04) 21%, rgba(0, 0, 0, 0.04) 34%, transparent 35%, transparent),
+509-      radial-gradient(circle at 100% 50%, transparent 20%, rgba(0, 0, 0, 0.04) 21%, rgba(0, 0, 0, 0.04) 34%, transparent 35%, transparent),
+510-      radial-gradient(circle at 50% 100%, transparent 20%, rgba(0, 0, 0, 0.04) 21%, rgba(0, 0, 0, 0.04) 34%, transparent 35%, transparent);
+511-  }
+512-
+513-  @keyframes spinLeft {
+514-    0% { background-position: 0px 0px, 12.5px 12.5px, 12.5px 12.5px, 0px 0px; }
+515-    100% { background-position: -50px 0px, -37.5px 12.5px, -37.5px 12.5px, -50px 0px; }
+516-  }
+517-  </style>
+518-
+519-<style>
+520-  /* The Blur Layer */
+--
+617:  body.light-mode #magic-ball {
+618-    /* White sphere base with dark 3D shading */
+619-    background: radial-gradient(circle at 30% 30%, #ffffff 0%, #d0d0d0 80%) !important;
+620-    box-shadow: inset -20px -20px 50px rgba(0, 0, 0, 0.5), inset 10px 10px 30px rgba(255, 255, 255, 1) !important;
+621-    opacity: 0.8;
+622-  }
+623-
+624:  body.light-mode #magic-ball::before {
+625-    /* BLACK snake scales */
+626-    background-image: 
+627-      radial-gradient(circle at 50% 0, transparent 20%, rgba(0, 0, 0, 0.15) 21%, rgba(0, 0, 0, 0.15) 34%, transparent 35%, transparent),
+628-      radial-gradient(circle at 0 50%, transparent 20%, rgba(0, 0, 0, 0.15) 21%, rgba(0, 0, 0, 0.15) 34%, transparent 35%, transparent),
+629-      radial-gradient(circle at 100% 50%, transparent 20%, rgba(0, 0, 0, 0.15) 21%, rgba(0, 0, 0, 0.15) 34%, transparent 35%, transparent),
+630-      radial-gradient(circle at 50% 100%, transparent 20%, rgba(0, 0, 0, 0.15) 21%, rgba(0, 0, 0, 0.15) 34%, transparent 35%, transparent) !important;
+631-  }
+632-
+633-  /* Make sure the chat view background is transparent so the ball shows */
+634-  #chat-view {
+635-    background: transparent !important;
+636-  }
+637-</style>
+638-
+639-<style>
+262:  .snake-sphere {
+263-    position: absolute;
+264-    top: 50%;
+265-    left: 50%;
+266-    transform: translate(-50%, -50%);
+267-    width: 350px;
+268-    height: 350px;
+269-    border-radius: 50%;
+270-    z-index: 1;
+271-    pointer-events: none;
+272-    overflow: hidden;
+273-    
+274-    /* Create the 3D sphere lighting effect */
+275-    box-shadow: 
+276-      inset 0 0 50px rgba(0,0,0,0.9), 
+277-      inset 20px 20px 60px var(--snake-glow),
+--
+286:  .snake-sphere {
+287-    position: absolute;
+288-    top: 50%; left: 50%;
+289-    transform: translate(-50%, -50%);
+290-    width: 350px; height: 350px;
+291-    border-radius: 50%;
+292-    z-index: 0; /* Put it in the background */
+293-    pointer-events: none;
+294-    overflow: hidden;
+295-    box-shadow: 
+296-      inset 0 0 50px rgba(0,0,0,0.9), 
+297-      inset 20px 20px 60px var(--snake-glow),
+298-      0 0 50px var(--snake-glow);
+299-    mask-image: radial-gradient(circle, black 40%, transparent 75%);
+300-    -webkit-mask-image: radial-gradient(circle, black 40%, transparent 75%);
+301-    animation: breatheSphere 6s infinite alternate ease-in-out;

@@ -1,0 +1,60 @@
+--- 1. CHAT LIST ITEM HTML ---
+2379:      const chatHtml = `
+2380-        <div class="chat-item" id="item-${id}" onclick="openChat('${id}')">
+2381-          <img src="${avatarUrl}" class="avatar">
+2382-          <div class="chat-info">
+2383-            <div class="chat-top"><div class="chat-name">${displayName}</div><div class="${timeClass}">${lastMsgTime}</div></div>
+2384-            <div class="chat-bottom"><div class="chat-msg" id="preview-${id}">${lastMsgText}</div>${badgeHtml}</div>
+2385-          </div>
+2386-        </div>
+2387-      `;
+2388-      chatList.insertAdjacentHTML('beforeend', chatHtml);
+2389-    });
+2390-    updateGlobalBadge();
+2391-  }
+2392-
+2393-  function updateGlobalBadge() {
+2394-    const unreads = getUnreads();
+
+--- 2. 3-DOT MENU HTML ---
+5517:<div id="chat-options-menu" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.6); z-index:99999; flex-direction:column; justify-content:flex-end;">
+5518-  <div class="glass" style="width:100%; border-radius: 25px 25px 0 0; padding: 25px; padding-bottom: 40px; display:flex; flex-direction:column; gap: 15px;">
+5519-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+5520-      <h3 style="font-size:18px;">Chat Options</h3>
+5521-      <span onclick="closeChatMenu()" style="font-size:24px; cursor:pointer;">✕</span>
+5522-    </div>
+5523-    
+5524-    <!-- Options -->
+5525-    <div onclick="clearCurrentChat()" style="display:flex; align-items:center; gap:15px; padding:15px; background:var(--search-bg); border-radius:15px; cursor:pointer;">
+5526-      <span style="font-size:20px;">🗑️</span>
+5527-      <span style="font-size:16px; font-weight:500;">Clear Chat</span>
+5528-    </div>
+5529-
+5530-    <div onclick="deleteCurrentChat()" style="display:flex; align-items:center; gap:15px; padding:15px; background:rgba(231, 76, 60, 0.2); border-radius:15px; cursor:pointer;">
+5531-      <span style="font-size:20px;">❌</span>
+5532-      <span style="font-size:16px; font-weight:500; color:#e74c3c;">Delete Chat</span>
+5533-    </div>
+5534-    
+5535-    <div onclick="document.getElementById('wallpaper-input').click()" style="display:flex; align-items:center; gap:15px; padding:15px; background:var(--search-bg); border-radius:15px; cursor:pointer;">
+5536-      <span style="font-size:20px;">🖼️</span>
+5537-      <span style="font-size:16px; font-weight:500;">Change Wallpaper</span>
+5538-      <input type="file" id="wallpaper-input" accept="image/*" style="display:none;" onchange="changeWallpaper(event)">
+5539-    </div>
+5540-
+5541-    <div onclick="promptChatColor()" style="display:flex; align-items:center; gap:15px; padding:15px; background:var(--search-bg); border-radius:15px; cursor:pointer;">
+5542-      <span style="font-size:20px;">🎨</span>
+
+--- 3. OPEN CHAT FUNCTION ---
+2439:  function openChat(id, profileObj) {
+2440-    document.getElementById('chat-input').value = ''; // <--- CLEAR INPUT ON CHAT SWITCH
+2441-    history.pushState({ view: 'chat' }, '', '#chat');
+2442-    // --- RESTORE REPLY STATE FOR THIS CHAT ---
+2443-    const replyBox = document.getElementById('reply-preview');
+2444-    if (window.replyState && window.replyState[id]) {
+--
+5316:  function openChatMenu() {
+5317-    document.getElementById('chat-options-menu').style.display = 'flex';
+5318-  }
+5319-  
+5320-  
+5321-  function clearCurrentChat() {

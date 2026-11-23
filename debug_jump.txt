@@ -1,0 +1,45 @@
+--- APPEND MESSAGE ---
+1500:  function appendMessage(text, type, timeStr, status = '', isImage = false, isVoice = false) {
+1501-    const msgBox = document.getElementById('chat-messages');
+1502-    if (!msgBox) return;
+1503-    const newMsg = document.createElement('div');
+1504-    newMsg.className = 'msg ' + type;
+1505-    
+1506-    if (isImage) {
+1507-      const img = document.createElement('img'); 
+1508-      img.src = text; 
+1509-      img.style.cursor = 'pointer';
+1510-      newMsg.appendChild(img);
+1511-    } else if (isVoice || (text && text.startsWith('data:audio'))) {
+1512-      // Build Custom WhatsApp Player
+1513-      const playerDiv = document.createElement('div');
+1514-      playerDiv.className = 'wa-audio';
+1515-      
+1516-      const playBtn = document.createElement('div');
+1517-      playBtn.className = 'wa-play-btn';
+1518-      playBtn.innerText = '▶';
+1519-      
+1520-      const waveDiv = document.createElement('div');
+1521-      waveDiv.className = 'wa-waveform';
+1522-      
+1523-      const timeSpan = document.createElement('span');
+1524-      timeSpan.className = 'wa-time';
+1525-      timeSpan.innerText = '0:00';
+
+--- EXECUTE REPLY ---
+2721:  function executeReply() {
+2722-    const el = activeMsgElement;
+2723-    const text = el.dataset.msgText;
+2724-    const isMe = el.dataset.isMe === 'true';
+2725-    
+2726-    currentReplyTo = {
+2727-      msgId: el.dataset.msgId,
+2728-      text: text,
+2729-      name: isMe ? 'You' : document.getElementById('chat-name').textContent
+2730-    };
+2731-    window.replyState[activeChatId] = currentReplyTo; // Save to memory
+2732-    
+2733-    document.getElementById('reply-preview').style.display = 'block';
+2734-    document.getElementById('reply-preview-name').innerText = 'Replying to ' + currentReplyTo.name;
+2735-    document.getElementById('reply-preview-text').innerText = text.startsWith('data:image') ? '📷 Photo' : (text.startsWith('data:audio') ? '🎤 Voice Note' : text);
+2736-    

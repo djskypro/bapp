@@ -1,0 +1,16 @@
+--- 1. CHAT VIEW CONTAINER ---
+1481:<div id="chat-view" class="view">
+1482-  <div class="chat-header">
+1483-    <!-- ISLAND 1: BACK BUTTON -->
+1484-    <div class="back-btn glass-island" onclick="goBack()">←</div>
+1485-    
+1486-    <!-- ISLAND 2: PROFILE, NAME, TYPING -->
+
+--- 2. MESSAGES CONTAINER ---
+1503:  <div class="messages" id="chat-messages"></div>
+
+--- 3. MAIN VIEW CONTAINER ---
+1439:<div id="main-view" class="view active">
+1440-  <div id="search-blur-overlay"></div>
+1441-  
+1442-  

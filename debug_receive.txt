@@ -1,0 +1,54 @@
+--- RECEIVE MESSAGE BLOCK ---
+2195:      if (data.type === 'new_message') {
+2196-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+2197-        const senderId = (data.from || '').trim();
+2198-        
+2199-        if (data.senderProfile) {
+2200-            let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+2201-            profiles[senderId] = data.senderProfile;
+2202-            localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+2203-        }
+2204-        
+2205-        try {
+2206-          const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + senderId)) || [];
+2207-          savedMsgs.push({ text: data.text, type: 'received', time: now, isImage: data.isImage, isVoice: data.isVoice, msgId: data.msgId, replyData: data.replyData, isWhisper: data.isWhisper });
+2208-          localStorage.setItem('bapp_msgs_' + senderId, JSON.stringify(savedMsgs));
+2209-        } catch(e) { console.error("Storage full"); }
+2210-        
+2211-        saveChat(senderId);
+2212-        
+2213-        if (activeChatId === senderId) {
+2214-          appendMessage(data.text, 'received', now, '', data.isImage, data.isVoice, data.msgId, data.replyData, data.isWhisper);
+2215-          socket.send(JSON.stringify({ type: 'read_receipt', to: senderId, from: myBappId }));
+2216-        } else {
+2217-          let unreads = getUnreads();
+2218-          unreads[senderId] = (unreads[senderId] || 0) + 1;
+2219-          localStorage.setItem('bapp_unreads', JSON.stringify(unreads));
+2220-        }
+--
+2661:      if (data.type === 'new_message') {
+2662-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+2663-        const senderId = (data.from || '').trim();
+2664-        if (data.senderProfile) {
+2665-            let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+2666-            profiles[senderId] = data.senderProfile;
+2667-            localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+2668-        }
+2669-        try {
+2670-          const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + senderId)) || [];
+2671-          savedMsgs.push({ text: data.text, type: 'received', time: now, isImage: data.isImage, isVoice: data.isVoice, msgId: data.msgId, replyData: data.replyData });
+2672-          localStorage.setItem('bapp_msgs_' + senderId, JSON.stringify(savedMsgs));
+2673-        } catch(e) {}
+2674-        saveChat(senderId);
+2675-        if (activeChatId === senderId) {
+2676-          appendMessage(data.text, 'received', now, '', data.isImage, data.isVoice, data.msgId, data.replyData);
+2677-          socket.send(JSON.stringify({ type: 'read_receipt', to: senderId, from: myBappId }));
+2678-        } else {
+2679-          let unreads = getUnreads();
+2680-          unreads[senderId] = (unreads[senderId] || 0) + 1;
+2681-          localStorage.setItem('bapp_unreads', JSON.stringify(unreads));
+2682-        }
+2683-        loadChatList();
+2684-      } else {
+2685-        // Pass typing, read receipts, search, etc. to the original handler
+2686-        oldOnMessage.call(socket, event); 

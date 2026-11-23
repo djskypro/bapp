@@ -1,0 +1,16 @@
+--- 1. THE 3-DOT BUTTON ---
+1326:      <span onclick="startCall('video')">📹</span>
+1327-      <span onclick="startCall('audio')">📞</span>
+1328-      <span onclick="openChatMenu()" style="font-weight:bold; cursor:pointer;">⋮</span>
+1329-    </div>
+
+--- 2. THE MENU HTML ---
+4152:    document.getElementById('chat-options-menu').style.display = 'flex';
+4156:    document.getElementById('chat-options-menu').style.display = 'none';
+4290:<div id="chat-options-menu" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.6); z-index:99999; flex-direction:column; justify-content:flex-end;">
+
+--- 3. THE MENU FUNCTION ---
+4151:  function openChatMenu() {
+4152-    document.getElementById('chat-options-menu').style.display = 'flex';
+4153-  }
+4154-  

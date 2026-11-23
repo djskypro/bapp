@@ -1,0 +1,146 @@
+--- SETTINGS HTML ---
+1386:<div id="settings-view" class="view">
+1387-  <div class="header" style="padding-top: 40px;">
+1388-    <div style="display:flex; align-items:center; gap:15px;">
+1389-      <div class="back-btn" onclick="goBack()">←</div>
+1390-      <h1>Settings</h1>
+1391-    </div>
+1392-  </div>
+1393-  
+1394-  <div class="settings-content">
+1395-    <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:20px;">
+1396-      <img id="settings-avatar" src="" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); margin-bottom: 15px;">
+1397-      <label style="background:var(--search-bg); padding:10px 20px; border-radius:12px; cursor:pointer; font-size:14px;">
+1398-        Change Picture
+1399-        <input type="file" id="settings-pic-input" accept="image/*" style="display:none;">
+1400-      </label>
+1401-    </div>
+1402-
+1403-    <div class="input-group">
+1404-      <label>Username (Cannot change)</label>
+1405-      <input type="text" id="settings-username" disabled style="color:var(--text-muted); opacity:0.7;">
+1406-    </div>
+1407-    <div class="input-group">
+1408-      <label>Display Name</label>
+1409-      <input type="text" id="settings-name-input" placeholder="Your Name">
+1410-    </div>
+1411-    <div class="input-group">
+1412-      <label>Bio</label>
+1413-      <textarea id="settings-bio" rows="3" placeholder="About me..."></textarea>
+1414-    </div>
+1415-    <div class="input-group">
+1416-      <label>Phone Number</label>
+1417-      <input type="tel" id="settings-phone" placeholder="+256...">
+1418-    </div>
+1419-    <div class="input-group">
+1420-      <label>Location</label>
+1421-      <div style="display:flex; gap:10px; margin-top:5px;">
+1422-        <input type="text" id="settings-location" placeholder="City, Country" style="margin-top:0;">
+1423-        <button onclick="randomizeLocation()" style="background:var(--search-bg); color:var(--text); border:none; border-radius:12px; padding:0 15px; font-size:18px;">🎲</button>
+1424-      </div>
+1425-    </div>
+1426-    <div class="toggle-row">
+
+--- SEND MESSAGE ---
+  function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if (text === "") return;
+
+    const to = activeChatId;
+    const reply = currentReplyTo;
+    const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    const msgId = Date.now().toString();
+    
+    const isConnected = socket.readyState === WebSocket.OPEN;
+    const status = isConnected ? 'sent' : 'pending';
+
+    // 1. Show on screen immediately
+    appendMessage(text, 'sent', now, status, false, false, msgId, reply);
+    input.value = '';
+
+    // 2. Save to local memory
+    try {
+        const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+        savedMsgs.push({ text: text, type: 'sent', time: now, status: status, msgId: msgId, replyData: reply });
+        localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+        loadChatList();
+    } catch(e) { console.error("Storage full"); }
+
+    const rp = document.getElementById('reply-preview');
+    if (rp) rp.style.display = 'none';
+    currentReplyTo = null;
+    if (window.replyState && activeChatId) delete window.replyState[activeChatId];
+
+    // 3. Send now OR save to Offline Queue
+    const payload = {
+        type: 'send_message',
+        to: to,
+        from: myBappId,
+        text: text,
+        msgId: msgId,
+        replyData: reply
+    };
+
+    if (isConnected) {
+        socket.send(JSON.stringify(payload));
+    } else {
+        let queue = JSON.parse(localStorage.getItem('bapp_offline_queue')) || [];
+        queue.push(payload);
+        localStorage.setItem('bapp_offline_queue', JSON.stringify(queue));
+        console.log("📩 Message queued. Will send when online.");
+    }
+  }
+
+--- APPEND MESSAGE START ---
+1748:  function appendMessage(text, type, timeStr, status = '', isImage = false, isVoice = false, msgId = null, replyData = null, isWhisper = false) {
+1749-    const msgBox = document.getElementById('chat-messages');
+1750-    if (!msgBox) return;
+1751-    const newMsg = document.createElement('div');
+1752-    newMsg.className = 'msg ' + type;
+1753-    
+1754-    const id = msgId || Date.now().toString();
+1755-    newMsg.id = 'msg-' + id;
+1756-
+1757-    if (replyData) {
+1758-        const quote = document.createElement('div');
+1759-        quote.className = 'quoted-msg';
+1760-        quote.innerHTML = '<strong>' + replyData.name + '</strong>' + (replyData.text.startsWith('data:image') ? '📷 Photo' : (replyData.text.startsWith('data:audio') ? '🎤 Voice Note' : replyData.text));
+1761-        quote.style.cursor = 'pointer';
+1762-        quote.style.pointerEvents = 'auto'; // Force it to be clickable
+1763-        quote.onclick = function() { 
+
+--- RECEIVE MESSAGE ---
+2343:      if (data.type === 'new_message') {
+2344-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+2345-        const senderId = (data.from || '').trim();
+2346-        
+2347-        if (data.senderProfile) {
+2348-            let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+2349-            profiles[senderId] = data.senderProfile;
+2350-            localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+2351-        }
+2352-        
+2353-        try {
+2354-          const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + senderId)) || [];
+2355-          savedMsgs.push({ text: data.text, type: 'received', time: now, isImage: data.isImage, isVoice: data.isVoice, msgId: data.msgId, replyData: data.replyData, isWhisper: data.isWhisper });
+2356-          localStorage.setItem('bapp_msgs_' + senderId, JSON.stringify(savedMsgs));
+2357-        } catch(e) {
+2358-          console.warn("Receiver storage full! Clearing old images...");
+--
+2832:      if (data.type === 'new_message') {
+2833-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+2834-        const senderId = (data.from || '').trim();
+2835-        if (data.senderProfile) {
+2836-            let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+2837-            profiles[senderId] = data.senderProfile;
+2838-            localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+2839-        }
+2840-        try {
+2841-          const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + senderId)) || [];
+2842-          savedMsgs.push({ text: data.text, type: 'received', time: now, isImage: data.isImage, isVoice: data.isVoice, msgId: data.msgId, replyData: data.replyData });
+2843-          localStorage.setItem('bapp_msgs_' + senderId, JSON.stringify(savedMsgs));
+2844-        } catch(e) {
+2845-          console.warn("Receiver storage full! Clearing old images...");
+2846-          for (let i = 0; i < localStorage.length; i++) {
+2847-              let key = localStorage.key(i);

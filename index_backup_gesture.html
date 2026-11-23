@@ -1,0 +1,3193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>BAPP</title>
+<style>
+  :root {
+    --snake-color: rgba(255, 255, 255, 0.15);
+    --snake-glow: rgba(255, 255, 255, 0.05);
+    --bg: #000000; --text: #ffffff; --text-muted: #888888;
+    --glass-bg: rgba(25, 25, 28, 0.85); --glass-border: rgba(255, 255, 255, 0.08);
+    --search-bg: rgba(255, 255, 255, 0.1); --primary: #25D366; --icon-color: #a0a0a0;
+    --msg-sent: #005c4b; --msg-received: #202c33;
+    --snake-color: rgba(255, 255, 255, 0.15);
+    --snake-glow: rgba(255, 255, 255, 0.05);
+    --snake-inset: rgba(255, 255, 255, 0.1);
+  }
+  .light-mode {
+    --snake-color: rgba(0, 0, 0, 0.15);
+    --snake-glow: rgba(0, 0, 0, 0.05);
+    --bg: #f2f2f7; --text: #000000; --text-muted: #666666;
+    --glass-bg: rgba(255, 255, 255, 0.85); --glass-border: rgba(0, 0, 0, 0.1);
+    --search-bg: rgba(0, 0, 0, 0.05); --icon-color: #333333;
+    --msg-sent: #dcf8c6; --msg-received: #ffffff;
+    --snake-color: rgba(0, 0, 0, 0.15);
+    --snake-glow: rgba(0, 0, 0, 0.05);
+    --snake-inset: rgba(0, 0, 0, 0.1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+  body { background-color: var(--bg); background-image: radial-gradient(circle at 15% 50%, rgba(37, 211, 102, 0.1), transparent 50%), radial-gradient(circle at 85% 30%, rgba(0, 150, 255, 0.1), transparent 50%); color: var(--text); height: 100vh; overflow: hidden; transition: background-color 0.3s, color 0.3s; }
+  .glass { background: var(--glass-bg); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid var(--glass-border); }
+  .view { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; opacity: 0; pointer-events: none; transition: transform 0.3s ease, opacity 0.3s ease; transform: translateX(20px); z-index: 1; }
+  .view.active { opacity: 1; pointer-events: auto; transform: translateX(0); z-index: 10; }
+
+  #main-view { padding-top: 40px; padding-bottom: 90px; }
+  .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; }
+  .header h1 { font-size: 32px; font-weight: 700; letter-spacing: -1px; }
+  .header-icons { display: flex; gap: 12px; align-items: center; font-size: 20px; color: var(--icon-color); }
+  .icon-btn { cursor: pointer; display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 50%; background: var(--search-bg); }
+
+  .search-container { padding: 10px 20px 15px 20px; position: relative; }
+  .search-box { background: var(--search-bg); border-radius: 12px; padding: 10px 15px; display: flex; align-items: center; gap: 10px; }
+  .search-box input { background: transparent; border: none; color: var(--text); font-size: 16px; width: 100%; outline: none; }
+  #search-dropdown { display:none; position:absolute; top:60px; left:20px; right:20px; z-index:100; border-radius:12px; overflow:hidden; background: var(--glass-bg); backdrop-filter: blur(30px); border: 1px solid var(--glass-border); }
+
+  .chat-list { flex: 1; overflow-y: auto; }
+  .chat-item { display: flex; align-items: center; padding: 12px 20px; cursor: pointer; }
+  .chat-item:active { background: var(--search-bg); }
+  .avatar { width: 50px; height: 50px; border-radius: 50%; background: #333; object-fit: cover; margin-right: 15px; border: 1px solid var(--glass-border); }
+  .chat-info { flex: 1; border-bottom: 1px solid var(--glass-border); padding-bottom: 12px; padding-top: 5px; }
+  .chat-item:last-child .chat-info { border-bottom: none; }
+  .chat-top { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .chat-name { font-size: 17px; font-weight: 500; }
+  .chat-time { font-size: 13px; color: var(--text-muted); }
+  .chat-time.unread { color: var(--primary); font-weight: bold; }
+  .chat-bottom { display: flex; justify-content: space-between; align-items: center; }
+  .chat-msg { font-size: 15px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+  .badge { background: var(--primary); color: black; font-size: 12px; font-weight: bold; min-width: 20px; height: 20px; border-radius: 10px; display: flex; align-items: center; justify-content: center; padding: 0 5px; }
+
+  .bottom-nav { position: absolute; bottom: 15px; left: 15px; right: 15px; border-radius: 30px; display: flex; justify-content: space-around; padding: 12px 0; box-shadow: 0 10px 30px rgba(0,0,0,0.3); z-index: 20; background: var(--glass-bg); backdrop-filter: blur(30px); border: 1px solid var(--glass-border); }
+  .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; color: var(--text-muted); cursor: pointer; position: relative; }
+  .nav-item.active { color: var(--primary); }
+  .nav-item span { font-size: 22px; }
+  .nav-badge { position: absolute; top: -5px; right: -10px; background: var(--primary); color: black; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; display: none; }
+
+  #chat-view, #settings-view, #contact-info-view { background: var(--bg); z-index: 30; }
+  .chat-header { display: flex; align-items: center; padding: 15px 20px; background: var(--glass-bg); backdrop-filter: blur(20px); border-bottom: 1px solid var(--glass-border); }
+  .back-btn { font-size: 24px; margin-right: 15px; color: var(--primary); cursor: pointer; }
+  .chat-header .avatar { width: 40px; height: 40px; margin-right: 12px; }
+  .chat-header .name { font-size: 18px; font-weight: 600; }
+  .chat-header .lock { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 3px; }
+  .messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+  .msg { max-width: 80%; padding: 10px 12px; border-radius: 12px; font-size: 15px; line-height: 1.4; position: relative; word-wrap: break-word; }
+  .msg.received { background: var(--msg-received); align-self: flex-start; border-top-left-radius: 2px; }
+  .msg.sent { background: var(--msg-sent); color: var(--text); align-self: flex-end; border-top-right-radius: 2px; }
+  .msg-time { font-size: 10px; color: var(--text-muted); float: right; margin: 6px 0 0 12px; }
+  .msg.sent .msg-time { color: rgba(255,255,255,0.7); }
+  .light-mode .msg.sent .msg-time { color: #666; }
+  .msg img { max-width: 100%; border-radius: 8px; margin-bottom: 5px; display: block; }
+  .msg-status { font-size: 12px; margin-left: 5px; color: var(--text-muted); }
+  .msg-status.read { color: #53bdeb; }
+
+  .chat-input-area { padding: 10px 15px 25px 15px; display: flex; gap: 10px; background: var(--glass-bg); backdrop-filter: blur(20px); border-top: 1px solid var(--glass-border); }
+  .chat-input-area input { flex: 1; background: var(--search-bg); border: none; border-radius: 20px; padding: 12px 15px; color: var(--text); font-size: 16px; outline: none; }
+  .send-btn { background: var(--primary); width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: black; font-size: 20px; cursor: pointer; }
+  .attach-btn { font-size: 24px; color: var(--text-muted); padding: 10px; cursor: pointer; }
+
+  .settings-content { padding: 20px; flex: 1; overflow-y: auto; }
+  .input-group { margin-bottom: 15px; }
+  .input-group label { font-size:12px; color:var(--text-muted); margin-left:10px; }
+  .input-group input, .input-group textarea { width:100%; padding:15px; border-radius:12px; border:none; background:var(--search-bg); color:var(--text); outline:none; font-size:16px; margin-top:5px; }
+  .toggle-row { display:flex; align-items:center; justify-content:space-between; background:var(--search-bg); padding:15px; border-radius:12px; margin-bottom:25px; }
+  .save-btn { background:var(--primary); color:black; padding:15px; border:none; border-radius:12px; font-weight:bold; width:100%; font-size:16px; cursor:pointer; }
+  ::-webkit-scrollbar { display: none; }
+
+  /* Bouncing Typing Dots */
+  .typing-dots span {
+    display: inline-block;
+    animation: typingBounce 1.4s infinite ease-in-out both;
+    color: var(--primary);
+    font-weight: bold;
+    font-size: 20px;
+    line-height: 10px;
+    margin-left: 1px;
+  }
+  .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+  .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+  @keyframes typingBounce {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1); }
+  }
+
+  /* Full Screen Image Viewer */
+  #img-viewer {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.95); z-index: 999;
+    display: none; flex-direction: column; justify-content: center; align-items: center;
+  }
+  #img-viewer img {
+    max-width: 100%; max-height: 80vh; object-fit: contain;
+  }
+  .img-viewer-header {
+    position: absolute; top: 0; width: 100%; padding: 20px;
+    display: flex; justify-content: space-between; align-items: center;
+    color: white; font-size: 24px;
+  }
+  .img-viewer-actions {
+    position: absolute; bottom: 30px; width: 100%;
+    display: flex; justify-content: center; gap: 30px;
+  }
+  .img-action-btn {
+    background: rgba(255, 255, 255, 0.2); border: none; border-radius: 50%;
+    width: 60px; height: 60px; color: white; font-size: 24px;
+    display: flex; justify-content: center; align-items: center; cursor: pointer;
+    backdrop-filter: blur(10px);
+  }
+
+  /* GEMINI GLOW INPUT */
+  .gemini-wrapper {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin: 0 5px;
+  }
+  .gemini-glow {
+    position: absolute;
+    top: -2px; left: -2px; right: -2px; bottom: -2px;
+    border-radius: 22px;
+    background: radial-gradient(circle at 10% 50%, rgba(37, 211, 102, 0.6) 0%, transparent 30%),
+                radial-gradient(circle at 90% 50%, rgba(0, 150, 255, 0.6) 0%, transparent 30%),
+                radial-gradient(circle, rgba(255,255,255,0.4) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 5px 5px;
+    animation: geminiPulse 3s infinite alternate;
+    z-index: 0;
+  }
+  .gemini-input {
+    width: 100%;
+    position: relative;
+    z-index: 1;
+    background: var(--glass-bg);
+    border: none;
+    border-radius: 20px;
+    padding: 14px 15px;
+    color: var(--text);
+    font-size: 16px;
+    outline: none;
+  }
+  @keyframes geminiPulse {
+    0% { opacity: 0.5; filter: blur(1px); }
+    100% { opacity: 1; filter: blur(2px); box-shadow: 0 0 15px rgba(37, 211, 102, 0.2); }
+  }
+
+  
+
+  
+  /* COLORED SEARCH BAR GLOW */
+  .search-glow-wrapper {
+    position: relative;
+    padding: 2px;
+    border-radius: 14px;
+    display: flex;
+    width: 100%;
+  }
+  .search-glow {
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+    background: radial-gradient(circle at 10% 50%, rgba(37, 211, 102, 0.8) 0%, transparent 40%),
+                radial-gradient(circle at 90% 50%, rgba(0, 150, 255, 0.8) 0%, transparent 40%),
+                radial-gradient(circle, rgba(255,255,255,0.6) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 6px 6px;
+    animation: geminiPulse 3s infinite alternate;
+    z-index: 0;
+  }
+  .search-box-inner {
+    width: 100%;
+    position: relative;
+    z-index: 1;
+    background: rgba(15, 15, 20, 0.95);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    gap: 10px;
+  }
+  .search-box-inner input {
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 16px;
+    width: 100%;
+    outline: none;
+  }
+  @keyframes geminiPulse {
+    0% { opacity: 0.5; filter: blur(1px); transform: scale(0.98); }
+    100% { opacity: 1; filter: blur(3px); transform: scale(1.02); }
+  }
+
+  
+  /* --- FIX SCREEN FIT --- */
+  html, body {
+    height: 100dvh;
+    width: 100vw;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #050505;
+  }
+  #main-view {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding-bottom: 0;
+  }
+  .chat-list {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 90px; /* Space for floating nav */
+  }
+
+  
+  
+  /* --- PITCH BLACK BACKGROUND --- */
+  .snake-bg {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-color: var(--bg); /* Follows light/dark mode */
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  
+  /* --- THE SPINNING SNAKE SPHERE --- */
+  .snake-sphere {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 350px;
+    height: 350px;
+    border-radius: 50%;
+    z-index: 1;
+    pointer-events: none;
+    overflow: hidden;
+    
+    /* Create the 3D sphere lighting effect */
+    box-shadow: 
+      inset 0 0 50px rgba(0,0,0,0.9), 
+      inset 20px 20px 60px var(--snake-glow),
+      0 0 50px var(--snake-glow);
+      
+    /* Fade the edges into the black background */
+    mask-image: radial-gradient(circle, black 40%, transparent 75%);
+    -webkit-mask-image: radial-gradient(circle, black 40%, transparent 75%);
+    
+    
+  /* The sphere itself will breathe/grow slightly, NO TUMBLE */
+  .snake-sphere {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 350px; height: 350px;
+    border-radius: 50%;
+    z-index: 0; /* Put it in the background */
+    pointer-events: none;
+    overflow: hidden;
+    box-shadow: 
+      inset 0 0 50px rgba(0,0,0,0.9), 
+      inset 20px 20px 60px var(--snake-glow),
+      0 0 50px var(--snake-glow);
+    mask-image: radial-gradient(circle, black 40%, transparent 75%);
+    -webkit-mask-image: radial-gradient(circle, black 40%, transparent 75%);
+    animation: breatheSphere 6s infinite alternate ease-in-out;
+  }
+
+  .sphere-texture {
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background-image: 
+      radial-gradient(circle at 50% 0, transparent 20%, var(--snake-color) 21%, var(--snake-color) 34%, transparent 35%, transparent),
+      radial-gradient(circle at 0 50%, transparent 20%, var(--snake-color) 21%, var(--snake-color) 34%, transparent 35%, transparent),
+      radial-gradient(circle at 100% 50%, transparent 20%, var(--snake-color) 21%, var(--snake-color) 34%, transparent 35%, transparent),
+      radial-gradient(circle at 50% 100%, transparent 20%, var(--snake-color) 21%, var(--snake-color) 34%, transparent 35%, transparent);
+    background-size: 30px 30px;
+    background-position: 0 0, 15px 15px, 15px 15px, 0 0;
+    
+    /* Slow, elegant rotation */
+    animation: spinSlowly 40s linear infinite;
+  }
+
+  @keyframes spinSlowly {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  @keyframes breatheSphere {
+    0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.6; }
+    100% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+  }
+
+  /* --- FORCE CHAT LIST TO FRONT --- */
+  #chat-list-container {
+    position: relative;
+    z-index: 50 !important;
+  }
+  .header, .search-container, .bottom-nav {
+    z-index: 100 !important;
+  }
+
+  
+  /* FIX LAYOUT */
+  #main-view {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: transparent;
+  }
+  .chat-list {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 90px;
+    z-index: 10;
+  }
+
+  /* --- FIX LAYERING --- */
+  #main-view { position: relative; overflow: hidden; }
+  .header, .search-container, .bottom-nav { position: relative; z-index: 100 !important; }
+  .chat-list { position: relative; z-index: 50 !important; }
+
+  
+  /* --- FORCE APP TO SHOW OVER BALL --- */
+  .header, .search-container, .bottom-nav, .chat-list, .chat-item {
+    position: relative;
+    z-index: 50 !important;
+  }
+
+  /* --- 3D SPHERE --- */
+  #sphere-3d {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 350px;
+    height: 350px;
+    border-radius: 50%;
+    z-index: 1; /* Behind the text, but above the background */
+    pointer-events: none;
+    
+    /* This creates the 3D lighting effect (bright top-left, dark bottom-right) */
+    background: radial-gradient(circle at 30% 30%, rgba(100, 100, 100, 0.4) 0%, transparent 60%),
+                radial-gradient(circle at 70% 70%, rgba(0, 0, 0, 1) 0%, transparent 70%);
+    
+    /* Strong inner shadow for depth */
+    box-shadow: 
+      inset -20px -20px 60px rgba(0,0,0,0.9), 
+      inset 10px 10px 40px rgba(255,255,255,0.1),
+      0 0 40px rgba(0,0,0,0.8);
+      
+    /* Fade the outer edge so it doesn't look like a hard cutout */
+    mask-image: radial-gradient(circle, black 50%, transparent 85%);
+    -webkit-mask-image: radial-gradient(circle, black 50%, transparent 85%);
+    
+    animation: breatheSphere 6s infinite alternate ease-in-out;
+  }
+
+  /* The texture inside the sphere */
+  #sphere-3d::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    border-radius: 50%;
+    
+    /* The snake skin pattern */
+    background-image: 
+      radial-gradient(circle at 50% 0, transparent 20%, rgba(255, 255, 255, 0.2) 21%, rgba(255, 255, 255, 0.2) 34%, transparent 35%, transparent),
+      radial-gradient(circle at 0 50%, transparent 20%, rgba(255, 255, 255, 0.2) 21%, rgba(255, 255, 255, 0.2) 34%, transparent 35%, transparent),
+      radial-gradient(circle at 100% 50%, transparent 20%, rgba(255, 255, 255, 0.2) 21%, rgba(255, 255, 255, 0.2) 34%, transparent 35%, transparent),
+      radial-gradient(circle at 50% 100%, transparent 20%, rgba(255, 255, 255, 0.2) 21%, rgba(255, 255, 255, 0.2) 34%, transparent 35%, transparent);
+    background-size: 40px 40px;
+    
+    /* Spin to the LEFT */
+    animation: spinLeft 8s linear infinite;
+  }
+
+  /* Light mode support */
+  .light-mode #sphere-3d {
+    background: radial-gradient(circle at 30% 30%, rgba(200, 200, 200, 0.4) 0%, transparent 60%),
+                radial-gradient(circle at 70% 70%, rgba(255, 255, 255, 1) 0%, transparent 70%);
+    box-shadow: inset -20px -20px 60px rgba(255,255,255,0.9), inset 10px 10px 40px rgba(0,0,0,0.1);
+  }
+  .light-mode #sphere-3d::before {
+    background-image: 
+      radial-gradient(circle at 50% 0, transparent 20%, rgba(0, 0, 0, 0.2) 21%, rgba(0, 0, 0, 0.2) 34%, transparent 35%, transparent),
+      radial-gradient(circle at 0 50%, transparent 20%, rgba(0, 0, 0, 0.2) 21%, rgba(0, 0, 0, 0.2) 34%, transparent 35%, transparent),
+      radial-gradient(circle at 100% 50%, transparent 20%, rgba(0, 0, 0, 0.2) 21%, rgba(0, 0, 0, 0.2) 34%, transparent 35%, transparent),
+      radial-gradient(circle at 50% 100%, transparent 20%, rgba(0, 0, 0, 0.2) 21%, rgba(0, 0, 0, 0.2) 34%, transparent 35%, transparent);
+  }
+
+  @keyframes spinLeft {
+    0% { background-position: 0px 0px, 20px 20px, 20px 20px, 0px 0px; }
+    100% { background-position: -80px 0px, -60px 20px, -60px 20px, -80px 0px; }
+  }
+
+  @keyframes breatheSphere {
+    0% { transform: translate(-50%, -50%) scale(0.9); }
+    100% { transform: translate(-50%, -50%) scale(1.1); }
+  }
+</style>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  </style>
+
+  <style>
+  /* Ensure app sits on top */
+  .header, .search-container, .chat-list, .bottom-nav { position: relative; z-index: 10; }
+
+  /* THE DARK BLENDED SPHERE */
+  #magic-ball {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px; /* Made it huge so it feels like a background wall */
+    height: 600px;
+    border-radius: 50%;
+    z-index: 0; 
+    pointer-events: none;
+    
+    /* Extremely dark 3D lighting */
+    background: radial-gradient(circle at 30% 30%, #0a0a0a 0%, #000 80%);
+    
+    /* Fade the edges completely into the black background so there are no borders */
+    mask-image: radial-gradient(circle at center, black 10%, transparent 60%);
+    -webkit-mask-image: radial-gradient(circle at center, black 10%, transparent 60%);
+  }
+
+  /* The subtle dark snake skin texture */
+  #magic-ball::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    
+    /* Dark grey overlapping scales */
+    background-image: 
+      radial-gradient(circle at 50% 0, transparent 20%, rgba(255, 255, 255, 0.04) 21%, rgba(255, 255, 255, 0.04) 34%, transparent 35%, transparent),
+      radial-gradient(circle at 0 50%, transparent 20%, rgba(255, 255, 255, 0.04) 21%, rgba(255, 255, 255, 0.04) 34%, transparent 35%, transparent),
+      radial-gradient(circle at 100% 50%, transparent 20%, rgba(255, 255, 255, 0.04) 21%, rgba(255, 255, 255, 0.04) 34%, transparent 35%, transparent),
+      radial-gradient(circle at 50% 100%, transparent 20%, rgba(255, 255, 255, 0.04) 21%, rgba(255, 255, 255, 0.04) 34%, transparent 35%, transparent);
+    background-size: 25px 25px; /* Smaller, tighter scales */
+    
+    /* Spin to the left */
+    animation: spinLeft 15s linear infinite;
+  }
+
+  /* Light mode support */
+  .light-mode #magic-ball {
+    background: radial-gradient(circle at 30% 30%, #f0f0f0 0%, #e0e0e0 80%);
+  }
+  .light-mode #magic-ball::before {
+    background-image: 
+      radial-gradient(circle at 50% 0, transparent 20%, rgba(0, 0, 0, 0.04) 21%, rgba(0, 0, 0, 0.04) 34%, transparent 35%, transparent),
+      radial-gradient(circle at 0 50%, transparent 20%, rgba(0, 0, 0, 0.04) 21%, rgba(0, 0, 0, 0.04) 34%, transparent 35%, transparent),
+      radial-gradient(circle at 100% 50%, transparent 20%, rgba(0, 0, 0, 0.04) 21%, rgba(0, 0, 0, 0.04) 34%, transparent 35%, transparent),
+      radial-gradient(circle at 50% 100%, transparent 20%, rgba(0, 0, 0, 0.04) 21%, rgba(0, 0, 0, 0.04) 34%, transparent 35%, transparent);
+  }
+
+  @keyframes spinLeft {
+    0% { background-position: 0px 0px, 12.5px 12.5px, 12.5px 12.5px, 0px 0px; }
+    100% { background-position: -50px 0px, -37.5px 12.5px, -37.5px 12.5px, -50px 0px; }
+  }
+  </style>
+
+<style>
+  /* The Blur Layer */
+  #search-blur-overlay {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.5); /* Darken */
+    backdrop-filter: blur(12px); /* Blur effect */
+    -webkit-backdrop-filter: blur(12px);
+    z-index: 900;
+    display: none;
+    pointer-events: none; /* Let clicks pass through */
+  }
+
+  /* Ensure search bar and results are above the blur */
+  .search-container {
+    position: relative !important;
+    z-index: 1000 !important;
+  }
+  #search-dropdown {
+    z-index: 1001 !important;
+    background: var(--glass-bg) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid var(--glass-border) !important;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5) !important;
+  }
+</style>
+
+<style>
+  /* BLUR OVERLAY */
+  #search-blur-overlay {
+    position: fixed !important;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0, 0, 0, 0.6) !important;
+    backdrop-filter: blur(15px) !important;
+    -webkit-backdrop-filter: blur(15px) !important;
+    z-index: 900 !important;
+    display: none;
+  }
+
+  /* FORCE SEARCH CONTAINER AND DROPDOWN TO THE VERY TOP */
+  .search-container {
+    position: relative !important;
+    z-index: 1000 !important;
+  }
+  #search-dropdown {
+    position: absolute !important;
+    top: 100% !important; left: 0; right: 0;
+    z-index: 1001 !important;
+    background: var(--glass-bg) !important;
+    backdrop-filter: blur(30px) !important;
+    -webkit-backdrop-filter: blur(30px) !important;
+    border: 1px solid var(--glass-border) !important;
+    border-radius: 12px !important;
+    margin-top: 5px !important;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.8) !important;
+    overflow: hidden;
+  }
+</style>
+
+<style>
+  /* --- FORCE PURE LIGHT MODE VARIABLES --- */
+  body.light-mode {
+    --bg: #ffffff !important;
+    --text: #000000 !important;
+    --text-muted: #666666 !important;
+    --glass-bg: rgba(255, 255, 255, 0.9) !important;
+    --glass-border: rgba(0, 0, 0, 0.1) !important;
+    --search-bg: rgba(0, 0, 0, 0.05) !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* Force text elements to be black in light mode */
+  body.light-mode .header h1,
+  body.light-mode .chat-name,
+  body.light-mode .chat-msg,
+  body.light-mode #my-id,
+  body.light-mode .search-box input,
+  body.light-mode .nav-item,
+  body.light-mode .messages .msg.received,
+  body.light-mode .messages .msg.sent,
+  body.light-mode .chat-header .name,
+  body.light-mode .chat-header .lock {
+    color: #000000 !important;
+  }
+
+  /* Fix the bottom nav and search bar backgrounds */
+  body.light-mode .bottom-nav,
+  body.light-mode .search-box,
+  body.light-mode .chat-header,
+  body.light-mode .chat-input-area {
+    background: rgba(255, 255, 255, 0.8) !important;
+    border-color: rgba(0, 0, 0, 0.1) !important;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05) !important;
+  }
+
+  /* Invert the Snake Ball for Light Mode */
+  body.light-mode #magic-ball {
+    /* White sphere base with dark 3D shading */
+    background: radial-gradient(circle at 30% 30%, #ffffff 0%, #d0d0d0 80%) !important;
+    box-shadow: inset -20px -20px 50px rgba(0, 0, 0, 0.5), inset 10px 10px 30px rgba(255, 255, 255, 1) !important;
+    opacity: 0.8;
+  }
+
+  body.light-mode #magic-ball::before {
+    /* BLACK snake scales */
+    background-image: 
+      radial-gradient(circle at 50% 0, transparent 20%, rgba(0, 0, 0, 0.15) 21%, rgba(0, 0, 0, 0.15) 34%, transparent 35%, transparent),
+      radial-gradient(circle at 0 50%, transparent 20%, rgba(0, 0, 0, 0.15) 21%, rgba(0, 0, 0, 0.15) 34%, transparent 35%, transparent),
+      radial-gradient(circle at 100% 50%, transparent 20%, rgba(0, 0, 0, 0.15) 21%, rgba(0, 0, 0, 0.15) 34%, transparent 35%, transparent),
+      radial-gradient(circle at 50% 100%, transparent 20%, rgba(0, 0, 0, 0.15) 21%, rgba(0, 0, 0, 0.15) 34%, transparent 35%, transparent) !important;
+  }
+
+  /* Make sure the chat view background is transparent so the ball shows */
+  #chat-view {
+    background: transparent !important;
+  }
+</style>
+
+<style>
+  /* CUSTOM GLASS TOAST (Replaces ugly alerts) */
+  #glass-toast {
+    position: fixed;
+    top: 20px; left: 50%;
+    transform: translateX(-50%) translateY(-100px);
+    background: var(--glass-bg);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border: 1px solid var(--glass-border);
+    color: var(--text);
+    padding: 12px 24px;
+    border-radius: 30px;
+    font-size: 15px;
+    font-weight: 500;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    z-index: 99999;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
+    opacity: 0;
+    text-align: center;
+  }
+  #glass-toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+
+  /* FULL SCREEN CALL UI */
+  #call-screen {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(10, 10, 15, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: 99998;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 60px 20px;
+    color: white;
+  }
+  .call-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .call-header img {
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid rgba(255,255,255,0.2);
+    margin-bottom: 20px;
+    box-shadow: 0 0 40px rgba(255,255,255,0.1);
+  }
+  .call-header h2 { font-size: 28px; font-weight: 600; margin-bottom: 5px; }
+  .call-status {
+    font-size: 16px;
+    color: #aaa;
+    letter-spacing: 1px;
+    animation: pulse 1.5s infinite alternate;
+  }
+  @keyframes pulse { 0% { opacity: 0.5; } 100% { opacity: 1; } }
+  
+  .call-actions {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 40px;
+  }
+  .call-btn {
+    width: 70px; height: 70px;
+    border-radius: 50%;
+    display: flex; justify-content: center; align-items: center;
+    font-size: 28px;
+    color: white;
+    border: none;
+    cursor: pointer;
+  }
+  .call-btn.end { background: #e74c3c; box-shadow: 0 0 20px rgba(231,76,60,0.4); }
+  .call-btn.mute { background: rgba(255,255,255,0.15); }
+  .call-btn.speaker { background: rgba(255,255,255,0.15); }
+</style>
+
+<style>
+  /* 1. Constrain Images so they don't take up the whole screen */
+  .msg img {
+    max-width: 220px !important;
+    max-height: 260px !important;
+    border-radius: 10px !important;
+    object-fit: cover !important;
+    margin-bottom: 5px !important;
+    display: block !important;
+    cursor: pointer !important;
+  }
+
+  /* 2. Give text messages a bit more width */
+  .msg {
+    max-width: 85% !important;
+    padding: 8px 12px !important;
+    font-size: 15px !important;
+  }
+
+  /* 3. Tighten up the message container to give it more room */
+  .messages {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    gap: 8px !important; /* Slightly closer messages */
+  }
+</style>
+
+<style>
+  /* --- LIQUID GLASS CHAT VIEW --- */
+  
+  /* Make the main chat background transparent so the dark ball shows */
+  #chat-view {
+    background: transparent !important;
+  }
+
+  /* 1. FLOATING HEADER */
+  .chat-header {
+    position: absolute !important;
+    top: 15px !important;
+    left: 15px !important;
+    right: 15px !important;
+    width: auto !important;
+    z-index: 1000 !important;
+    
+    background: var(--glass-bg) !important;
+    backdrop-filter: blur(30px) !important;
+    -webkit-backdrop-filter: blur(30px) !important;
+    border: 1px solid var(--glass-border) !important;
+    border-radius: 25px !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4) !important;
+    
+    padding: 10px 15px !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  /* Floating Back Button (Circle) */
+  .chat-header .back-btn {
+    background: var(--search-bg) !important;
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    margin-right: 12px !important;
+    border: 1px solid var(--glass-border) !important;
+    color: var(--primary) !important;
+  }
+
+  /* 2. FLOATING INPUT AREA */
+  .chat-input-area {
+    position: absolute !important;
+    bottom: max(15px, env(safe-area-inset-bottom)) !important;
+    left: 15px !important;
+    right: 15px !important;
+    width: auto !important;
+    z-index: 1000 !important;
+    
+    background: var(--glass-bg) !important;
+    backdrop-filter: blur(30px) !important;
+    -webkit-backdrop-filter: blur(30px) !important;
+    border: 1px solid var(--glass-border) !important;
+    border-radius: 30px !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4) !important;
+    
+    padding: 8px 15px !important;
+    border-top: none !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  /* Adjust input field inside the glass pill */
+  .chat-input-area input {
+    background: transparent !important;
+    padding: 10px 5px !important;
+    color: var(--text) !important;
+  }
+  
+  /* Style the send button to pop */
+  .chat-input-area .send-btn {
+    background: var(--primary) !important;
+    box-shadow: 0 4px 15px rgba(37, 211, 102, 0.4) !important;
+  }
+
+  /* 3. MESSAGES SPACING */
+  /* Push messages down so they don't hide behind the floating header */
+  .messages {
+    padding-top: 100px !important;
+    padding-bottom: 110px !important;
+  }
+</style>
+
+<style>
+  /* Audio Player Styling */
+  .msg audio {
+    width: 220px;
+    height: 40px;
+    margin-bottom: 5px;
+    outline: none;
+  }
+  /* Recording Animation */
+  .recording {
+    animation: pulseRed 1s infinite alternate;
+  }
+  @keyframes pulseRed {
+    0% { background: #e74c3c; transform: scale(1); }
+    100% { background: #ff0000; transform: scale(1.1); }
+  }
+</style>
+
+<style>
+  /* Custom Audio Player */
+  .wa-audio {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 220px;
+    padding: 5px 0;
+  }
+  .wa-play-btn {
+    width: 35px; height: 35px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    display: flex; justify-content: center; align-items: center;
+    font-size: 16px; color: var(--text);
+    cursor: pointer; flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .wa-play-btn.played {
+    background: #53bdeb; /* Blue when played */
+    color: white;
+  }
+  .wa-waveform {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 30px;
+    overflow: hidden;
+  }
+  .wa-bar {
+    width: 3px;
+    background: rgba(255,255,255,0.3); /* Unplayed color */
+    border-radius: 2px;
+    transition: height 0.2s, background 0.2s;
+  }
+  .wa-bar.played {
+    background: #53bdeb; /* Blue played color */
+  }
+  .wa-time {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-left: auto;
+    min-width: 30px;
+    text-align: right;
+  }
+
+  /* Live Recording Canvas */
+  #live-waveform {
+    width: 100%;
+    height: 40px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 10px;
+  }
+</style>
+
+<style>
+  /* Custom Audio Player */
+  .wa-audio {
+    display: flex; align-items: center; gap: 10px;
+    min-width: 220px; padding: 5px 0;
+  }
+  .wa-play-btn {
+    width: 35px; height: 35px; border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    display: flex; justify-content: center; align-items: center;
+    font-size: 16px; color: var(--text);
+    cursor: pointer; flex-shrink: 0;
+  }
+  .wa-play-btn.played {
+    background: #53bdeb; color: white;
+  }
+  .wa-waveform {
+    flex: 1; display: flex; align-items: center; gap: 2px;
+    height: 30px; overflow: hidden;
+  }
+  .wa-bar {
+    width: 3px; border-radius: 2px; min-height: 5px;
+    background: var(--primary); /* GREEN by default */
+    transition: height 0.2s, background 0.2s;
+  }
+  .wa-bar.played {
+    background: #000000; /* BLACK when played */
+  }
+  .wa-time {
+    font-size: 11px; color: var(--text-muted);
+    margin-left: auto; min-width: 30px; text-align: right;
+  }
+
+  /* Live Recording Canvas */
+  #live-waveform {
+    width: 100%; height: 40px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 10px; display: none;
+    margin-top: 5px;
+  }
+</style>
+
+<style>
+  /* Context Menu */
+  #msg-context-menu {
+    position: fixed;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 15px;
+    padding: 5px;
+    display: none;
+    flex-direction: column;
+    z-index: 10000;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    min-width: 120px;
+  }
+  .ctx-item {
+    padding: 10px 15px;
+    font-size: 14px;
+    color: var(--text);
+    cursor: pointer;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .ctx-item:active { background: var(--search-bg); }
+  .ctx-item.delete { color: #e74c3c; }
+
+  /* Reply Preview Box */
+  #reply-preview {
+    display: none;
+    position: absolute;
+    bottom: 75px; left: 15px; right: 15px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-left: 4px solid var(--primary);
+    border-radius: 10px;
+    padding: 10px;
+    z-index: 99;
+  }
+  .reply-preview-text { font-size: 12px; color: var(--text-muted); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  
+  /* Quoted Message inside bubble */
+  .quoted-msg {
+    background: rgba(0,0,0,0.2);
+    border-left: 3px solid var(--primary);
+    padding: 5px 8px;
+    border-radius: 5px;
+    margin-bottom: 5px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .quoted-msg strong { color: var(--primary); display: block; margin-bottom: 2px; }
+  
+  /* Deleted Message */
+  .msg-deleted {
+    font-style: italic;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+</style>
+
+<style>
+  .msg {
+    transition: transform 0.2s ease-out;
+    touch-action: pan-y; /* Allow vertical scrolling, capture horizontal */
+  }
+  .msg.swiping {
+    transition: none; /* Instant follow while dragging */
+  }
+</style>
+
+<style>
+  /* Status View Styles */
+  #status-view { background: var(--bg); z-index: 40; }
+  .status-list { padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+  
+  .status-item {
+    display: flex; align-items: center; gap: 15px; cursor: pointer;
+  }
+  .status-avatar-ring {
+    width: 55px; height: 55px; border-radius: 50%;
+    border: 3px solid var(--primary); padding: 2px;
+  }
+  .status-avatar-ring.seen {
+    border-color: var(--text-muted);
+  }
+  .status-avatar-ring img {
+    width: 100%; height: 100%; border-radius: 50%; object-fit: cover;
+  }
+  .status-info { flex: 1; }
+  .status-name { font-size: 16px; font-weight: 600; }
+  .status-time { font-size: 12px; color: var(--text-muted); }
+
+  /* Full Screen Viewer */
+  #status-viewer {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: #000; z-index: 99999; display: none; flex-direction: column;
+  }
+  .status-progress-container {
+    display: flex; gap: 5px; padding: 15px; z-index: 2;
+  }
+  .status-progress-bg {
+    flex: 1; height: 3px; background: rgba(255,255,255,0.3); border-radius: 3px; overflow: hidden;
+  }
+  .status-progress-bar {
+    height: 100%; width: 0%; background: white; transition: width 5s linear;
+  }
+  .status-viewer-content {
+    flex: 1; display: flex; justify-content: center; align-items: center; position: relative;
+  }
+  .status-viewer-content img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .status-viewer-text { font-size: 32px; color: white; text-align: center; padding: 20px; font-weight: bold; }
+  .status-viewer-header {
+    position: absolute; top: 40px; left: 20px; right: 20px; display: flex; justify-content: space-between; color: white; z-index: 3;
+  }
+  .close-status { font-size: 30px; cursor: pointer; color: white; }
+</style>
+
+<style>
+  /* Segmented Progress Bars */
+  .status-progress-container {
+    display: flex; gap: 4px; padding: 15px; z-index: 2; position: absolute; top: 0; left: 0; right: 0;
+  }
+  .status-progress-bg {
+    flex: 1; height: 3px; background: rgba(255,255,255,0.3); border-radius: 3px; overflow: hidden;
+  }
+  .status-progress-bar {
+    height: 100%; width: 0%; background: white;
+  }
+  /* Tap Zones for Next/Prev */
+  .tap-zone {
+    position: absolute; top: 0; bottom: 0; width: 30%; z-index: 2; cursor: pointer;
+  }
+  .tap-zone.left { left: 0; }
+  .tap-zone.right { right: 0; width: 70%; }
+</style>
+
+<style>
+  /* NAV BAR OVERLAYS EVERYTHING */
+  .bottom-nav {
+    z-index: 9000 !important;
+    position: fixed !important;
+    bottom: 15px !important;
+    left: 15px !important;
+    right: 15px !important;
+    display: flex !important;
+  }
+
+  /* STATUS VIEWER OVERLAYS THE NAV BAR */
+  #status-viewer {
+    z-index: 9999 !important;
+  }
+
+  /* MAKE SURE CHAT AND SETTINGS OVERLAY THE MAIN VIEW */
+  #chat-view, #settings-view, #contact-info-view {
+    z-index: 8000 !important;
+    background: var(--bg) !important; /* Solid background to hide main screen */
+  }
+</style>
+</head>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<body>
+<div id="magic-ball"></div>
+
+<!-- MAIN VIEW -->
+<div id="main-view" class="view active">
+  <div id="search-blur-overlay"></div>
+  
+  
+  
+  
+  <div class="header">
+    <div>
+      <h1>Chats</h1>
+      <div id="my-id" style="font-size:12px; color:var(--text-muted); margin-top:-5px;">ID: ...</div>
+    </div>
+    <div class="header-icons">
+      <div class="icon-btn" onclick="toggleTheme()">🌗</div>
+      <div class="icon-btn">📷</div>
+    </div>
+  </div>
+
+  <div class="search-container">
+    <div class="search-glow-wrapper">
+      <div class="search-glow"></div>
+      <div class="search-box-inner">
+        <span>🔍</span>
+        <input type="text" id="search-input" placeholder="Search username..." oninput="handleSearchInput()" autocomplete="off">
+      </div>
+    </div>
+    <div id="search-dropdown"></div>
+  </div>
+
+  <div class="chat-list" id="chat-list-container"></div>
+
+  <div class="bottom-nav">
+    <div class="nav-item active" onclick="goBack()">
+      <span>💬</span>Chats
+      <div class="nav-badge" id="global-badge">0</div>
+    </div>
+    <div class="nav-item" onclick="openStatusView()"><span>⭕</span>Updates</div>
+    <div class="nav-item"><span>📞</span>Calls</div>
+    <div class="nav-item" onclick="openSettings()"><span>⚙️</span>Settings</div>
+  </div>
+</div>
+
+<!-- CHAT VIEW -->
+<div id="chat-view" class="view">
+  <div class="chat-header">
+    <div class="back-btn" onclick="goBack()">←</div>
+    <div style="display:flex; align-items:center; flex:1; cursor:pointer;" onclick="openContactInfo()">
+      <img src="" id="chat-avatar" class="avatar">
+      <div>
+        <div class="name" id="chat-name"></div>
+        <div class="lock" id="chat-subtitle">🔒 End-to-End Encrypted</div>
+      </div>
+    </div>
+    <div style="display:flex; gap:15px; font-size:22px; color:var(--primary); margin-right:10px;">
+      <span onclick="startCall('video')">📹</span>
+      <span onclick="startCall('audio')">📞</span>
+    </div>
+  </div>
+  <div class="messages" id="chat-messages"></div>
+  <div class="chat-input-area">
+    <div class="attach-btn" onclick="document.getElementById('file-input').click()">📎</div>
+    <input type="file" id="file-input" accept="image/*" style="display:none" onchange="handleImageUpload(event)">
+    
+    <input type="text" id="chat-input" placeholder="Message" onkeypress="handleEnter(event)">
+    
+    
+    <div class="mic-btn" id="mic-btn" onclick="toggleRecording()" style="background:var(--primary); width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: black; font-size: 20px; cursor: pointer; margin-left: 5px;">🎤</div>
+    <div class="send-btn" onclick="sendMessage()" id="send-btn" style="display:none;">➤</div>
+
+  </div>
+</div>
+
+
+<!-- STATUS VIEW -->
+<div id="status-view" class="view">
+  <div class="header" style="padding-top: 40px;">
+    <h1>Updates</h1>
+  </div>
+  
+  <div class="status-list">
+    <!-- My Status -->
+    <div class="status-item">
+      <div class="status-avatar-ring" onclick="postStatus()" style="border-color: var(--text-muted); display:flex; justify-content:center; align-items:center;">
+        <span style="font-size:24px; color:var(--text-muted);">+</span>
+      </div>
+      <div class="status-info" onclick="viewMyUpdates()">
+        <div class="status-name">My Updates</div>
+        <div class="status-time" id="my-status-time">Tap to view my update</div>
+      </div>
+    </div>
+
+    <div style="font-size: 14px; font-weight: bold; color: var(--text-muted); margin-top: 10px;">Recent Updates</div>
+    
+    <!-- List of statuses goes here -->
+    <div id="status-feed-container"></div>
+  </div>
+</div>
+
+<!-- FULL SCREEN STATUS VIEWER -->
+<div id="status-viewer">
+  <div class="status-viewer-header">
+    <div style="font-weight: bold; font-size: 18px;" id="viewer-username">User</div>
+    <div class="close-status" onclick="closeStatusViewer()">✕</div>
+  </div>
+  <div class="status-progress-container" id="status-progress-container"></div>
+  <div class="tap-zone left" onclick="prevStatus()"></div>
+  <div class="tap-zone right" onclick="nextStatus()"></div>
+  <div class="status-viewer-content" id="status-viewer-content">
+    <!-- Content injected here -->
+  </div>
+</div>
+
+<!-- SETTINGS VIEW -->
+<div id="settings-view" class="view">
+  <div class="header" style="padding-top: 40px;">
+    <div style="display:flex; align-items:center; gap:15px;">
+      <div class="back-btn" onclick="goBack()">←</div>
+      <h1>Settings</h1>
+    </div>
+  </div>
+  
+  <div class="settings-content">
+    <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:20px;">
+      <img id="settings-avatar" src="" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); margin-bottom: 15px;">
+      <label style="background:var(--search-bg); padding:10px 20px; border-radius:12px; cursor:pointer; font-size:14px;">
+        Change Picture
+        <input type="file" id="settings-pic-input" accept="image/*" style="display:none;">
+      </label>
+    </div>
+
+    <div class="input-group">
+      <label>Username (Cannot change)</label>
+      <input type="text" id="settings-username" disabled style="color:var(--text-muted); opacity:0.7;">
+    </div>
+    <div class="input-group">
+      <label>Display Name</label>
+      <input type="text" id="settings-name-input" placeholder="Your Name">
+    </div>
+    <div class="input-group">
+      <label>Bio</label>
+      <textarea id="settings-bio" rows="3" placeholder="About me..."></textarea>
+    </div>
+    <div class="input-group">
+      <label>Phone Number</label>
+      <input type="tel" id="settings-phone" placeholder="+256...">
+    </div>
+    <div class="input-group">
+      <label>Location</label>
+      <div style="display:flex; gap:10px; margin-top:5px;">
+        <input type="text" id="settings-location" placeholder="City, Country" style="margin-top:0;">
+        <button onclick="randomizeLocation()" style="background:var(--search-bg); color:var(--text); border:none; border-radius:12px; padding:0 15px; font-size:18px;">🎲</button>
+      </div>
+    </div>
+    <div class="toggle-row">
+      <div style="font-size:14px;">Auto-Switch Location</div>
+      <input type="checkbox" id="settings-auto-location" style="width:20px; height:20px; accent-color:var(--primary);">
+    </div>
+
+    <button class="save-btn" onclick="saveProfile()">Save Profile</button>
+  </div>
+</div>
+
+<!-- CONTACT INFO VIEW -->
+<div id="contact-info-view" class="view">
+  <div class="header" style="padding-top: 40px;">
+    <div style="display:flex; align-items:center; gap:15px;">
+      <div class="back-btn" onclick="closeContactInfo()">←</div>
+      <h1>Contact Info</h1>
+    </div>
+  </div>
+  
+  <div class="settings-content" style="align-items:center; display:flex; flex-direction:column;">
+    <img id="info-avatar" src="" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); margin-bottom: 15px;">
+    <h2 id="info-name" style="font-size:24px; margin-bottom:5px;">Name</h2>
+    <div id="info-username" style="color:var(--text-muted); font-size:16px; margin-bottom:20px;">@username</div>
+    
+    <div style="width:100%; background:var(--search-bg); padding:15px; border-radius:12px; margin-bottom:10px;">
+      <div style="font-size:12px; color:var(--text-muted); margin-bottom:5px;">Bio</div>
+      <div id="info-bio" style="font-size:16px;">No bio yet</div>
+    </div>
+
+    <div style="width:100%; background:var(--search-bg); padding:15px; border-radius:12px; margin-bottom:10px;">
+      <div style="font-size:12px; color:var(--text-muted); margin-bottom:5px;">Phone</div>
+      <div id="info-phone" style="font-size:16px; color:var(--primary);">Not shared</div>
+    </div>
+
+    <div style="width:100%; background:var(--search-bg); padding:15px; border-radius:12px; margin-bottom:10px;">
+      <div style="font-size:12px; color:var(--text-muted); margin-bottom:5px;">Location</div>
+      <div id="info-location" style="font-size:16px;">Unknown</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let myBappId = localStorage.getItem('bapp_username');
+  if (!myBappId) {
+    myBappId = prompt("Welcome to BAPP! Choose a unique username:");
+    while(!myBappId || myBappId.trim() === "") { myBappId = prompt("Username cannot be empty. Choose a username:"); }
+    myBappId = myBappId.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+    localStorage.setItem('bapp_username', myBappId);
+  }
+  document.getElementById('my-id').innerText = "Your ID: @" + myBappId;
+
+  let myProfile = JSON.parse(localStorage.getItem('bapp_profile')) || { name: myBappId, bio: '', phone: '', location: 'Unknown', autoLocation: false, avatar: 'https://ui-avatars.com/api/?name=' + myBappId.charAt(0) + '&background=random' };
+  let autoLocationInterval = null;
+  let activeChatId = null;
+
+  function showNav() {
+    const nav = document.querySelector('.bottom-nav');
+    if(nav) nav.style.display = 'flex';
+  }
+  function hideNav() {
+    const nav = document.querySelector('.bottom-nav');
+    if(nav) nav.style.display = 'none';
+  }
+
+
+  const socket = new WebSocket('ws://' + location.host);
+  socket.onopen = () => {
+    loadChatList();
+    socket.send(JSON.stringify({ type: 'register_user', username: myBappId, profile: myProfile }));
+    loadChatList();
+  };
+
+  function toggleTheme() { document.body.classList.toggle('light-mode'); }
+
+  function getChats() { return JSON.parse(localStorage.getItem('bapp_chats')) || []; }
+  function getUnreads() { return JSON.parse(localStorage.getItem('bapp_unreads')) || {}; }
+  function saveChat(id) {
+    let chats = getChats();
+    if (!chats.includes(id)) { chats.unshift(id); localStorage.setItem('bapp_chats', JSON.stringify(chats)); }
+  }
+
+  function loadChatList() {
+    const chatList = document.getElementById('chat-list-container');
+    chatList.innerHTML = ''; 
+    const chats = getChats();
+    const unreads = getUnreads();
+    let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+    
+    chats.forEach(id => {
+      const msgs = JSON.parse(localStorage.getItem('bapp_msgs_' + id)) || [];
+      let lastMsgText = 'Tap to chat';
+      let lastMsgTime = '';
+      
+      if (msgs.length > 0) {
+        const last = msgs[msgs.length - 1];
+        lastMsgTime = last.time || '';
+        
+        if (last.isImage) {
+          lastMsgText = '📷 Photo';
+        } else if (last.isVoice || (last.text && last.text.startsWith('data:audio'))) {
+          lastMsgText = '🎤 Voice Note';
+        } else {
+          lastMsgText = last.text;
+        }
+      }
+      
+      const p = profiles[id] || { name: id, avatar: 'https://ui-avatars.com/api/?name=' + id.substring(0,2) + '&background=random' };
+      const displayName = p.name || id;
+      const avatarUrl = p.avatar;
+      
+      const unreadCount = unreads[id] || 0;
+      const badgeHtml = unreadCount > 0 ? `<div class="badge">${unreadCount}</div>` : '';
+      const timeClass = unreadCount > 0 ? 'chat-time unread' : 'chat-time';
+
+      const chatHtml = `
+        <div class="chat-item" id="item-${id}" onclick="openChat('${id}')">
+          <img src="${avatarUrl}" class="avatar">
+          <div class="chat-info">
+            <div class="chat-top"><div class="chat-name">${displayName}</div><div class="${timeClass}">${lastMsgTime}</div></div>
+            <div class="chat-bottom"><div class="chat-msg" id="preview-${id}">${lastMsgText}</div>${badgeHtml}</div>
+          </div>
+        </div>
+      `;
+      chatList.insertAdjacentHTML('beforeend', chatHtml);
+    });
+    updateGlobalBadge();
+  }
+
+  function updateGlobalBadge() {
+    const unreads = getUnreads();
+    let total = 0;
+    for (let id in unreads) total += unreads[id];
+    const badge = document.getElementById('global-badge');
+    if (total > 0) { badge.style.display = 'flex'; badge.innerText = total; } else { badge.style.display = 'none'; }
+  }
+
+  let searchTimeout = null;
+  function handleSearchInput() {
+    const input = document.getElementById('search-input');
+    const query = input.value.trim().toLowerCase();
+    const dropdown = document.getElementById('search-dropdown');
+    const clearBtn = document.getElementById('clear-search');
+    const blurOverlay = document.getElementById('search-blur-overlay');
+    
+    if (query.length === 0) { 
+      dropdown.style.display = 'none'; 
+      clearBtn.style.display = 'none';
+      blurOverlay.style.display = 'none';
+      return; 
+    }
+    
+    clearBtn.style.display = 'block'; 
+    blurOverlay.style.display = 'block'; // Turn on the blur
+    
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      if(socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'search_user', query: query, from: myBappId }));
+      }
+    }, 300);
+  }
+
+  function selectSearchUser(userObj) {
+    document.getElementById('search-dropdown').style.display = 'none';
+    document.getElementById('search-input').value = '';
+    document.getElementById('search-blur-overlay').style.display = 'none'; // Turn off blur
+    let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+    profiles[userObj.username] = userObj.profile;
+    localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+    saveChat(userObj.username);
+    loadChatList();
+    openChat(userObj.username, userObj.profile);
+  }
+
+  function openChat(id, profileObj) {
+    hideNav();
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('chat-view').classList.add('active');
+    
+    let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+    let p = profileObj || profiles[id] || { name: id, avatar: 'https://ui-avatars.com/api/?name=' + id.substring(0,2) + '&background=random' };
+    
+    document.getElementById('chat-name').textContent = p.name || id;
+    activeChatId = id.trim();
+    document.getElementById('chat-avatar').src = p.avatar || 'https://ui-avatars.com/api/?name=' + id.substring(0,2) + '&background=random';
+    document.getElementById('chat-subtitle').innerText = '🔒 End-to-End Encrypted';
+    
+    const msgBox = document.getElementById('chat-messages');
+    msgBox.innerHTML = ""; 
+    const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + id)) || [];
+    savedMsgs.forEach(m => appendMessage(m.text, m.type, m.time, m.status, m.isImage, m.isVoice));
+    
+    let unreads = getUnreads();
+    if(unreads[id]) { unreads[id] = 0; localStorage.setItem('bapp_unreads', JSON.stringify(unreads)); }
+    socket.send(JSON.stringify({ type: 'read_receipt', to: id, from: myBappId }));
+    
+    let msgs = JSON.parse(localStorage.getItem('bapp_msgs_' + id)) || [];
+    msgs.forEach(m => { if(m.type === 'sent') m.status = 'read'; });
+    localStorage.setItem('bapp_msgs_' + id, JSON.stringify(msgs));
+    
+    loadChatList();
+
+    // --- FORCE SCROLL TO BOTTOM (NEWEST MESSAGE) ---
+    const scrollToBottom = () => {
+        if(msgBox) msgBox.scrollTop = msgBox.scrollHeight;
+    };
+    
+    // Fire multiple times to catch image loading delays
+    scrollToBottom();
+    setTimeout(scrollToBottom, 50);
+    setTimeout(scrollToBottom, 200);
+    setTimeout(scrollToBottom, 500);
+    setTimeout(() => document.getElementById('chat-input').focus(), 300);
+  }
+
+  function goBack() {
+    showNav();
+    activeChatId = null;
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('main-view').classList.add('active');
+  }
+
+  
+  function appendMessage(text, type, timeStr, status = '', isImage = false, isVoice = false) {
+    const msgBox = document.getElementById('chat-messages');
+    if (!msgBox) return;
+    const newMsg = document.createElement('div');
+    newMsg.className = 'msg ' + type;
+    
+    if (isImage) {
+      const img = document.createElement('img'); 
+      img.src = text; 
+      img.style.cursor = 'pointer';
+      newMsg.appendChild(img);
+    } else if (isVoice || (text && text.startsWith('data:audio'))) {
+      // Build Custom WhatsApp Player
+      const playerDiv = document.createElement('div');
+      playerDiv.className = 'wa-audio';
+      
+      const playBtn = document.createElement('div');
+      playBtn.className = 'wa-play-btn';
+      playBtn.innerText = '▶';
+      
+      const waveDiv = document.createElement('div');
+      waveDiv.className = 'wa-waveform';
+      
+      const timeSpan = document.createElement('span');
+      timeSpan.className = 'wa-time';
+      timeSpan.innerText = '0:00';
+      
+      // Generate deterministic random bars based on string length
+      const numBars = 25;
+      const bars = [];
+      for(let i=0; i<numBars; i++) {
+        const bar = document.createElement('div');
+        bar.className = 'wa-bar';
+        // Random height between 20% and 100%
+        const h = 20 + (Math.random() * 80); 
+        bar.style.height = h + '%';
+        waveDiv.appendChild(bar);
+        bars.push(bar);
+      }
+      
+      playerDiv.appendChild(playBtn);
+      playerDiv.appendChild(waveDiv);
+      playerDiv.appendChild(timeSpan);
+      
+      // Hidden real audio element
+      const audio = document.createElement('audio');
+      audio.src = text;
+      audio.style.display = 'none';
+      
+      playerDiv.appendChild(audio);
+      newMsg.appendChild(playerDiv);
+      
+      // --- Player Logic ---
+      let isPlaying = false;
+      playBtn.onclick = function() {
+        if (isPlaying) {
+          audio.pause();
+          playBtn.innerText = '▶';
+          isPlaying = false;
+        } else {
+          audio.play();
+          playBtn.innerText = '⏸';
+          playBtn.classList.add('played'); // Turn blue
+          isPlaying = true;
+          
+          // Mark all bars as played
+          bars.forEach(b => b.classList.add('played'));
+        }
+      };
+      
+      audio.onended = function() {
+        playBtn.innerText = '▶';
+        isPlaying = false;
+        // Reset bars to start if replayed later (optional)
+      };
+      
+      audio.ontimeupdate = function() {
+        const mins = Math.floor(audio.currentTime / 60);
+        const secs = Math.floor(audio.currentTime % 60);
+        timeSpan.innerText = mins + ':' + secs.toString().padStart(2, '0');
+        
+        // Calculate progress to color bars
+        const progress = audio.currentTime / (audio.duration || 1);
+        const playedBars = Math.floor(progress * numBars);
+        bars.forEach((b, i) => {
+          if (i < playedBars) b.classList.add('played');
+          else if (audio.currentTime === 0) b.classList.remove('played');
+        });
+      };
+    } else {
+      newMsg.appendChild(document.createTextNode(text));
+    }
+
+    const timeSpan = document.createElement('span');
+    timeSpan.className = 'msg-time';
+    timeSpan.textContent = timeStr || new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    newMsg.appendChild(timeSpan);
+
+    if (type === 'sent') {
+      const check = document.createElement('span');
+      check.className = 'msg-status ' + (status === 'read' ? 'read' : '');
+      check.innerText = (status === 'read' || status === 'delivered') ? '✓✓' : '✓';
+      newMsg.appendChild(check);
+    }
+    
+    // Insert before the spacer if it exists, otherwise just append
+    const spacer = document.getElementById('chat-spacer');
+    if (spacer) {
+        msgBox.insertBefore(newMsg, spacer);
+    } else {
+        msgBox.appendChild(newMsg);
+    }
+    msgBox.scrollTop = msgBox.scrollHeight;
+  }
+
+  function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    const to = document.getElementById('chat-name').textContent.trim();
+    if (text !== "" && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: 'send_message', to: activeChatId, from: myBappId, text: text }));
+      const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      appendMessage(text, 'sent', now, 'sent');
+      input.value = '';
+      const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + activeChatId)) || [];
+      savedMsgs.push({ text: text, type: 'sent', time: now, status: 'sent' });
+      localStorage.setItem('bapp_msgs_' + activeChatId, JSON.stringify(savedMsgs));
+      loadChatList();
+    }
+  }
+  function handleEnter(e) { if (e.key === 'Enter') sendMessage(); }
+
+  function handleImageUpload(event) {
+    const file = event.target.files[0];
+    if(!file) return;
+    const to = activeChatId;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = function() {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 600; const MAX_HEIGHT = 600;
+        let width = img.width; let height = img.height;
+        if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } } 
+        else { if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; } }
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const base64Img = canvas.toDataURL('image/jpeg', 0.6); 
+        socket.send(JSON.stringify({ type: 'send_message', to: to, from: myBappId, text: base64Img, isImage: true }));
+        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        appendMessage(base64Img, 'sent', now, 'sent', true);
+        try {
+            const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+            savedMsgs.push({ text: base64Img, type: 'sent', time: now, isImage: true, status: 'sent' });
+            localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+            loadChatList();
+        } catch(err) { alert("Phone memory is full!"); }
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function openSettings() {
+    hideNav();
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('settings-view').classList.add('active');
+    document.getElementById('settings-username').value = myBappId;
+    document.getElementById('settings-name-input').value = myProfile.name;
+    document.getElementById('settings-bio').value = myProfile.bio || '';
+    document.getElementById('settings-phone').value = myProfile.phone || '';
+    document.getElementById('settings-location').value = myProfile.location || 'Unknown';
+    document.getElementById('settings-avatar').src = myProfile.avatar;
+    document.getElementById('settings-auto-location').checked = myProfile.autoLocation || false;
+    if (myProfile.autoLocation) startAutoLocation(); else stopAutoLocation();
+  }
+
+  const cities = ['Kampala, UG', 'Nairobi, KE', 'London, UK', 'New York, USA', 'Tokyo, JP', 'Dubai, UAE', 'Cape Town, ZA', 'Paris, FR'];
+  function randomizeLocation() { document.getElementById('settings-location').value = cities[Math.floor(Math.random() * cities.length)]; }
+  function startAutoLocation() { stopAutoLocation(); autoLocationInterval = setInterval(() => { randomizeLocation(); }, 3000); }
+  function stopAutoLocation() { if (autoLocationInterval) clearInterval(autoLocationInterval); }
+  document.getElementById('settings-auto-location').addEventListener('change', function(e) { if (e.target.checked) startAutoLocation(); else stopAutoLocation(); });
+
+  function saveProfile() {
+    myProfile.name = document.getElementById('settings-name-input').value || myBappId;
+    myProfile.bio = document.getElementById('settings-bio').value;
+    myProfile.phone = document.getElementById('settings-phone').value;
+    myProfile.location = document.getElementById('settings-location').value;
+    myProfile.autoLocation = document.getElementById('settings-auto-location').checked;
+    try { localStorage.setItem('bapp_profile', JSON.stringify(myProfile)); } 
+    catch(e) { alert("Storage is full!"); return; }
+    let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+    profiles[myBappId] = myProfile;
+    localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+    socket.send(JSON.stringify({ type: 'register_user', username: myBappId, profile: myProfile }));
+    const btn = document.querySelector('.save-btn');
+    const originalText = btn.innerText;
+    btn.innerText = 'Saved! ✅'; btn.style.background = '#2ecc71';
+    setTimeout(() => { btn.innerText = originalText; btn.style.background = 'var(--primary)'; goBack(); }, 1000);
+  }
+
+  document.getElementById('settings-pic-input').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if(!file) return;
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      const MAX_SIZE = 300; canvas.width = MAX_SIZE; canvas.height = MAX_SIZE;
+      const ctx = canvas.getContext('2d');
+      const size = Math.min(img.width, img.height);
+      const xOffset = (img.width - size) / 2; const yOffset = (img.height - size) / 2;
+      ctx.drawImage(img, xOffset, yOffset, size, size, 0, 0, MAX_SIZE, MAX_SIZE);
+      const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+      myProfile.avatar = compressedBase64;
+      document.getElementById('settings-avatar').src = compressedBase64;
+      URL.revokeObjectURL(objectUrl);
+    };
+    img.onerror = function() { alert("Could not load image."); URL.revokeObjectURL(objectUrl); };
+    img.src = objectUrl;
+  });
+
+  function startCall(type) {
+    const name = document.getElementById('chat-name').textContent;
+    if(type === 'video') alert("📹 Starting Video Call with " + name + "...");
+    else alert("📞 Starting Audio Call with " + name + "...");
+  }
+
+  function openContactInfo() {
+    hideNav();
+    const currentUsername = activeChatId;
+    let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+    let p = profiles[currentUsername] || { name: currentUsername, avatar: 'https://ui-avatars.com/api/?name=' + currentUsername.substring(0,2), bio: 'Hey there! I am using BAPP.', phone: 'Not shared', location: 'Unknown' };
+    document.getElementById('info-name').textContent = p.name || currentUsername;
+    document.getElementById('info-username').textContent = '@' + currentUsername;
+    document.getElementById('info-avatar').src = p.avatar;
+    document.getElementById('info-bio').textContent = p.bio || 'Hey there! I am using BAPP.';
+    document.getElementById('info-phone').textContent = p.phone || 'Not shared';
+    document.getElementById('info-location').textContent = p.location || 'Unknown';
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('contact-info-view').classList.add('active');
+  }
+  function closeContactInfo() {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('chat-view').classList.add('active');
+  }
+
+  socket.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      
+      if (data.type === 'search_result') {
+        const dropdown = document.getElementById('search-dropdown');
+        dropdown.innerHTML = '';
+        if (data.matches.length === 0) {
+          dropdown.innerHTML = '<div style="padding:15px; color:var(--text-muted); text-align:center;">No users found</div>';
+        } else {
+          data.matches.forEach(userObj => {
+            const uName = userObj.username;
+            const uProfile = userObj.profile;
+            const avatarUrl = uProfile.avatar || 'https://ui-avatars.com/api/?name=' + uName.substring(0,2) + '&background=random';
+            const displayName = uProfile.name || uName;
+            const item = `<div style="display:flex; align-items:center; padding:12px 15px; border-bottom:1px solid var(--glass-border); cursor:pointer;" onclick='selectSearchUser(${JSON.stringify(userObj)})'>
+                <img src="${avatarUrl}" style="width:35px; height:35px; border-radius:50%; margin-right:12px;">
+                <div style="font-weight:500;">${displayName} <span style="color:var(--text-muted); font-size:12px;">@${uName}</span></div>
+              </div>`;
+            dropdown.insertAdjacentHTML('beforeend', item);
+          });
+        }
+        dropdown.style.display = 'block';
+      }
+
+      
+      if (data.type === 'recording') {
+        const senderId = (data.from || '').trim();
+        
+        // 1. Update inside the chat
+        if (activeChatId === senderId) {
+          const sub = document.getElementById('chat-subtitle');
+          if (data.isRecording) {
+            sub.innerText = '🔴 recording audio...';
+            sub.style.color = '#e74c3c';
+            sub.style.fontWeight = 'bold';
+          } else {
+            sub.innerText = '🔒 End-to-End Encrypted';
+            sub.style.color = 'var(--text-muted)';
+            sub.style.fontWeight = 'normal';
+          }
+        }
+
+        // 2. Update the Chat List preview
+        const previewEl = document.getElementById('preview-' + senderId);
+        if (previewEl) {
+          if (data.isRecording) {
+            previewEl.innerText = '🔴 recording audio...';
+            previewEl.style.color = '#e74c3c';
+            previewEl.style.fontWeight = 'bold';
+          } else {
+            // Revert to last message
+            const msgs = JSON.parse(localStorage.getItem('bapp_msgs_' + senderId)) || [];
+            let lastMsgText = 'Tap to chat';
+            if (msgs.length > 0) {
+              const last = msgs[msgs.length - 1];
+              lastMsgText = last.isImage ? '📷 Photo' : (last.isVoice || (last.text && last.text.startsWith('data:audio')) ? '🎤 Voice Note' : last.text);
+            }
+            previewEl.innerText = lastMsgText;
+            previewEl.style.color = 'var(--text-muted)';
+            previewEl.style.fontWeight = 'normal';
+          }
+        }
+      }
+
+      if (data.type === 'typing') {
+        const senderId = (data.from || '').trim();
+        const dotsHTML = 'typing <span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>';
+
+        // 1. Update inside the active chat header
+        if (activeChatId === senderId) {
+          document.getElementById('chat-subtitle').innerHTML = data.isTyping ? dotsHTML : '🔒 End-to-End Encrypted';
+        }
+
+        // 2. Update the Chat List on the Home Screen
+        const previewEl = document.getElementById('preview-' + senderId);
+        if (previewEl) {
+          if (data.isTyping) {
+            previewEl.innerHTML = dotsHTML;
+          } else {
+            // Revert back to the last message when they stop typing
+            const msgs = JSON.parse(localStorage.getItem('bapp_msgs_' + senderId)) || [];
+            let lastMsgText = 'Tap to chat';
+            if (msgs.length > 0) {
+              const last = msgs[msgs.length - 1];
+              lastMsgText = last.isImage ? '📷 Photo' : last.text;
+            }
+            previewEl.innerText = lastMsgText;
+          }
+        }
+      }
+
+      if (data.type === 'delivered_receipt') {
+        // 1. Update Local Storage
+        let msgs = JSON.parse(localStorage.getItem('bapp_msgs_' + data.to)) || [];
+        msgs.forEach(m => { 
+            if(m.type === 'sent' && m.status === 'sent') m.status = 'delivered'; 
+        });
+        localStorage.setItem('bapp_msgs_' + data.to, JSON.stringify(msgs));
+        
+        // 2. Update the UI if we are inside the chat
+        if (activeChatId === data.to) {
+          const checks = document.querySelectorAll('.msg.sent .msg-status');
+          checks.forEach(c => { 
+              // Only change single gray ticks to double gray ticks
+              if(!c.classList.contains('read') && c.innerText === '✓') {
+                  c.innerText = '✓✓'; 
+              }
+          });
+        }
+      }
+
+      if (data.type === 'read_receipt') {
+        let msgs = JSON.parse(localStorage.getItem('bapp_msgs_' + data.from)) || [];
+        msgs.forEach(m => { if(m.type === 'sent') m.status = 'read'; });
+        localStorage.setItem('bapp_msgs_' + data.from, JSON.stringify(msgs));
+        if (activeChatId === data.from) {
+          const checks = document.querySelectorAll('.msg.sent .msg-status');
+          checks.forEach(c => { c.innerText = '✓✓'; c.classList.add('read'); });
+        }
+      }
+
+      if (data.type === 'offline_messages') {
+        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        data.messages.forEach(msg => {
+          const senderId = (msg.from || '').trim();
+          
+          // 1. Save to local storage
+          try {
+            const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + senderId)) || [];
+            savedMsgs.push({ text: msg.text, type: 'received', time: now, isImage: msg.isImage });
+            localStorage.setItem('bapp_msgs_' + senderId, JSON.stringify(savedMsgs));
+          } catch(e) {}
+          
+          // 2. Save to chat list
+          saveChat(senderId);
+          
+          // 3. Update UI
+          if (activeChatId === senderId) {
+            appendMessage(msg.text, 'received', now, '', msg.isImage);
+          } else {
+            let unreads = getUnreads();
+            unreads[senderId] = (unreads[senderId] || 0) + 1;
+            localStorage.setItem('bapp_unreads', JSON.stringify(unreads));
+          }
+        });
+        
+        loadChatList(); // Refresh the list
+      }
+
+      
+      if (data.type === 'new_message') {
+        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        const senderId = (data.from || '').trim();
+        
+        if (data.senderProfile) {
+            let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+            profiles[senderId] = data.senderProfile;
+            localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+        }
+        
+        try {
+          const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + senderId)) || [];
+          savedMsgs.push({ text: data.text, type: 'received', time: now, isImage: data.isImage, isVoice: data.isVoice });
+          localStorage.setItem('bapp_msgs_' + senderId, JSON.stringify(savedMsgs));
+        } catch(e) { console.error("Storage full"); }
+        
+        saveChat(senderId);
+        
+        if (activeChatId === senderId) {
+          appendMessage(data.text, 'received', now, '', data.isImage, data.isVoice);
+          socket.send(JSON.stringify({ type: 'read_receipt', to: senderId, from: myBappId }));
+        } else {
+          let unreads = getUnreads();
+          unreads[senderId] = (unreads[senderId] || 0) + 1;
+          localStorage.setItem('bapp_unreads', JSON.stringify(unreads));
+        }
+        loadChatList();
+      }
+    } catch(err) { console.error("Socket Error:", err); }
+  };
+
+  
+  let currentViewImageSrc = "";
+  
+  function openImageFullscreen(src) {
+    currentViewImageSrc = src;
+    document.getElementById('fullscreen-img').src = src;
+    document.getElementById('img-viewer').style.display = 'flex';
+  }
+
+  function closeImageFullscreen() {
+    document.getElementById('img-viewer').style.display = 'none';
+  }
+
+  function saveImage() {
+    const a = document.createElement('a');
+    a.href = currentViewImageSrc;
+    a.download = 'BAPP_Image_' + Date.now() + '.jpg';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    alert("Image download started! (If it didn't save, long-press the image and select 'Save Image').");
+  }
+
+  function forwardImage() {
+    const targetUser = prompt("Enter the BAPP username to forward this photo to:");
+    if(targetUser && targetUser.trim() !== "") {
+      const cleanTarget = targetUser.trim().toLowerCase();
+      
+      // Send via WebSocket
+      socket.send(JSON.stringify({ type: 'send_message', to: cleanTarget, from: myBappId, text: currentViewImageSrc, isImage: true }));
+      
+      // Save to local storage so it shows in our own forwarded chat
+      const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + cleanTarget)) || [];
+      savedMsgs.push({ text: currentViewImageSrc, type: 'sent', time: now, isImage: true, status: 'sent' });
+      localStorage.setItem('bapp_msgs_' + cleanTarget, JSON.stringify(savedMsgs));
+      
+      saveChat(cleanTarget);
+      loadChatList();
+      alert("Photo forwarded to @" + cleanTarget);
+      closeImageFullscreen();
+    }
+  }
+
+  // Live typing logic
+
+  let typingTimeout = null;
+  document.getElementById('chat-input').addEventListener('input', function() {
+    const to = activeChatId;
+    if (!to || socket.readyState !== WebSocket.OPEN) return;
+    socket.send(JSON.stringify({ type: 'typing', to: to, from: myBappId, isTyping: true }));
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+      socket.send(JSON.stringify({ type: 'typing', to: to, from: myBappId, isTyping: false }));
+    }, 2000);
+  });
+
+
+  
+  // Background is now a spinning CSS sphere.
+
+
+</script>
+
+
+<!-- IMAGE VIEWER -->
+<div id="img-viewer">
+  <div class="img-viewer-header">
+    <span onclick="closeImageFullscreen()" style="cursor:pointer;">✕</span>
+    <span style="font-size:16px;">Photo</span>
+    <span></span>
+  </div>
+  <img id="fullscreen-img" src="">
+  <div class="img-viewer-actions">
+    <button class="img-action-btn" onclick="forwardImage()">↪️</button>
+    <button class="img-action-btn" onclick="saveImage()">⬇️</button>
+  </div>
+</div>
+
+<script>
+  // We attach these to window so they override the broken ones
+  window.handleSearchInput = function() {
+    const input = document.getElementById('search-input');
+    const query = input.value.trim().toLowerCase();
+    const dropdown = document.getElementById('search-dropdown');
+    const clearBtn = document.getElementById('clear-search');
+    const blurOverlay = document.getElementById('search-blur-overlay');
+    
+    if (query.length === 0) { 
+      dropdown.style.display = 'none'; 
+      if(clearBtn) clearBtn.style.display = 'none';
+      if(blurOverlay) blurOverlay.style.display = 'none';
+      return; 
+    }
+    
+    if(clearBtn) clearBtn.style.display = 'block'; 
+    if(blurOverlay) blurOverlay.style.display = 'block';
+    
+    clearTimeout(window.searchTimeout);
+    window.searchTimeout = setTimeout(() => {
+      // Safely check if socket exists
+      if(typeof socket !== 'undefined' && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'search_user', query: query, from: myBappId }));
+      } else {
+        // If socket is missing, show a fake error for debugging
+        dropdown.innerHTML = '<div style="padding:15px; color:red; text-align:center;">Server not connected</div>';
+        dropdown.style.display = 'block';
+      }
+    }, 300);
+  };
+
+  window.clearSearch = function() {
+    document.getElementById('search-input').value = '';
+    const clearBtn = document.getElementById('clear-search');
+    if(clearBtn) clearBtn.style.display = 'none';
+    
+    const dropdown = document.getElementById('search-dropdown');
+    if(dropdown) {
+      dropdown.style.display = 'none';
+      dropdown.innerHTML = '';
+    }
+    
+    const blur = document.getElementById('search-blur-overlay');
+    if(blur) blur.style.display = 'none';
+  };
+
+  // Overwrite selectSearchUser safely
+  const originalSelect = window.selectSearchUser;
+  window.selectSearchUser = function(userObj) {
+    // Hide blur and dropdown
+    const dropdown = document.getElementById('search-dropdown');
+    if(dropdown) dropdown.style.display = 'none';
+    
+    const input = document.getElementById('search-input');
+    if(input) input.value = '';
+    
+    const blur = document.getElementById('search-blur-overlay');
+    if(blur) blur.style.display = 'none';
+
+    // Now run the original logic to open the chat
+    if(typeof originalSelect === 'function') {
+      originalSelect(userObj);
+    } else {
+      // Fallback if original failed
+      let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+      profiles[userObj.username] = userObj.profile;
+      localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+      saveChat(userObj.username);
+      loadChatList();
+      openChat(userObj.username, userObj.profile);
+    }
+  };
+</script>
+
+<div id="glass-toast">Message</div>
+
+<div id="call-screen">
+  <div class="call-header">
+    <img id="call-avatar" src="">
+    <h2 id="call-name">Name</h2>
+    <div class="call-status" id="call-status">Calling...</div>
+  </div>
+  
+  <div class="call-actions">
+    <button class="call-btn mute" onclick="this.style.color = this.style.color === 'red' ? 'white' : 'red'">🎤</button>
+    <button class="call-btn end" onclick="endCall()">📞</button>
+    <button class="call-btn speaker" onclick="this.style.color = this.style.color === '#25D366' ? 'white' : '#25D366'">🔊</button>
+  </div>
+</div>
+
+<script>
+  // --- CUSTOM TOAST SYSTEM ---
+  function showToast(message) {
+    const toast = document.getElementById('glass-toast');
+    toast.innerText = message;
+    toast.classList.add('show');
+    
+    clearTimeout(window.toastTimeout);
+    window.toastTimeout = setTimeout(() => {
+      toast.classList.remove('show');
+    }, 3000);
+  }
+
+  // Override the default ugly alert globally!
+  window.alert = function(msg) {
+    showToast(msg);
+  };
+
+  // --- SIMULATED CALLING SYSTEM ---
+  let callInterval = null;
+
+  function startCall(type) {
+    const name = document.getElementById('chat-name').textContent;
+    const avatar = document.getElementById('chat-avatar').src;
+    
+    document.getElementById('call-name').innerText = name;
+    document.getElementById('call-avatar').src = avatar;
+    
+    const status = document.getElementById('call-status');
+    status.innerText = 'Calling...';
+    status.style.color = '#aaa';
+    status.style.animation = 'pulse 1.5s infinite alternate';
+    
+    document.getElementById('call-screen').style.display = 'flex';
+
+    // Simulate connecting after 3 seconds
+    clearTimeout(callInterval);
+    callInterval = setTimeout(() => {
+      status.innerText = 'Connected (00:01)';
+      status.style.color = '#25D366';
+      status.style.animation = 'none';
+    }, 3000);
+  }
+
+  function endCall() {
+    document.getElementById('call-screen').style.display = 'none';
+    clearTimeout(callInterval);
+  }
+</script>
+
+<script>
+  // --- TAP OUTSIDE TO CLOSE SEARCH ---
+  document.addEventListener('pointerdown', function(event) {
+    const searchContainer = document.querySelector('.search-container');
+    const dropdown = document.getElementById('search-dropdown');
+    const blurOverlay = document.getElementById('search-blur-overlay');
+    
+    // If the dropdown is currently visible
+    if (dropdown && dropdown.style.display === 'block') {
+      // Check if the tap was OUTSIDE the search container
+      if (searchContainer && !searchContainer.contains(event.target)) {
+        
+        // 1. Hide dropdown
+        dropdown.style.display = 'none';
+        dropdown.innerHTML = '';
+        
+        // 2. Hide blur overlay
+        if (blurOverlay) blurOverlay.style.display = 'none';
+        
+        // 3. Clear the input text
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) searchInput.value = '';
+        
+        // 4. Hide the X button
+        const clearBtn = document.getElementById('clear-search');
+        if (clearBtn) clearBtn.style.display = 'none';
+        
+        // 5. Remove focus from the input (closes keyboard on phone)
+        if (searchInput) searchInput.blur();
+      }
+    }
+  });
+</script>
+
+<script>
+  // --- VOICE RECORDING LOGIC ---
+  let mediaRecorder;
+  let audioChunks = [];
+  let isRecording = false;
+  let recordStartTime = 0;
+
+  
+  async function toggleRecording() {
+    const micBtn = document.getElementById('mic-btn');
+    const sendBtn = document.getElementById('send-btn');
+    const chatInput = document.getElementById('chat-input');
+
+    if (!isRecording) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = event => {
+          audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          const reader = new FileReader();
+          reader.readAsDataURL(audioBlob);
+          reader.onloadend = () => {
+            const base64Audio = reader.result;
+            const to = activeChatId;
+            const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+            // Send to server
+            socket.send(JSON.stringify({ type: 'send_message', to: to, from: myBappId, text: base64Audio, isVoice: true }));
+            
+            // Append UI
+            appendMessage(base64Audio, 'sent', now, 'sent', false, true);
+            
+            // Save to local storage
+            const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+            savedMsgs.push({ text: base64Audio, type: 'sent', time: now, isVoice: true, status: 'sent' });
+            localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+            
+            // Update chat list preview
+            loadChatList();
+          };
+        };
+
+        mediaRecorder.start();
+        
+        // Setup Live Waveform
+        const canvas = document.getElementById('live-waveform');
+        if(canvas) {
+          const canvasCtx = canvas.getContext('2d');
+          canvas.width = canvas.clientWidth;
+          canvas.height = canvas.clientHeight;
+          
+          const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const source = audioCtx.createMediaStreamSource(mediaRecorder.stream);
+          const analyser = audioCtx.createAnalyser();
+          analyser.fftSize = 64;
+          source.connect(analyser);
+          
+          window.drawVisual = function() {
+            if (!isRecording) {
+                canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+                return;
+            }
+            requestAnimationFrame(window.drawVisual);
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            analyser.getByteFrequencyData(dataArray);
+            
+            canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+            canvasCtx.fillStyle = '#e74c3c';
+            
+            const barWidth = (canvas.width / bufferLength) * 1.5;
+            let x = 0;
+            for(let i = 0; i < bufferLength; i++) {
+                const barHeight = (dataArray[i] / 255) * canvas.height;
+                canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+                x += barWidth + 2;
+            }
+          };
+          window.drawVisual();
+        }
+        isRecording = true;
+        micBtn.classList.add('recording');
+        micBtn.innerText = '⏹️';
+        chatInput.placeholder = "Recording...";
+        chatInput.disabled = true;
+        
+        // Send signal to the other user
+        if (activeChatId && socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ type: 'recording', to: activeChatId, from: myBappId, isRecording: true }));
+        }
+      } catch (err) {
+        alert("Microphone access denied or not available.");
+        console.error(err);
+      }
+    } else {
+      mediaRecorder.stop();
+      mediaRecorder.stream.getTracks().forEach(track => track.stop());
+      isRecording = false;
+
+      micBtn.classList.remove('recording');
+      micBtn.innerText = '🎤';
+      chatInput.placeholder = "Message";
+      chatInput.disabled = false;
+      
+      // Stop signal
+      if (activeChatId && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'recording', to: activeChatId, from: myBappId, isRecording: false }));
+      }
+    }
+  }
+
+  // Show/Hide Send vs Mic button based on typing
+  document.getElementById('chat-input').addEventListener('input', function() {
+    const micBtn = document.getElementById('mic-btn');
+    const sendBtn = document.getElementById('send-btn');
+    if (this.value.trim().length > 0) {
+      micBtn.style.display = 'none';
+      sendBtn.style.display = 'flex';
+    } else {
+      micBtn.style.display = 'flex';
+      sendBtn.style.display = 'none';
+    }
+  });
+
+  // --- UPDATE APPEND MESSAGE FOR VOICE ---
+  const oldAppend = window.appendMessage;
+  window.appendMessage = function(text, type, timeStr, status = '', isImage = false, isVoice = false) {
+    const msgBox = document.getElementById('chat-messages');
+    if (!msgBox) return;
+    const newMsg = document.createElement('div');
+    newMsg.className = 'msg ' + type;
+    
+    if (isImage) {
+      const img = document.createElement('img'); img.src = text; newMsg.appendChild(img);
+    } else if (isVoice) {
+      const audio = document.createElement('audio');
+      audio.controls = true;
+      audio.src = text;
+      newMsg.appendChild(audio);
+    } else {
+      newMsg.appendChild(document.createTextNode(text));
+    }
+
+    const timeSpan = document.createElement('span');
+    timeSpan.className = 'msg-time';
+    timeSpan.textContent = timeStr || new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    newMsg.appendChild(timeSpan);
+
+    if (type === 'sent') {
+      const check = document.createElement('span');
+      check.className = 'msg-status ' + (status === 'read' ? 'read' : '');
+      check.innerText = status === 'read' ? '✓✓' : '✓';
+      newMsg.appendChild(check);
+    }
+    msgBox.appendChild(newMsg);
+    msgBox.scrollTop = msgBox.scrollHeight;
+  };
+
+  // --- UPDATE RECEIVE LOGIC ---
+  const oldOnMessage = socket.onmessage;
+  socket.onmessage = function(event) {
+    try {
+      const data = JSON.parse(event.data);
+      
+      if (data.type === 'new_message') {
+        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        const senderId = (data.from || '').trim();
+        if (data.senderProfile) {
+            let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+            profiles[senderId] = data.senderProfile;
+            localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+        }
+        try {
+          const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + senderId)) || [];
+          savedMsgs.push({ text: data.text, type: 'received', time: now, isImage: data.isImage, isVoice: data.isVoice });
+          localStorage.setItem('bapp_msgs_' + senderId, JSON.stringify(savedMsgs));
+        } catch(e) {}
+        saveChat(senderId);
+        if (activeChatId === senderId) {
+          appendMessage(data.text, 'received', now, '', data.isImage, data.isVoice);
+          socket.send(JSON.stringify({ type: 'read_receipt', to: senderId, from: myBappId }));
+        } else {
+          let unreads = getUnreads();
+          unreads[senderId] = (unreads[senderId] || 0) + 1;
+          localStorage.setItem('bapp_unreads', JSON.stringify(unreads));
+        }
+        loadChatList();
+      } else {
+        // Pass typing, read receipts, search, etc. to the original handler
+        oldOnMessage.call(socket, event); 
+      }
+    } catch(err) { console.error(err); }
+  };
+</script>
+
+<script>
+  // Keep the original appendMessage safe
+  const originalAppend = window.appendMessage || function(){};
+
+  // Overwrite it globally
+  window.appendMessage = function(text, type, timeStr, status = '', isImage = false, isVoice = false) {
+    const msgBox = document.getElementById('chat-messages');
+    if (!msgBox) return;
+    const newMsg = document.createElement('div');
+    newMsg.className = 'msg ' + type;
+    
+    if (isImage) {
+      const img = document.createElement('img'); 
+      img.src = text; 
+      img.style.cursor = 'pointer';
+      newMsg.appendChild(img);
+    } else if (isVoice || (text && text.startsWith('data:audio'))) {
+      
+      // BUILD THE WHATSAPP PLAYER
+      const playerDiv = document.createElement('div');
+      playerDiv.className = 'wa-audio';
+      
+      const playBtn = document.createElement('div');
+      playBtn.className = 'wa-play-btn';
+      playBtn.innerText = '▶';
+      
+      const waveDiv = document.createElement('div');
+      waveDiv.className = 'wa-waveform';
+      
+      const timeSpan = document.createElement('span');
+      timeSpan.className = 'wa-time';
+      timeSpan.innerText = '0:00';
+      
+      // Generate visible bars
+      const numBars = 25;
+      const bars = [];
+      for(let i=0; i<numBars; i++) {
+        const bar = document.createElement('div');
+        bar.className = 'wa-bar';
+        // Give them a random height in pixels so they are definitely visible
+        bar.style.height = (20 + Math.random() * 80) + '%'; 
+        waveDiv.appendChild(bar);
+        bars.push(bar);
+      }
+      
+      playerDiv.appendChild(playBtn);
+      playerDiv.appendChild(waveDiv);
+      playerDiv.appendChild(timeSpan);
+      
+      const audio = document.createElement('audio');
+      audio.src = text;
+      audio.style.display = 'none';
+      playerDiv.appendChild(audio);
+      newMsg.appendChild(playerDiv);
+      
+      // Player Logic
+      let isPlaying = false;
+      playBtn.onclick = function() {
+        if (isPlaying) {
+          audio.pause();
+          playBtn.innerText = '▶';
+          isPlaying = false;
+        } else {
+          audio.play();
+          playBtn.innerText = '⏸';
+          playBtn.classList.add('played');
+          isPlaying = true;
+        }
+      };
+      
+      audio.onended = function() {
+        playBtn.innerText = '▶';
+        isPlaying = false;
+      };
+      
+      audio.ontimeupdate = function() {
+        const mins = Math.floor(audio.currentTime / 60);
+        const secs = Math.floor(audio.currentTime % 60);
+        timeSpan.innerText = mins + ':' + secs.toString().padStart(2, '0');
+        
+        // Fill bars progressively
+        const progress = audio.currentTime / (audio.duration || 1);
+        const playedBars = Math.floor(progress * numBars);
+        bars.forEach((b, i) => {
+          if (i < playedBars) b.classList.add('played');
+          if (audio.currentTime === 0) b.classList.remove('played');
+        });
+      };
+
+    } else {
+      newMsg.appendChild(document.createTextNode(text));
+    }
+
+    const timeSpan = document.createElement('span');
+    timeSpan.className = 'msg-time';
+    timeSpan.textContent = timeStr || new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    newMsg.appendChild(timeSpan);
+
+    if (type === 'sent') {
+      const check = document.createElement('span');
+      check.className = 'msg-status ' + (status === 'read' ? 'read' : '');
+      check.innerText = (status === 'read' || status === 'delivered') ? '✓✓' : '✓';
+      newMsg.appendChild(check);
+    }
+    
+    const spacer = document.getElementById('chat-spacer');
+    if (spacer) msgBox.insertBefore(newMsg, spacer);
+    else msgBox.appendChild(newMsg);
+    msgBox.scrollTop = msgBox.scrollHeight;
+  };
+
+  // --- LIVE RECORDING WAVEFORM OVERRIDE ---
+  // We hook into the media recorder to draw real audio
+  const originalMediaRecorder = window.MediaRecorder;
+  window.MediaRecorder = function(stream, options) {
+    const recorder = new originalMediaRecorder(stream, options);
+    
+    recorder.addEventListener('start', () => {
+      const canvas = document.getElementById('live-waveform');
+      if (!canvas) return;
+      
+      canvas.style.display = 'block';
+      const canvasCtx = canvas.getContext('2d');
+      canvas.width = canvas.clientWidth;
+      canvas.height = canvas.clientHeight;
+      
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioCtx.createMediaStreamSource(stream);
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 64;
+      source.connect(analyser);
+      
+      function draw() {
+        if (!canvas.style.display || canvas.style.display === 'none') return;
+        requestAnimationFrame(draw);
+        
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        analyser.getByteFrequencyData(dataArray);
+        
+        canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+        canvasCtx.fillStyle = '#25D366'; // Green live waves
+        
+        const barWidth = (canvas.width / bufferLength) * 1.5;
+        let x = 0;
+        for(let i = 0; i < bufferLength; i++) {
+            const barHeight = (dataArray[i] / 255) * canvas.height;
+            canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+            x += barWidth + 2;
+        }
+      }
+      draw();
+    });
+
+    recorder.addEventListener('stop', () => {
+      const canvas = document.getElementById('live-waveform');
+      if (canvas) canvas.style.display = 'none';
+    });
+
+    return recorder;
+  };
+
+  // Inject the live canvas into the UI if it's not there
+  setTimeout(() => {
+    if (!document.getElementById('live-waveform')) {
+      const inputArea = document.querySelector('.chat-input-area');
+      if (inputArea) {
+        const canvas = document.createElement('canvas');
+        canvas.id = 'live-waveform';
+        inputArea.parentNode.insertBefore(canvas, inputArea);
+      }
+    }
+  }, 1000);
+
+</script>
+
+  <!-- Context Menu -->
+  <div id="msg-context-menu">
+    <div class="ctx-item" onclick="executeReply()">↩️ Reply</div>
+    <div class="ctx-item" onclick="executeCopy()">📋 Copy</div>
+    <div class="ctx-item delete" onclick="executeDelete()">🗑️ Delete</div>
+  </div>
+
+  <!-- Reply Preview -->
+  <div id="reply-preview">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <strong id="reply-preview-name" style="font-size:12px; color:var(--primary);">Replying to...</strong>
+      <span onclick="cancelReply()" style="cursor:pointer; font-size:16px;">✕</span>
+    </div>
+    <div class="reply-preview-text" id="reply-preview-text"></div>
+  </div>
+
+<script>
+  let currentReplyTo = null;
+  let activeMsgElement = null;
+
+  // 1. Add Long-Press Logic to Messages
+  
+  function attachContextMenu(el, msgId, text, isMe) {
+    el.dataset.msgId = msgId;
+    el.dataset.msgText = text;
+    el.dataset.isMe = isMe;
+
+    let startX = 0;
+    let currentX = 0;
+    let startY = 0;
+    let isSwiping = false;
+    let pressTimer;
+
+    // --- POINTER DOWN ---
+    el.addEventListener('pointerdown', (e) => {
+      // Don't trigger swipe if tapping a button (like play audio)
+      if (e.target.closest('.wa-play-btn') || e.target.tagName === 'AUDIO') return;
+
+      startX = e.clientX;
+      startY = e.clientY;
+      isSwiping = false;
+      el.classList.add('swiping');
+
+      // Fallback: Long press still opens the menu for Delete/Copy
+      pressTimer = setTimeout(() => {
+        if (!isSwiping) showContextMenu(e.clientX, e.clientY, el);
+      }, 600);
+    });
+
+    // --- POINTER MOVE ---
+    el.addEventListener('pointermove', (e) => {
+      if (startX === 0) return;
+      
+      const diffX = e.clientX - startX;
+      const diffY = e.clientY - startY;
+
+      // If moving horizontally more than vertically, it's a swipe
+      if (Math.abs(diffX) > Math.abs(diffY) && diffX > 10) {
+        isSwiping = true;
+        clearTimeout(pressTimer); // Cancel long press
+        
+        // Only allow swiping right (positive diffX) up to 80px
+        if (diffX > 0 && diffX < 80) {
+          el.style.transform = `translateX(${diffX}px)`;
+        }
+      }
+    });
+
+    // --- POINTER UP ---
+    el.addEventListener('pointerup', (e) => {
+      clearTimeout(pressTimer);
+      el.classList.remove('swiping');
+
+      if (isSwiping) {
+        const diffX = e.clientX - startX;
+        
+        // Snap back to original position
+        el.style.transform = `translateX(0px)`;
+        
+        // If swiped far enough to the right, trigger reply
+        if (diffX > 50) {
+          activeMsgElement = el; // Set the global active element
+          executeReply();
+        }
+        
+        startX = 0; // Reset
+      } else {
+        el.style.transform = `translateX(0px)`;
+        startX = 0;
+      }
+    });
+
+    // --- POINTER CANCEL ---
+    el.addEventListener('pointercancel', () => {
+      clearTimeout(pressTimer);
+      el.classList.remove('swiping');
+      el.style.transform = `translateX(0px)`;
+      startX = 0;
+    });
+
+    // --- RIGHT CLICK (Desktop fallback) ---
+    el.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      showContextMenu(e.clientX, e.clientY, el);
+    });
+  }
+
+  function showContextMenu(x, y, el) {
+    activeMsgElement = el;
+    const menu = document.getElementById('msg-context-menu');
+    menu.style.display = 'flex';
+    menu.style.left = Math.min(x, window.innerWidth - 150) + 'px';
+    menu.style.top = Math.min(y, window.innerHeight - 150) + 'px';
+    
+    // Hide Delete if it's not my message
+    const delBtn = menu.querySelector('.delete');
+    if (el.dataset.isMe === 'true') delBtn.style.display = 'flex';
+    else delBtn.style.display = 'none';
+  }
+
+  // Hide menu on tap anywhere else
+  document.addEventListener('pointerdown', (e) => {
+    const menu = document.getElementById('msg-context-menu');
+    if (menu && menu.style.display === 'flex' && !menu.contains(e.target)) {
+      menu.style.display = 'none';
+    }
+  });
+
+  function executeReply() {
+    const el = activeMsgElement;
+    const text = el.dataset.msgText;
+    const isMe = el.dataset.isMe === 'true';
+    
+    currentReplyTo = {
+      msgId: el.dataset.msgId,
+      text: text,
+      name: isMe ? 'You' : document.getElementById('chat-name').textContent
+    };
+    
+    document.getElementById('reply-preview').style.display = 'block';
+    document.getElementById('reply-preview-name').innerText = 'Replying to ' + currentReplyTo.name;
+    document.getElementById('reply-preview-text').innerText = text.startsWith('data:image') ? '📷 Photo' : (text.startsWith('data:audio') ? '🎤 Voice Note' : text);
+    
+    document.getElementById('msg-context-menu').style.display = 'none';
+    document.getElementById('chat-input').focus();
+  }
+
+  function cancelReply() {
+    currentReplyTo = null;
+    document.getElementById('reply-preview').style.display = 'none';
+  }
+
+  function executeCopy() {
+    navigator.clipboard.writeText(activeMsgElement.dataset.msgText);
+    showToast("Copied to clipboard!");
+    document.getElementById('msg-context-menu').style.display = 'none';
+  }
+
+  function executeDelete() {
+    const el = activeMsgElement;
+    const msgId = el.dataset.msgId;
+    const to = activeChatId;
+    
+    // Remove locally
+    el.innerHTML = '<span class="msg-deleted">🚫 This message was deleted</span>';
+    el.dataset.msgText = 'DELETED';
+    el.style.background = 'var(--search-bg)';
+    
+    // Send to server
+    if (socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: 'delete_message', to: to, from: myBappId, msgId: msgId }));
+    }
+    
+    // Update local storage
+    let msgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+    let mIndex = msgs.findIndex(m => m.msgId === msgId);
+    if(mIndex > -1) {
+      msgs[mIndex].text = 'DELETED';
+      msgs[mIndex].isDeleted = true;
+      localStorage.setItem('bapp_msgs_' + to, JSON.stringify(msgs));
+    }
+    
+    document.getElementById('msg-context-menu').style.display = 'none';
+  }
+
+  // 2. Override appendMessage to support Reply & Delete
+  const originalAppendForReply = window.appendMessage;
+  window.appendMessage = function(text, type, timeStr, status = '', isImage = false, isVoice = false, msgId = null, replyData = null, isDeleted = false) {
+    const msgBox = document.getElementById('chat-messages');
+    if (!msgBox) return;
+    
+    const newMsg = document.createElement('div');
+    newMsg.className = 'msg ' + type;
+    
+    const id = msgId || Date.now().toString();
+    
+    if (isDeleted || text === 'DELETED') {
+        newMsg.innerHTML = '<span class="msg-deleted">🚫 This message was deleted</span>';
+        newMsg.style.background = 'var(--search-bg)';
+    } else {
+        // Render Reply Block
+        if (replyData) {
+          const quote = document.createElement('div');
+          quote.className = 'quoted-msg';
+          quote.innerHTML = '<strong>' + replyData.name + '</strong>' + (replyData.text.startsWith('data:image') ? '📷 Photo' : (replyData.text.startsWith('data:audio') ? '🎤 Voice Note' : replyData.text));
+          newMsg.appendChild(quote);
+        }
+
+        if (isImage) {
+          const img = document.createElement('img'); 
+          img.src = text; 
+          img.style.cursor = 'pointer';
+          newMsg.appendChild(img);
+        } else if (isVoice || (text && text.startsWith('data:audio'))) {
+          // BUILD THE WHATSAPP PLAYER
+          const playerDiv = document.createElement('div');
+          playerDiv.className = 'wa-audio';
+          
+          const playBtn = document.createElement('div');
+          playBtn.className = 'wa-play-btn';
+          playBtn.innerText = '▶';
+          
+          const waveDiv = document.createElement('div');
+          waveDiv.className = 'wa-waveform';
+          
+          const timeSpan = document.createElement('span');
+          timeSpan.className = 'wa-time';
+          timeSpan.innerText = '0:00';
+          
+          const dlBtn = document.createElement('div');
+          dlBtn.className = 'wa-play-btn';
+          dlBtn.innerHTML = '⬇️';
+          dlBtn.style.marginLeft = '5px';
+          dlBtn.style.fontSize = '14px';
+          dlBtn.onclick = function() {
+            const a = document.createElement('a');
+            a.href = text;
+            a.download = 'BAPP_Audio_' + Date.now() + '.webm';
+            a.click();
+          };
+          
+          const numBars = 25;
+          const bars = [];
+          for(let i=0; i<numBars; i++) {
+            const bar = document.createElement('div');
+            bar.className = 'wa-bar';
+            bar.style.height = (20 + Math.random() * 80) + '%'; 
+            waveDiv.appendChild(bar);
+            bars.push(bar);
+          }
+          
+          playerDiv.appendChild(playBtn);
+          playerDiv.appendChild(waveDiv);
+          playerDiv.appendChild(timeSpan);
+          playerDiv.appendChild(dlBtn);
+          
+          const audio = document.createElement('audio');
+          audio.src = text;
+          audio.preload = 'auto';
+          audio.style.position = 'absolute';
+          audio.style.width = '1px'; audio.style.height = '1px';
+          audio.style.opacity = '0'; audio.style.pointerEvents = 'none';
+          
+          playerDiv.appendChild(audio);
+          newMsg.appendChild(playerDiv);
+          
+          let isPlaying = false;
+          playBtn.onclick = async function() {
+            if (isPlaying) {
+              audio.pause();
+              playBtn.innerText = '▶';
+              isPlaying = false;
+            } else {
+              try {
+                await audio.play();
+                playBtn.innerText = '⏸';
+                playBtn.classList.add('played');
+                isPlaying = true;
+              } catch (err) { alert("Playback failed"); }
+            }
+          };
+          
+          audio.onended = function() {
+            playBtn.innerText = '▶';
+            isPlaying = false;
+          };
+          
+          audio.ontimeupdate = function() {
+            const mins = Math.floor(audio.currentTime / 60);
+            const secs = Math.floor(audio.currentTime % 60);
+            timeSpan.innerText = mins + ':' + secs.toString().padStart(2, '0');
+            const progress = audio.currentTime / (audio.duration || 1);
+            const playedBars = Math.floor(progress * numBars);
+            bars.forEach((b, i) => {
+              if (i < playedBars) b.classList.add('played');
+              if (audio.currentTime === 0) b.classList.remove('played');
+            });
+          };
+        } else {
+          newMsg.appendChild(document.createTextNode(text));
+        }
+    }
+
+    const timeSpan = document.createElement('span');
+    timeSpan.className = 'msg-time';
+    timeSpan.textContent = timeStr || new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    newMsg.appendChild(timeSpan);
+
+    if (type === 'sent' && !isDeleted) {
+      const check = document.createElement('span');
+      check.className = 'msg-status ' + (status === 'read' ? 'read' : '');
+      check.innerText = (status === 'read' || status === 'delivered') ? '✓✓' : '✓';
+      newMsg.appendChild(check);
+    }
+    
+    // Attach long press logic
+    if (!isDeleted) {
+        attachContextMenu(newMsg, id, text, type === 'sent');
+    }
+    
+    const spacer = document.getElementById('chat-spacer');
+    if (spacer) msgBox.insertBefore(newMsg, spacer);
+    else msgBox.appendChild(newMsg);
+    msgBox.scrollTop = msgBox.scrollHeight;
+  };
+
+  // 3. Update Send Message to include Reply & ID
+  const originalSend = window.sendMessage;
+  window.sendMessage = function() {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    const to = activeChatId;
+    
+    if (text !== "" && socket.readyState === WebSocket.OPEN) {
+      const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      const msgId = Date.now().toString();
+      
+      socket.send(JSON.stringify({ 
+          type: 'send_message', to: to, from: myBappId, text: text, 
+          msgId: msgId, replyData: currentReplyTo 
+      }));
+      
+      appendMessage(text, 'sent', now, 'sent', false, false, msgId, currentReplyTo);
+      input.value = '';
+      
+      const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+      savedMsgs.push({ text: text, type: 'sent', time: now, status: 'sent', msgId: msgId, replyData: currentReplyTo });
+      localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+      
+      cancelReply();
+      loadChatList();
+    }
+  };
+</script>
+
+<script>
+
+  let activeStatuses = [];
+  let pendingStatusMediaArray = [];
+  
+  // Viewer State
+  let currentUserStatuses = [];
+  let currentStatusIndex = 0;
+  let currentViewerTimeout = null;
+  let isViewingMyStatus = false;
+
+  function openStatusView() {
+    showNav();
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('status-view').classList.add('active');
+    if(socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: 'get_statuses' }));
+    }
+  }
+
+  // --- POSTING MULTIPLE ---
+  function postStatus() {
+    const input = document.createElement('input');
+    input.type = 'file'; 
+    input.accept = 'image/*,video/*';
+    input.multiple = true; // Allow multiple files
+    
+    input.onchange = async (e) => {
+      const files = Array.from(e.target.files);
+      if (files.length === 0) return;
+      
+      pendingStatusMediaArray = [];
+      
+      for (const file of files) {
+        if (file.size > 5 * 1024 * 1024) {
+            alert("Skipped " + file.name + " (over 5MB).");
+            continue;
+        }
+        const base64 = await processFile(file);
+        if (base64) pendingStatusMediaArray.push(base64);
+      }
+
+      if (pendingStatusMediaArray.length > 0) {
+        showPreview();
+      }
+    };
+    input.click();
+  }
+
+  function processFile(file) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64Data = event.target.result;
+        if (file.type.startsWith('image/')) {
+            const img = new Image();
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              canvas.width = 600; canvas.height = 600 * (img.height / img.width);
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+              resolve(canvas.toDataURL('image/jpeg', 0.6));
+            };
+            img.src = base64Data;
+        } else {
+            resolve(base64Data); // Video
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function showPreview() {
+    const container = document.getElementById('preview-media-container');
+    const firstMedia = pendingStatusMediaArray[0];
+    const isVideo = firstMedia.startsWith('data:video');
+    
+    let html = isVideo 
+      ? `<video src="${firstMedia}" controls style="width:100%; border-radius:15px;"></video>` 
+      : `<img src="${firstMedia}" style="width:100%; border-radius:15px;">`;
+      
+    if (pendingStatusMediaArray.length > 1) {
+      html += `<div style="position:absolute; bottom:10px; right:10px; background:rgba(0,0,0,0.7); color:white; padding:5px 10px; border-radius:10px;">+ ${pendingStatusMediaArray.length - 1} more</div>`;
+      container.style.position = 'relative';
+    }
+    
+    container.innerHTML = html;
+    document.getElementById('status-preview-modal').style.display = 'flex';
+  }
+
+  function closePreview() {
+    document.getElementById('status-preview-modal').style.display = 'none';
+    pendingStatusMediaArray = [];
+  }
+
+  function confirmPostStatus() {
+    if (pendingStatusMediaArray.length > 0) {
+      pendingStatusMediaArray.forEach(media => {
+        socket.send(JSON.stringify({ type: 'add_status', username: myBappId, text: null, media: media }));
+      });
+      closePreview();
+      showToast(pendingStatusMediaArray.length + " Updates posted!");
+    }
+  }
+
+  // --- RENDERING FEED ---
+  function renderStatuses() {
+    const container = document.getElementById('status-feed-container');
+    container.innerHTML = '';
+    
+    // Group by user
+    const userStatuses = {};
+    activeStatuses.forEach(s => {
+      if (s.username !== myBappId) {
+        if (!userStatuses[s.username]) userStatuses[s.username] = [];
+        userStatuses[s.username].push(s);
+      }
+    });
+
+    for (const user in userStatuses) {
+      const latest = userStatuses[user][userStatuses[user].length - 1];
+      const timeAgo = Math.round((Date.now() - latest.timestamp) / 60000) + " mins ago";
+      
+      container.innerHTML += `
+        <div class="status-item" onclick='startViewing("${user}")'>
+          <div class="status-avatar-ring">
+            <img src="https://ui-avatars.com/api/?name=${user.substring(0,2)}&background=random">
+          </div>
+          <div class="status-info">
+            <div class="status-name">${user}</div>
+            <div class="status-time">${timeAgo}</div>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  // --- VIEWER LOGIC ---
+  function startViewing(username) {
+    hideNav();
+    isViewingMyStatus = false;
+    currentUserStatuses = activeStatuses.filter(s => s.username === username);
+    currentStatusIndex = 0;
+    
+    // Mark all as seen in DB
+    currentUserStatuses.forEach(s => {
+        socket.send(JSON.stringify({ type: 'view_status', statusId: s.id, viewer: myBappId }));
+    });
+    
+    document.getElementById('viewer-username').innerText = username;
+    document.getElementById('status-viewer').style.display = 'flex';
+    document.getElementById('status-progress-container').style.display = 'flex';
+    
+    renderCurrentViewerItem();
+  }
+
+  window.viewMyUpdates = function() {
+    hideNav();
+    isViewingMyStatus = true;
+    currentUserStatuses = activeStatuses.filter(s => s.username === myBappId);
+    if(currentUserStatuses.length === 0) { showToast("No updates yet."); return; }
+    currentStatusIndex = 0;
+    
+    document.getElementById('viewer-username').innerText = "My Updates";
+    document.getElementById('status-viewer').style.display = 'flex';
+    document.getElementById('status-progress-container').style.display = 'flex';
+    
+    renderCurrentViewerItem();
+  }
+
+  function renderCurrentViewerItem() {
+    const status = currentUserStatuses[currentStatusIndex];
+    const content = document.getElementById('status-viewer-content');
+    const progressContainer = document.getElementById('status-progress-container');
+    
+    // 1. Render Progress Bars
+    progressContainer.innerHTML = '';
+    currentUserStatuses.forEach((s, i) => {
+        const bg = document.createElement('div');
+        bg.className = 'status-progress-bg';
+        const bar = document.createElement('div');
+        bar.className = 'status-progress-bar';
+        if (i < currentStatusIndex) bar.style.width = '100%';
+        if (i === currentStatusIndex) {
+            setTimeout(() => { bar.style.transition = 'width 5s linear'; bar.style.width = '100%'; }, 50);
+        }
+        bg.appendChild(bar);
+        progressContainer.appendChild(bg);
+    });
+
+    // 2. Render Media
+    let mediaHTML = status.media.startsWith('data:video') 
+        ? `<video src="${status.media}" autoplay controls style="max-width:100%; max-height:100%;"></video>`
+        : `<img src="${status.media}">`;
+        
+    // Add Viewers List if it's my status
+    if (isViewingMyStatus) {
+      const viewersList = status.views && status.views.length > 0 ? status.views.join(', ') : 'No views yet';
+      mediaHTML += `
+        <div style="position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.7); padding:15px; color:white; border-top-left-radius:20px; border-top-right-radius:20px;">
+          <div style="font-size:12px; margin-bottom:5px; opacity:0.7;">Seen by (${status.views ? status.views.length : 0})</div>
+          <div style="font-size:14px; max-height:60px; overflow-y:auto;">${viewersList}</div>
+        </div>
+      `;
+    }
+
+    content.innerHTML = mediaHTML;
+
+    // 3. Auto-Advance Timer
+    clearTimeout(currentViewerTimeout);
+    currentViewerTimeout = setTimeout(() => { nextStatus(); }, 5000);
+  }
+
+  function nextStatus() {
+    if (currentStatusIndex < currentUserStatuses.length - 1) {
+      currentStatusIndex++;
+      renderCurrentViewerItem();
+    } else {
+      closeStatusViewer();
+    }
+  }
+
+  function prevStatus() {
+    if (currentStatusIndex > 0) {
+      currentStatusIndex--;
+      renderCurrentViewerItem();
+    }
+  }
+
+  function closeStatusViewer() {
+    showNav();
+    document.getElementById('status-viewer').style.display = 'none';
+    clearTimeout(currentViewerTimeout);
+  }
+
+  // --- SOCKET SYNC ---
+  const oldSocketStatus = socket.onmessage;
+  socket.onmessage = function(event) {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.type === 'statuses_list') {
+        activeStatuses = data.statuses;
+        renderStatuses();
+      }
+      if (data.type === 'new_status') {
+        activeStatuses.push(data.status);
+        renderStatuses();
+      }
+      if(data.type !== 'statuses_list' && data.type !== 'new_status') {
+         oldSocketStatus.call(socket, event); 
+      }
+    } catch(err) { oldSocketStatus.call(socket, event); }
+  };
+
+  // Prevent clicks on the viewer content from closing it accidentally
+  document.getElementById('status-viewer-content').addEventListener('click', (e) => {
+    // We let the tap zones handle the clicks
+    e.stopPropagation();
+  });
+</script>
+</body>
+
+
+
+
+
+
+
+
+
+
+</html>

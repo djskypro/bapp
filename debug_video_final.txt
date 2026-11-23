@@ -1,0 +1,21 @@
+--- 1. MULTER SETUP ---
+2:const multer = require('multer');
+3:const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
+4-const http = require('http');
+5-const WebSocket = require('ws');
+6-const path = require('path');
+7-const fs = require('fs');
+8-
+
+--- 2. UPLOAD ENDPOINT ---
+40:app.post('/upload', upload.single('image'), (req, res) => {
+41-    try {
+42-        const filename = 'img_' + Date.now() + '.jpg';
+43-        const mediaDir = path.join(__dirname, 'media');
+44-        if (!fs.existsSync(mediaDir)) fs.mkdirSync(mediaDir);
+45-        fs.writeFileSync(path.join(mediaDir, filename), req.file.buffer);
+46-        console.log("📤 Image uploaded:", filename);
+47-        res.json({ url: '/media/' + filename });
+48-    } catch(e) { res.status(500).json({ error: 'Upload failed' }); }
+49-});
+50-

@@ -1,0 +1,54 @@
+--- SETTINGS HTML ---
+        <button onclick="randomizeLocation()" style="background:var(--search-bg); color:var(--text); border:none; border-radius:12px; padding:0 15px; font-size:18px;">🎲</button>
+      </div>
+    </div>
+    
+    <div class="input-group" style="margin-top: 15px; cursor: pointer;" onclick="openThemeModal()">
+      <label style="cursor: pointer;">Chat Bubble Color</label>
+      <div style="display:flex; align-items:center; gap:10px; margin-top:5px; background: var(--search-bg); padding: 15px; border-radius: 12px; justify-content: space-between;">
+        <span style="color: var(--text); font-size: 16px; font-weight: 500;">Customize Theme</span>
+        <div id="settings-color-indicator" style="width: 30px; height: 30px; border-radius: 50%; background: #005c4b; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>
+      </div>
+    </div>
+
+    <div class="toggle-row">
+      <div style="font-size:14px;">Auto-Switch Location</div>
+      <input type="checkbox" id="settings-auto-location" style="width:20px; height:20px; accent-color:var(--primary);">
+    </div>
+
+    <div class="toggle-row" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; background:var(--search-bg); padding:15px; border-radius:12px;">
+      <div style="font-size:14px; display:flex; align-items:center; gap:8px;">
+        <span style="font-size:18px;">✨</span> Cinematic Animations
+      </div>
+      <input type="checkbox" id="settings-animations" style="width:20px; height:20px; accent-color:var(--primary);">
+    </div>
+
+    <button class="save-btn" onclick="saveProfile()">Save Profile</button>
+
+--- SAVE FUNCTION ---
+  function saveProfile() {
+    myProfile.name = document.getElementById('settings-name-input').value || myBappId;
+    myProfile.bio = document.getElementById('settings-bio').value;
+    myProfile.phone = document.getElementById('settings-phone').value;
+    myProfile.location = document.getElementById('settings-location').value;
+    myProfile.autoLocation = document.getElementById('settings-auto-location').checked;
+    window.enableAnimations = document.getElementById('settings-animations').checked;
+    localStorage.setItem('bapp_animations', window.enableAnimations);
+    if (window.enableAnimations) document.body.classList.remove('no-animations');
+    else document.body.classList.add('no-animations');
+    window.enablePanicMode = document.getElementById('settings-panic-mode').checked;
+    window.enableShakeToUndo = document.getElementById('settings-shake-undo').checked;
+    localStorage.setItem('bapp_panic_mode', window.enablePanicMode);
+    localStorage.setItem('bapp_shake_undo', window.enableShakeToUndo);
+    myProfile.bubbleColor = window.selectedBubbleColor || '#005c4b';
+    try { localStorage.setItem('bapp_profile', JSON.stringify(myProfile)); } 
+    catch(e) { alert("Storage is full!"); return; }
+    let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+    profiles[myBappId] = myProfile;
+    localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+    socket.send(JSON.stringify({ type: 'register_user', username: myBappId, profile: myProfile }));
+    const btn = document.querySelector('.save-btn');
+    const originalText = btn.innerText;
+    btn.innerText = 'Saved! ✅'; btn.style.background = '#2ecc71';
+    setTimeout(() => { btn.innerText = originalText; btn.style.background = 'var(--primary)'; goBack(); }, 1000);
+  }

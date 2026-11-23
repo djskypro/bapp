@@ -1,0 +1,107 @@
+--- 1. THEME SET FUNCTION ---
+2105:  function setThemeColor(color) {
+2106-    window.selectedBubbleColor = color;
+2107-    document.getElementById('theme-preview-bubble').style.background = color;
+2108-    document.getElementById('custom-theme-color').value = color;
+2109-    
+2110-    // Highlight the selected swatch
+2111-    document.querySelectorAll('.color-swatch').forEach(s => {
+2112-        if (s.style.background.includes(color) || s.style.backgroundColor.includes(color)) {
+2113-            s.style.border = '3px solid white';
+2114-            s.style.transform = 'scale(1.1)';
+2115-        } else {
+--
+4010:  function setThemeColor(color) {
+4011-    window.selectedBubbleColor = color;
+4012-    document.getElementById('theme-preview-bubble').style.background = color;
+4013-    document.getElementById('custom-theme-color').value = color;
+4014-    
+4015-    document.querySelectorAll('.color-swatch').forEach(s => {
+4016-        // Convert hex to RGB to check match safely
+4017-        let rgb = color;
+4018-        if(color.startsWith('#')) {
+4019-            let r = parseInt(color.slice(1,3),16), g = parseInt(color.slice(3,5),16), b = parseInt(color.slice(5,7),16);
+4020-            rgb = `rgb(${r}, ${g}, ${b})`;
+
+--- 2. SAVE PROFILE ---
+2149:  function saveProfile() {
+2150-    myProfile.name = document.getElementById('settings-name-input').value || myBappId;
+2151-    myProfile.bio = document.getElementById('settings-bio').value;
+2152-    myProfile.phone = document.getElementById('settings-phone').value;
+2153-    myProfile.location = document.getElementById('settings-location').value;
+2154-    myProfile.autoLocation = document.getElementById('settings-auto-location').checked;
+2155-    myProfile.bubbleColor = window.selectedBubbleColor || '#005c4b';
+2156-    try { localStorage.setItem('bapp_profile', JSON.stringify(myProfile)); } 
+2157-    catch(e) { alert("Storage is full!"); return; }
+2158-    let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+2159-    profiles[myBappId] = myProfile;
+2160-    localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+2161-    socket.send(JSON.stringify({ type: 'register_user', username: myBappId, profile: myProfile }));
+2162-    const btn = document.querySelector('.save-btn');
+2163-    const originalText = btn.innerText;
+2164-    btn.innerText = 'Saved! ✅'; btn.style.background = '#2ecc71';
+
+--- 3. SEND MESSAGE ---
+  function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if (text === "") return;
+
+    const to = activeChatId;
+    const reply = currentReplyTo;
+    const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    const msgId = Date.now().toString();
+    
+    const isConnected = socket.readyState === WebSocket.OPEN;
+    const status = isConnected ? 'sent' : 'pending';
+
+    // 1. Show on screen immediately
+    appendMessage(text, 'sent', now, status, false, false, msgId, reply, false, false, myProfile.bubbleColor || '#005c4b');
+    input.value = '';
+
+    // 2. Save to local memory
+    try {
+        const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+        savedMsgs.push({ text: text, type: 'sent', time: now, status: status, msgId: msgId, replyData: reply, bubbleColor: myProfile.bubbleColor || '#005c4b' });
+        localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+        loadChatList();
+    } catch(e) { console.error("Storage full"); }
+
+    const rp = document.getElementById('reply-preview');
+    if (rp) rp.style.display = 'none';
+    currentReplyTo = null;
+    if (window.replyState && activeChatId) delete window.replyState[activeChatId];
+
+    // 3. Send now OR save to Offline Queue
+    const payload = {
+        type: 'send_message',
+        to: to,
+        from: myBappId,
+        text: text,
+        msgId: msgId,
+        replyData: reply,
+        bubbleColor: myProfile.bubbleColor || '#005c4b'
+    };
+
+    if (isConnected) {
+        socket.send(JSON.stringify(payload));
+    } else {
+        let queue = JSON.parse(localStorage.getItem('bapp_offline_queue')) || [];
+        queue.push(payload);
+        localStorage.setItem('bapp_offline_queue', JSON.stringify(queue));
+        console.log("📩 Message queued. Will send when online.");
+    }
+  }
+
+--- 4. APPEND MESSAGE START ---
+1758:  function appendMessage(text, type, timeStr, status = '', isImage = false, isVoice = false, msgId = null, replyData = null, isWhisper = false, isVideo = false, bubbleColor = null) {
+1759-    const msgBox = document.getElementById('chat-messages');
+1760-    if (!msgBox) return;
+1761-    const newMsg = document.createElement('div');
+1762-    newMsg.className = 'msg ' + type;
+1763-    if (bubbleColor && type === 'sent') { newMsg.style.setProperty('background-color', bubbleColor, 'important'); }
+1764-    
+1765-    const id = msgId || Date.now().toString();
+1766-    newMsg.id = 'msg-' + id;
+1767-
+1768-    if (replyData) {

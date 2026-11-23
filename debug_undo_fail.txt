@@ -1,0 +1,27 @@
+--- 1. SHAKE LISTENER ---
+5713:  window.addEventListener('devicemotion', function(event) {
+5714-    const acc = event.accelerationIncludingGravity;
+5715-    if (!acc) return;
+5716-    
+5717-    const force = Math.abs(acc.x) + Math.abs(acc.y) + Math.abs(acc.z);
+5718-    const now = Date.now();
+5719-    
+5720-    if (force > 35 && (now - lastShake) > 2000) {
+5721-      lastShake = now;
+5722-      
+5723-      // Check Panic Mode
+5724-      if (window.enablePanicMode) {
+5725-          document.getElementById('fake-calculator').style.display = 'flex';
+5726-      } 
+5727-      // Check Shake to Undo
+5728-      else if (window.enableShakeToUndo) {
+5729-          if (window.lastSentMessage && window.lastSentMessage.msgId) {
+5730-              const msgToDelete = window.lastSentMessage;
+5731-              
+5732-              // 1. Remove from DOM
+5733-              const el = document.getElementById('msg-' + msgToDelete.msgId);
+
+--- 2. LAST SENT TRACKER ---
+5729:          if (window.lastSentMessage && window.lastSentMessage.msgId) {
+5730:              const msgToDelete = window.lastSentMessage;
+5753:              window.lastSentMessage = null;

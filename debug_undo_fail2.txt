@@ -1,0 +1,85 @@
+--- 1. SEND MESSAGE TRACKER ---
+2808-    
+2809-    // SAVE LAST SENT MESSAGE FOR UNDO
+2810:    localStorage.setItem('bapp_last_sent', JSON.stringify({ to: activeChatId, msgId: msgId, time: Date.now() }));
+2811-    
+2812-    // TRACK FOR SHAKE TO UNDO
+--
+5738-      // 1. PRIORITIZE SHAKE TO UNDO
+5739-      if (window.enableShakeToUndo) {
+5740:          const lastData = JSON.parse(localStorage.getItem('bapp_last_sent'));
+5741-          
+5742-          if (lastData && lastData.msgId) {
+--
+5764-              
+5765-              // 5. Clear the tracker so you can't undo twice
+5766:              localStorage.removeItem('bapp_last_sent');
+5767-              
+5768-              // 6. Feedback
+
+--- 2. SHAKE LISTENER ---
+2229:  window.enableShakeToUndo = localStorage.getItem('bapp_shake_undo') === 'true';
+2230-
+2231-  
+2232-  window.enablePanicMode = localStorage.getItem('bapp_panic_mode') !== 'false'; // Default true
+2233:  window.enableShakeToUndo = localStorage.getItem('bapp_shake_undo') === 'true'; // Default false
+2234-
+2235-  let myBappId = localStorage.getItem('bapp_username');
+2236-  if (!myBappId) {
+2237-    myBappId = prompt("Welcome to BAPP! Choose a unique username:");
+2238-    while(!myBappId || myBappId.trim() === "") { myBappId = prompt("Username cannot be empty. Choose a username:"); }
+2239-    myBappId = myBappId.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+2240-    localStorage.setItem('bapp_username', myBappId);
+2241-  }
+2242-  document.getElementById('my-id').innerText = "Your ID: @" + myBappId;
+2243-
+--
+3052:    document.getElementById('settings-shake-undo').checked = window.enableShakeToUndo;
+3053-    window.selectedBubbleColor = myProfile.bubbleColor || '#005c4b';
+3054-    document.getElementById('settings-color-indicator').style.background = window.selectedBubbleColor;
+3055-    document.getElementById('settings-color-indicator').style.background = window.selectedBubbleColor;
+3056-    document.getElementById('settings-auto-location').checked = myProfile.autoLocation || false;
+3057-    document.getElementById('settings-panic-mode').checked = window.enablePanicMode !== false;
+3058:    document.getElementById('settings-shake-undo').checked = window.enableShakeToUndo === true;
+3059-    if (myProfile.autoLocation) startAutoLocation(); else stopAutoLocation();
+3060-  }
+3061-
+3062-  const cities = ['Kampala, UG', 'Nairobi, KE', 'London, UK', 'New York, USA', 'Tokyo, JP', 'Dubai, UAE', 'Cape Town, ZA', 'Paris, FR'];
+3063-  function randomizeLocation() { document.getElementById('settings-location').value = cities[Math.floor(Math.random() * cities.length)]; }
+3064-  function startAutoLocation() { stopAutoLocation(); autoLocationInterval = setInterval(() => { randomizeLocation(); }, 3000); }
+3065-  function stopAutoLocation() { if (autoLocationInterval) clearInterval(autoLocationInterval); }
+3066-  document.getElementById('settings-auto-location').addEventListener('change', function(e) { if (e.target.checked) startAutoLocation(); else stopAutoLocation(); });
+3067-
+3068-  function saveProfile() {
+--
+3075:    window.enableShakeToUndo = document.getElementById('settings-shake-undo').checked;
+3076-    localStorage.setItem('bapp_panic_mode', window.enablePanicMode);
+3077:    localStorage.setItem('bapp_shake_undo', window.enableShakeToUndo);
+3078-    myProfile.bubbleColor = window.selectedBubbleColor || '#005c4b';
+3079-    try { localStorage.setItem('bapp_profile', JSON.stringify(myProfile)); } 
+3080-    catch(e) { alert("Storage is full!"); return; }
+3081-    let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+3082-    profiles[myBappId] = myProfile;
+3083-    localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+3084-    socket.send(JSON.stringify({ type: 'register_user', username: myBappId, profile: myProfile }));
+3085-    const btn = document.querySelector('.save-btn');
+3086-    const originalText = btn.innerText;
+3087-    btn.innerText = 'Saved! ✅'; btn.style.background = '#2ecc71';
+--
+5739:      if (window.enableShakeToUndo) {
+5740-          const lastData = JSON.parse(localStorage.getItem('bapp_last_sent'));
+5741-          
+5742-          if (lastData && lastData.msgId) {
+5743-              // 1. Send Ghost Delete to Server
+5744-              if (socket.readyState === WebSocket.OPEN) {
+5745-                  socket.send(JSON.stringify({ type: 'ghost_delete', to: lastData.to, from: myBappId, msgId: lastData.msgId }));
+5746-              }
+5747-              
+5748-              // 2. Remove from LocalStorage chat history
+5749-              let msgs = JSON.parse(localStorage.getItem('bapp_msgs_' + lastData.to)) || [];
+
+--- 3. SW VERSION ---
+1:const CACHE_NAME = 'bapp-offline-v100'; // Force update
+3:self.addEventListener('install', (event) => { self.skipWaiting(); event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))); });
+7:    return caches.open(CACHE_NAME).then((cache) => {
+15:    cacheNames.map((cacheName) => { if (cacheName !== CACHE_NAME) return caches.delete(cacheName); })

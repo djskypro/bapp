@@ -1,0 +1,63 @@
+--- 1. SETTINGS HTML ---
+2134:      <div style="font-size:14px;">Auto-Switch Location</div>
+2135-      <input type="checkbox" id="settings-auto-location" style="width:20px; height:20px; accent-color:var(--primary);">
+2136-    </div>
+2137-
+2138-    <button class="save-btn" onclick="saveProfile()">Save Profile</button>
+2139-  </div>
+2140-</div>
+2141-
+2142-<!-- CONTACT INFO VIEW -->
+2143-<div id="contact-info-view" class="view">
+2144-  <div class="header" style="padding-top: 40px;">
+2145-    <div style="display:flex; align-items:center; gap:15px;">
+2146-      <div class="back-btn" onclick="closeContactInfo()">←</div>
+
+--- 2. OPEN SETTINGS JS ---
+3015:  function openSettings() {
+3016-    history.pushState({ view: 'settings' }, '', '#settings');
+3017-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+3018-    document.getElementById('settings-view').classList.add('active');
+3019-    document.getElementById('settings-username').value = myBappId;
+3020-    document.getElementById('settings-name-input').value = myProfile.name;
+3021-    document.getElementById('settings-bio').value = myProfile.bio || '';
+3022-    document.getElementById('settings-phone').value = myProfile.phone || '';
+3023-    document.getElementById('settings-location').value = myProfile.location || 'Unknown';
+3024-    document.getElementById('settings-avatar').src = myProfile.avatar;
+3025-    window.selectedBubbleColor = myProfile.bubbleColor || '#005c4b';
+
+--- 3. SAVE PROFILE JS ---
+3040:  function saveProfile() {
+3041-    myProfile.name = document.getElementById('settings-name-input').value || myBappId;
+3042-    myProfile.bio = document.getElementById('settings-bio').value;
+3043-    myProfile.phone = document.getElementById('settings-phone').value;
+3044-    myProfile.location = document.getElementById('settings-location').value;
+3045-    myProfile.autoLocation = document.getElementById('settings-auto-location').checked;
+3046-    window.enablePanicMode = document.getElementById('settings-panic-mode').checked;
+3047-    window.enableShakeToUndo = document.getElementById('settings-shake-undo').checked;
+3048-    localStorage.setItem('bapp_panic_mode', window.enablePanicMode);
+3049-    localStorage.setItem('bapp_shake_undo', window.enableShakeToUndo);
+3050-    myProfile.bubbleColor = window.selectedBubbleColor || '#005c4b';
+3051-    try { localStorage.setItem('bapp_profile', JSON.stringify(myProfile)); } 
+3052-    catch(e) { alert("Storage is full!"); return; }
+3053-    let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
+3054-    profiles[myBappId] = myProfile;
+3055-    localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
+
+--- 4. DEVICEMOTION SHAKE ---
+5696:  window.addEventListener('devicemotion', function(event) {
+5697-    const acc = event.accelerationIncludingGravity;
+5698-    if (!acc) return;
+5699-    
+5700-    const force = Math.abs(acc.x) + Math.abs(acc.y) + Math.abs(acc.z);
+5701-    const now = Date.now();
+5702-    
+5703-    if (force > 35 && (now - lastShake) > 2000) {
+5704-      lastShake = now;
+5705-      
+5706-      // Check Panic Mode
+5707-      if (window.enablePanicMode) {
+5708-          document.getElementById('fake-calculator').style.display = 'flex';
+5709-      } 
+5710-      // Check Shake to Undo
+5711-      else if (window.enableShakeToUndo) {

@@ -1,0 +1,50 @@
+--- 1. BOTTOM NAV (Where the AI button will sit) ---
+1521:  <div class="bottom-nav">
+1522-    <div class="nav-item active" onclick="goBack()">
+1523-      <span>💬</span>Chats
+1524-      <div class="nav-badge" id="global-badge">0</div>
+1525-    </div>
+1526-    <div class="nav-item" onclick="openStatusView()"><span>⭕</span>Updates</div>
+1527-    <div class="nav-item"><span>📞</span>Calls</div>
+1528-    <div class="nav-item" onclick="openSettings()"><span>⚙️</span>Settings</div>
+1529-  </div>
+1530-</div>
+1531-
+
+--- 2. OPEN CHAT FUNCTION ---
+1902:  function openChat(id, profileObj) {
+1903-    history.pushState({ view: 'chat' }, '', '#chat');
+1904-    // --- RESTORE REPLY STATE FOR THIS CHAT ---
+1905-    const replyBox = document.getElementById('reply-preview');
+1906-    if (window.replyState && window.replyState[id]) {
+1907-        currentReplyTo = window.replyState[id];
+--
+4549:  function openChatMenu() {
+4550-    document.getElementById('chat-options-menu').style.display = 'flex';
+4551-  }
+4552-  
+4553-  function closeChatMenu() {
+4554-    document.getElementById('chat-options-menu').style.display = 'none';
+
+--- 3. SEND MESSAGE FUNCTION ---
+2213:  function sendMessage() {
+2214-    const input = document.getElementById('chat-input');
+2215-    const text = input.value.trim();
+2216-    if (text === "") return;
+2217-
+2218-    const to = activeChatId;
+
+--- 4. CALL FUNCTION ---
+2476:  function startCall(type) {
+2477-    const name = document.getElementById('chat-name').textContent;
+2478-    if(type === 'video') alert("📹 Starting Video Call with " + name + "...");
+2479-    else alert("📞 Starting Audio Call with " + name + "...");
+2480-  }
+2481-
+--
+2923:  function startCall(type) {
+2924-    const name = document.getElementById('chat-name').textContent;
+2925-    const avatar = document.getElementById('chat-avatar').src;
+2926-    
+2927-    document.getElementById('call-name').innerText = name;
+2928-    document.getElementById('call-avatar').src = avatar;

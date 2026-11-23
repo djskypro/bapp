@@ -1,0 +1,47 @@
+--- 1. VIDEO SELECTION ---
+2902:      if (file.type.startsWith('video/')) {
+2903-         pendingIsVideo = true;
+2904-         pendingMediaBase64 = e.target.result;
+2905-         
+2906-         document.getElementById('preview-loading').style.display = 'none';
+2907-         document.getElementById('preview-content').innerHTML = '<video src="' + pendingMediaBase64 + '" controls style="max-width:100%; max-height:70vh; border-radius:15px;"></video>';
+2908-         
+2909-         sendBtn.disabled = false;
+2910-         sendBtn.style.background = '#25D366';
+2911-         sendBtn.style.color = 'black';
+2912-      } else {
+2913-         pendingIsVideo = false;
+2914-         const img = new Image();
+2915-         img.onload = function() {
+2916-           const canvas = document.createElement('canvas');
+2917-           const MAX_WIDTH = 720; const MAX_HEIGHT = 720;
+
+--- 2. CONFIRM SEND ---
+2939:  function confirmMediaSend() {
+2940-    if(!pendingMediaBase64) return;
+2941-    
+2942-    // Instantly close modal
+2943-    document.getElementById('media-preview-modal').style.display = 'none';
+2944-    
+2945-    const to = activeChatId;
+2946-    const base64Img = pendingMediaBase64;
+2947-    const isVid = pendingIsVideo;
+2948-    const msgId = Date.now().toString();
+2949-    const reply = currentReplyTo;
+2950-    
+2951-    const payload = { 
+2952-        type: 'send_message', 
+2953-        to: to, 
+2954-        from: myBappId, 
+2955-        text: base64Img, 
+2956-        isImage: !isVid, 
+2957-        isVideo: isVid, 
+2958-        msgId: msgId, 
+2959-        replyData: reply 
+2960-    };
+2961-    
+2962-    // CHECK IF ONLINE, IF NOT, QUEUE IT
+2963-    if (socket.readyState === WebSocket.OPEN) {
+2964-        socket.send(JSON.stringify(payload));
+
+--- 3. APPEND MESSAGE RENDER ---

@@ -1,0 +1,189 @@
+--- 1. SEND MESSAGE PAYLOAD ---
+  function sendMessage() {
+    console.log("GROUPS DB:", JSON.parse(localStorage.getItem('bapp_groups')));
+    console.log("ACTIVE CHAT:", activeChatId);
+    
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if (text === "") return;
+
+    const to = activeChatId;
+    const reply = currentReplyTo;
+    const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    const msgId = Date.now().toString();
+    
+    const isConnected = socket.readyState === WebSocket.OPEN;
+    const status = isConnected ? 'sent' : 'pending';
+
+    // 1. Show on screen immediately
+    appendMessage(text, 'sent', now, status, false, false, msgId, reply, false, false, myProfile.bubbleColor || '#005c4b');
+      
+      
+    input.value = '';
+    triggerInputDrop();
+ 
+    // Snap the keyboard back open instantly after sending
+    setTimeout(() => {
+        const chatIn = document.getElementById('chat-input');
+        const chatView = document.getElementById('chat-view');
+        if (chatIn && chatView && chatView.classList.contains('active')) {
+            chatIn.focus();
+        }
+    }, 10);
+
+    // 2. Save to local memory
+    try {
+        const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + to)) || [];
+        savedMsgs.push({ text: text, type: 'sent', time: now, status: status, msgId: msgId, replyData: reply, bubbleColor: myProfile.bubbleColor || '#005c4b' });
+        localStorage.setItem('bapp_msgs_' + to, JSON.stringify(savedMsgs));
+        loadChatList();
+    } catch(e) { console.error("Storage full"); }
+
+    const rp = document.getElementById('reply-preview');
+    if (rp) rp.style.display = 'none';
+    currentReplyTo = null;
+    if (window.replyState && activeChatId) delete window.replyState[activeChatId];
+
+    // 3. Send now OR save to Offline Queue
+    // --- CHECK IF IT'S A GROUP MESSAGE ---
+      const isGroup = activeChatId.startsWith('group_');
+      let groupMembers = [];
+      if (isGroup) {
+          let groups = JSON.parse(localStorage.getItem('bapp_groups')) || {};
+          if (groups[activeChatId]) groupMembers = groups[activeChatId].members;
+      }
+
+      console.log("GROUP DEBUG:", { activeChatId, isGroup, groupMembers });
+      
+      const payload = {
+          type: 'send_message',
+          to: to,
+          from: myBappId,
+          text: text,
+          msgId: msgId,
+          replyData: reply,
+          bubbleColor: myProfile.bubbleColor || '#005c4b',
+          isGroup: isGroup,
+          groupMembers: groupMembers
+      };
+
+    if (isConnected) {
+        socket.send(JSON.stringify(payload));
+    } else {
+        let queue = JSON.parse(localStorage.getItem('bapp_offline_queue')) || [];
+        queue.push(payload);
+        localStorage.setItem('bapp_offline_queue', JSON.stringify(queue));
+        console.log("📩 Message queued. Will send when online.");
+    }
+  }
+
+--- 2. SERVER RECEIVE ---
+        if (data.type === 'send_message') {
+            const { to, from, text, isImage, isVoice, msgId, replyData, isWhisper, isVideo, bubbleColor, isGroup, groupMembers } = data;
+            const cleanTo = to.trim();
+            
+            console.log(`📩 Msg from [${from}] to [${cleanTo}] isGroup: ${isGroup} | Members: ${JSON.stringify(groupMembers)}`);
+
+            // --- GROUP MESSAGE ROUTING ---
+            // If groupMembers is empty, try to get them from the database
+            if (isGroup && (!groupMembers || groupMembers.length === 0)) {
+                try {
+                    // We don't have group storage on the server, so we can't easily get members
+                    // Instead, just trust the sender's member list
+                } catch(e) {}
+            }
+            
+            if (isGroup && groupMembers && groupMembers.length > 0) {
+                groupMembers.forEach(member => {
+                    if (member === from) return; // Don't send to yourself
+                    const targetWs = bappUsers.get(member);
+                    if (targetWs && targetWs.readyState === 1) {
+                        targetWs.send(JSON.stringify({
+                            type: 'new_message', from: from, text: text, isImage: isImage || false, isVoice: isVoice || false,
+                            msgId: msgId, replyData: replyData, isWhisper: isWhisper || false, isVideo: isVideo || false, 
+                            bubbleColor: bubbleColor, isGroup: true, groupId: cleanTo, groupMembers: groupMembers
+                        }));
+                    } else {
+                        // Save for offline member
+                        let db = {};
+                        try { db = JSON.parse(fs.readFileSync(DB_FILE)); } catch(e) {}
+                        if (!db[member]) db[member] = [];
+                        db[member].push({
+                            from: from, text: saveImageToFile(text, isImage), isImage: isImage || false, isVoice: isVoice || false, isVideo: isVideo || false,
+                            msgId: msgId, replyData: replyData, isWhisper: isWhisper || false, bubbleColor: bubbleColor,
+                            isGroup: true, groupId: cleanTo, groupMembers: groupMembers
+                        });
+                        try { fs.writeFileSync(DB_FILE, JSON.stringify(db)); } catch(e) {}
+                    }
+                });
+                ws.send(JSON.stringify({ type: 'delivered_receipt', to: cleanTo }));
+                return; // Stop here so it doesn't run the single-user logic below
+            }
+
+            // --- SINGLE USER MESSAGE ROUTING ---
+            const targetWs = bappUsers.get(cleanTo);
+            let delivered = false;
+
+            if (targetWs && targetWs.readyState === 1) {
+                try {
+                    targetWs.send(JSON.stringify({
+                        type: 'new_message',
+                        from: from,
+                        text: text,
+                        isImage: isImage || false,
+                        isVoice: isVoice || false,
+                        msgId: msgId,
+                        replyData: replyData,
+                        isWhisper: isWhisper || false,
+                        isVideo: isVideo || false,
+                        bubbleColor: bubbleColor
+                    }));
+                    delivered = true;
+                } catch (err) {
+                    console.log("⚠️ Ghost socket detected. Cleaning up...");
+                    bappUsers.delete(cleanTo);
+                }
+            }
+
+            if (delivered) {
+                ws.send(JSON.stringify({ type: 'delivered_receipt', to: cleanTo }));
+                console.log("✅ Delivered (Receipt Sent)");
+            } else {
+                let db = {};
+                try {
+                    db = JSON.parse(fs.readFileSync(DB_FILE));
+                } catch(e) { console.log("DB was empty or corrupted, creating new."); }
+                
+                if (!db[cleanTo]) db[cleanTo] = [];
+                // CONVERT IMAGE TO FILE BEFORE SAVING TO DB
+                let savedText = text;
+                if (isImage && text && text.startsWith('data:image')) {
+                    savedText = saveImageToFile(text, true);
+                }
+
+                db[cleanTo].push({
+                    from: from,
+                    text: savedText,
+                    isImage: isImage || false,
+                    isVoice: isVoice || false,
+                    isVideo: isVideo || false,
+                    msgId: msgId,
+                    replyData: replyData,
+                    isWhisper: isWhisper || false,
+                    bubbleColor: bubbleColor
+                });
+                try {
+                    const jsonStr = JSON.stringify(db);
+                    if (jsonStr.length > 100 * 1024 * 1024) {
+                        console.warn("⚠️ Offline DB is over 100MB! Clearing old images...");
+                        for (let user in db) {
+                            db[user].forEach(m => {
+                                if (m.isImage) { m.text = "📷 [Image removed - too large]"; m.isImage = false; }
+                            });
+                        }
+                    }
+                    fs.writeFileSync(DB_FILE, JSON.stringify(db));
+                    console.log("💾 Offline Saved (" + (JSON.stringify(db).length / 1024).toFixed(1) + " KB)");
+                } catch(e) { console.error("❌ Failed to save offline DB:", e); }
+            }
+        }

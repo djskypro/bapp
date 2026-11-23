@@ -1,0 +1,33 @@
+--- 1. SERVER OFFLINE SAVE ---
+261:                console.log("💾 Offline Saved");
+262-            }
+263-        }
+264-    });
+265-
+266-    ws.on('close', () => {
+267-        for (let [userId, userWs] of bappUsers.entries()) {
+268-            if (userWs === ws) {
+269-                bappUsers.delete(userId);
+270-                console.log(`🔴 Disconnected: ${userId}`);
+271-            }
+272-        }
+273-    });
+274-});
+
+--- 2. SERVER SYNC ON LOGIN ---
+100:                ws.send(JSON.stringify({ type: 'offline_messages', messages: msgsToSend }));
+101-                console.log("📬 Sent " + msgsToSend.length + " offline messages to " + data.username);
+102-            }
+103-        }
+104-
+105-        if (data.type === 'search_user') {
+106-            const users = JSON.parse(fs.readFileSync(USERS_FILE));
+107-            const query = data.query.toLowerCase();
+108-            const matches = Object.keys(users).filter(u => u.includes(query) && u !== data.from).map(u => ({ username: u, profile: users[u] }));
+109-            ws.send(JSON.stringify({ type: 'search_result', matches: matches }));
+110-        }
+111-
+112-        
+113-        if (data.type === 'recording') {
+114-            if (bappUsers.has(data.to)) {
+115-                bappUsers.get(data.to).send(JSON.stringify({ type: 'recording', from: data.from, isRecording: data.isRecording }));

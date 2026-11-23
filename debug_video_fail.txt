@@ -1,0 +1,33 @@
+--- 1. CONFIRM MEDIA SEND ---
+2951:  async function confirmMediaSend() {
+2952-    if(!pendingMediaBase64) return;
+2953-
+2954-    document.getElementById('media-preview-modal').style.display = 'none';
+2955-    if(typeof showToast === 'function') showToast("Uploading...");
+2956-
+2957-    try {
+2958-        // Upload the file to the server first
+2959-        const blob = await (await fetch(pendingMediaBase64)).blob();
+2960-        const formData = new FormData();
+2961-        const isVid = pendingIsVideo;
+2962-        const filename = (isVid ? 'video_' : 'image_') + Date.now() + (isVid ? '.mp4' : '.jpg');
+2963-        formData.append('image', blob, filename);
+2964-
+2965-        const res = await fetch('/upload', { method: 'POST', body: formData });
+2966-        const data = await res.json();
+2967-        if(!data.url) throw new Error("Upload failed");
+2968-
+2969-        // Now send the tiny /media/ URL through the WebSocket
+2970-        const to = activeChatId;
+2971-        const msgId = Date.now().toString();
+2972-        const reply = currentReplyTo;
+2973-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+2974-
+2975-        const payload = {
+2976-            type: 'send_message',
+
+--- 2. SERVER UPLOAD LIMIT ---
+3:const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 500 * 1024 * 1024 } });
+
+--- 3. CLIENT ERROR LOGS ---
+3010:        console.error("Upload error:", err);

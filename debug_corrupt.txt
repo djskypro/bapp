@@ -1,0 +1,47 @@
+--- 1. OFFLINE RECEIVER SAVING ---
+3039:      if (data.type === 'offline_messages') {
+3040-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+3041-        
+3042-        data.messages.forEach(msg => {
+3043-          const senderId = (msg.from || '').trim();
+3044-          
+3045-          try {
+3046-            let saveText = msg.text;
+3047-            // If it's an image, save it to IndexedDB, not localStorage
+3048-            if (msg.isImage && !msg.isVideo && msg.msgId) {
+3049-                if (typeof saveImgToDB === 'function') {
+3050-                    saveImgToDB(msg.msgId, msg.text);
+3051-                }
+3052-                saveText = "img_ref_" + msg.msgId;
+3053-            }
+3054-
+3055-            const savedMsgs = JSON.parse(localStorage.getItem('bapp_msgs_' + senderId)) || [];
+3056-            savedMsgs.push({
+3057-                text: saveText,
+3058-                type: 'received',
+3059-                time: now,
+
+--- 2. IMAGE RENDER BLOCK ---
+2396:    } else if (isImage) {
+2397-      const img = document.createElement('img');
+2398-      img.style.cursor = 'pointer';
+2399-      
+2400-      if (text.startsWith('img_ref_')) {
+2401-          // It's an IndexedDB image. Load it safely.
+2402-          const realId = text.replace('img_ref_', '');
+2403-          img.style.minHeight = '150px';
+2404-          img.style.backgroundColor = 'rgba(255,255,255,0.05)';
+2405-          img.style.borderRadius = '10px';
+2406-          
+2407-          getImgFromDB(realId, function(base64Data) {
+2408-              if(base64Data) {
+2409-                  img.src = base64Data;
+2410-                  img.style.minHeight = 'auto';
+2411-                  img.style.backgroundColor = 'transparent';
+2412-              }
+2413-          });
+2414-      } else {
+2415-          // Fallback for old normal images
+2416-          img.src = text; 
+
+--- 3. SEND MESSAGE (SERVER SIDE) ---

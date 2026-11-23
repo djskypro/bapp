@@ -1,0 +1,24 @@
+--- IMAGE COMPRESSION CODE ---
+2616-         img.onload = function() {
+2617-           const canvas = document.createElement('canvas');
+2618:           const MAX_WIDTH = 400; const MAX_HEIGHT = 400;
+2619-           let width = img.width; let height = img.height;
+2620:           if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } }
+2621-           else { if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; } }
+2622-           canvas.width = width; canvas.height = height;
+2623-           const ctx = canvas.getContext('2d');
+2624-           ctx.drawImage(img, 0, 0, width, height);
+2625-           pendingMediaBase64 = canvas.toDataURL('image/jpeg', 0.4);
+2626-           
+2627-           document.getElementById('preview-loading').style.display = 'none';
+2628-           document.getElementById('preview-content').innerHTML = '<img src="' + pendingMediaBase64 + '" style="max-width:100%; max-height:70vh; border-radius:15px;">';
+2629-           
+2630-           sendBtn.disabled = false;
+2631-           sendBtn.style.background = '#25D366';
+2632-           sendBtn.style.color = 'black';
+2633-         };
+2634-         img.src = e.target.result;
+2635-      }
+2625:           pendingMediaBase64 = canvas.toDataURL('image/jpeg', 0.4);
+2784:      const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+4266:              resolve(canvas.toDataURL('image/jpeg', 0.6));
