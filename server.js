@@ -4,6 +4,8 @@ const http = require('http');
 const WebSocket = require('ws');
 const path = require('path');
 const fs = require('fs');
+const { createClient } = require('@supabase/supabase-js');
+const supabase = (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY) : null;
 
 
 function saveImageToFile(text, isImage) {
@@ -160,60 +162,47 @@ wss.on('connection', (ws) => {
         }
 
         if (data.type === 'register_user') {
-            const users = fs.existsSync(USERS_FILE) ? JSON.parse(fs.readFileSync(USERS_FILE) || "{}") : {};
-            users[data.username] = data.profile || { name: data.username };
-            allUsers = users;
-            fs.writeFileSync(USERS_FILE, JSON.stringify(users));
-            
-            bappUsers.set(data.username, ws);
-            console.log(`🟢 BAPP Connected: ${data.username}`);
-            ws.send(JSON.stringify({ type: 'register_success', username: data.username }));
-            
-            // Broadcast the online list to EVERYONE
-            const onlineList = Array.from(bappUsers.keys());
-            for (let client of bappUsers.values()) {
-                if (client.readyState === 1) {
-                    client.send(JSON.stringify({ type: 'online_users', users: onlineList }));
+            const uname = String(data.username || '').trim().toLowerCase();
+            const prof = data.profile || { name: uname };
+            if (uname) {
+                const users = fs.existsSync(USERS_FILE) ? JSON.parse(fs.readFileSync(USERS_FILE) || "{}") : {};
+                users[uname] = prof;
+                allUsers = users;
+                try { fs.writeFileSync(USERS_FILE, JSON.stringify(users)); } catch (e) {}
+                if (supabase) {
+                    supabase.from('users').upsert({ username: uname, profile: prof, updated_at: new Date().toISOString() }, { onConflict: 'username' }).then(({ error }) => {
+                        if (error) console.error("❌ Supabase register_user:", error.message);
+                    });
                 }
-            }
-            
-            const db = JSON.parse(fs.readFileSync(DB_FILE));
-            if (db[data.username] && db[data.username].length > 0) {
-                const msgsToSend = db[data.username];
-                // DO NOT DELETE. Wait for sync_ack.
-                try {
-                } catch(e) { console.log("Failed to write to offline DB (maybe storage full?):", e); }
-                
-                // Send ALL offline messages at once (safer and faster)
-                // Send one by one with a 300ms delay to prevent WebSocket truncation
-                if (ws.readyState === 1) {
-                        ws.send(JSON.stringify({ type: 'offline_messages', messages: msgsToSend }));
-                        console.log("📬 Sent " + msgsToSend.length + " offline messages to " + data.username);
-                    }
-                console.log("📬 Queued " + msgsToSend.length + " offline messages for " + data.username);
-            }
-        }
-
-        
-        if (data.type === 'sync_ack') {
-            const db = JSON.parse(fs.readFileSync(DB_FILE));
-            if (db[data.username]) {
-                delete db[data.username];
-                fs.writeFileSync(DB_FILE, JSON.stringify(db));
-                console.log("✅ Sync ACK received. Cleared offline DB for " + data.username);
             }
         }
 
         if (data.type === 'search_user') {
-            let users = {};
-            try { users = fs.existsSync(USERS_FILE) ? JSON.parse(fs.readFileSync(USERS_FILE, "utf8") || "{}") : {}; } catch (e) { users = {}; }
-            if (Object.keys(users).length === 0 && typeof allUsers === "object" && allUsers) users = allUsers;
-            const query = String(data.query || "").trim().toLowerCase();
-            const matches = Object.keys(users).filter(u => u.toLowerCase().includes(query) && u.toLowerCase() !== String(data.from || "").toLowerCase()).map(u => ({ username: u, profile: users[u] }));
-            ws.send(JSON.stringify({ type: 'search_result', matches: matches }));
+            const query = String(data.query || '').trim().toLowerCase();
+            const me = String(data.from || '').trim().toLowerCase();
+            if (supabase) {
+                supabase.from('users').select('username, profile').ilike('username', `%${query}%`).then(({ data: rows, error }) => {
+                    if (error) {
+                        console.error("❌ Supabase search_user:", error.message);
+                        ws.send(JSON.stringify({ type: 'search_result', matches: [] }));
+                        return;
+                    }
+                    const matches = (rows || [])
+                        .filter(r => String(r.username || '').toLowerCase() !== me)
+                        .map(r => ({ username: r.username, profile: r.profile || { name: r.username } }));
+                    ws.send(JSON.stringify({ type: 'search_result', matches }));
+                });
+            } else {
+                let users = {};
+                try { users = fs.existsSync(USERS_FILE) ? JSON.parse(fs.readFileSync(USERS_FILE, "utf8") || "{}") : {}; } catch (e) {}
+                if (Object.keys(users).length === 0 && typeof allUsers === "object" && allUsers) users = allUsers;
+                const matches = Object.keys(users)
+                    .filter(u => u.toLowerCase().includes(query) && u.toLowerCase() !== me)
+                    .map(u => ({ username: u, profile: users[u] }));
+                ws.send(JSON.stringify({ type: 'search_result', matches }));
+            }
         }
 
-        
         if (data.type === 'recording') {
             if (bappUsers.has(data.to)) {
                 bappUsers.get(data.to).send(JSON.stringify({ type: 'recording', from: data.from, isRecording: data.isRecording }));
