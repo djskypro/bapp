@@ -70,7 +70,7 @@ app.use(express.static(__dirname));
 
 server.listen(process.env.PORT || 2222, () => {
     console.log('\n=============================================');
-    console.log('BAPP running on http://localhost:2222');
+    console.log('BAPP running on port: ' + (process.env.PORT || 2222));
     console.log('=============================================\n');
 });
 
