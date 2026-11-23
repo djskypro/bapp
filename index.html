@@ -2904,7 +2904,7 @@
   let activeChatId = null;
   window.replyState = {};
 
-  let socket = new WebSocket('ws://' + location.host);
+  let socket = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host);
   let reconnectTimer = null;
   // 1. Load the UI and chats instantly (works offline)
   loadChatList();
@@ -2950,7 +2950,7 @@
     const currentHandler = socket.onmessage;
     
     // Create a fresh socket
-    socket = new WebSocket('ws://' + location.host);
+    socket = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host);
     
     socket.onopen = () => {
         console.log("✅ Reconnected successfully!");
@@ -8407,6 +8407,28 @@ let pendingFileName = null;
       }
     });
   }
+
+  // --- GLOBAL VIDEO OBSERVER (RESTORED) ---
+  const forceVideos = () => {
+      document.querySelectorAll('#chat-messages img').forEach(img => {
+          if (img.src && img.src.includes('.mp4')) {
+              const video = document.createElement('video');
+              video.src = img.src;
+              video.controls = true;
+              video.style.maxWidth = '250px';
+              video.style.width = 'auto';
+              video.style.borderRadius = '10px';
+              if (img.parentNode) {
+                  img.parentNode.replaceChild(video, img);
+              }
+          }
+      });
+  };
+
+  setInterval(forceVideos, 500);
+  const vObserver = new MutationObserver(() => forceVideos());
+  const chatContainer = document.getElementById('chat-messages');
+  if (chatContainer) vObserver.observe(chatContainer, { childList: true, subtree: true });
 
   // --- GLOBAL VIDEO OBSERVER (RESTORED) ---
   const forceVideos = () => {
