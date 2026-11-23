@@ -160,7 +160,7 @@ wss.on('connection', (ws) => {
         }
 
         if (data.type === 'register_user') {
-            const users = JSON.parse(fs.readFileSync(USERS_FILE));
+            const users = fs.existsSync(USERS_FILE) ? JSON.parse(fs.readFileSync(USERS_FILE) || "{}") : {};
             users[data.username] = data.profile || { name: data.username };
             allUsers = users;
             fs.writeFileSync(USERS_FILE, JSON.stringify(users));
@@ -207,7 +207,7 @@ wss.on('connection', (ws) => {
         if (data.type === 'search_user') {
             const users = JSON.parse(fs.readFileSync(USERS_FILE));
             const query = data.query.toLowerCase();
-            const matches = Object.keys(users).filter(u => u.includes(query) && u !== data.from).map(u => ({ username: u, profile: users[u] }));
+            const matches = Object.keys(users).filter(u => u.toLowerCase().includes(query) && u.toLowerCase() !== String(data.from || "").toLowerCase()).map(u => ({ username: u, profile: users[u] }));
             ws.send(JSON.stringify({ type: 'search_result', matches: matches }));
         }
 
