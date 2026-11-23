@@ -205,8 +205,10 @@ wss.on('connection', (ws) => {
         }
 
         if (data.type === 'search_user') {
-            const users = JSON.parse(fs.readFileSync(USERS_FILE));
-            const query = data.query.toLowerCase();
+            let users = {};
+            try { users = fs.existsSync(USERS_FILE) ? JSON.parse(fs.readFileSync(USERS_FILE, "utf8") || "{}") : {}; } catch (e) { users = {}; }
+            if (Object.keys(users).length === 0 && typeof allUsers === "object" && allUsers) users = allUsers;
+            const query = String(data.query || "").trim().toLowerCase();
             const matches = Object.keys(users).filter(u => u.toLowerCase().includes(query) && u.toLowerCase() !== String(data.from || "").toLowerCase()).map(u => ({ username: u, profile: users[u] }));
             ws.send(JSON.stringify({ type: 'search_result', matches: matches }));
         }
