@@ -2890,6 +2890,11 @@
   if (!window.enableAnimations) document.body.classList.add('no-animations');
 
   let myBappId = localStorage.getItem('bapp_username');
+  while (!myBappId || myBappId.trim() === "" || myBappId === "null") {
+      myBappId = prompt("Choose a username:");
+      if (myBappId) myBappId = myBappId.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+  }
+  localStorage.setItem('bapp_username', myBappId);
   if (!myBappId) {
     myBappId = prompt("Welcome to BAPP! Choose a unique username:");
     while(!myBappId || myBappId.trim() === "") { myBappId = prompt("Username cannot be empty. Choose a username:"); }
