@@ -165,6 +165,7 @@ wss.on('connection', (ws) => {
             const uname = String(data.username || '').trim().toLowerCase();
             const prof = data.profile || { name: uname };
             if (uname) {
+                bappUsers.set(uname, ws);
                 const users = fs.existsSync(USERS_FILE) ? JSON.parse(fs.readFileSync(USERS_FILE) || "{}") : {};
                 users[uname] = prof;
                 allUsers = users;
