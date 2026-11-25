@@ -3967,7 +3967,7 @@ let pendingFileName = null;
 
   const cities = ['Kampala, UG', 'Nairobi, KE', 'London, UK', 'New York, USA', 'Tokyo, JP', 'Dubai, UAE', 'Cape Town, ZA', 'Paris, FR'];
   function randomizeLocation() { document.getElementById('settings-location').value = cities[Math.floor(Math.random() * cities.length)]; }
-  function startAutoLocation() { stopAutoLocation(); autoLocationInterval = setInterval(() => { randomizeLocation(); }, 3000); }
+  function startAutoLocation() { stopAutoLocation(); autoLocationInterval = setInterval(() => { randomizeLocation(); }, 30000); }
   function stopAutoLocation() { if (autoLocationInterval) clearInterval(autoLocationInterval); }
   document.getElementById('settings-auto-location').addEventListener('change', function(e) { if (e.target.checked) startAutoLocation(); else stopAutoLocation(); });
 
@@ -4602,7 +4602,7 @@ let pendingFileName = null;
     clearTimeout(window.toastTimeout);
     window.toastTimeout = setTimeout(() => {
       toast.classList.remove('show');
-    }, 3000);
+    }, 30000);
   }
 
   // Override the default ugly alert globally!
@@ -4633,7 +4633,7 @@ let pendingFileName = null;
       status.innerText = 'Connected (00:01)';
       status.style.color = '#25D366';
       status.style.animation = 'none';
-    }, 3000);
+    }, 30000);
   }
 
   function endCall() {
@@ -5201,7 +5201,7 @@ let pendingFileName = null;
       // Remove the highlight after 3 seconds
       setTimeout(() => {
         target.classList.remove('highlight-flash');
-      }, 3000);
+      }, 30000);
     }
   }
 
@@ -8516,7 +8516,7 @@ let pendingFileName = null;
     if (!localStorage.getItem('pwa_dismissed_recently')) {
       setTimeout(() => {
         document.getElementById('pwa-install-popup').style.display = 'flex';
-      }, 3000); // Show after 3 seconds so it doesn't block the initial load
+      }, 30000); // Show after 3 seconds so it doesn't block the initial load
     }
   });
 
