@@ -2720,6 +2720,16 @@
   
   <div class="settings-content">
     
+    <!-- INSTALL APP BUTTON -->
+    <div class="toggle-row" onclick="installPwa()" style="display:flex; justify-content:space-between; align-items:center; background:var(--search-bg); padding:15px; border-radius:12px; margin-bottom:15px; cursor:pointer;">
+      <div>
+        <label style="font-size:16px; font-weight:bold; color:var(--text);">📲 Install App</label>
+        <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">Add BAPP to your home screen</div>
+      </div>
+      <div style="color:var(--primary); font-size:20px;">›</div>
+    </div>
+
+    
     <!-- GHOST MODE -->
     <div class="toggle-row" style="display:flex; justify-content:space-between; align-items:center; background:var(--search-bg); padding:15px; border-radius:12px; margin-bottom:15px;">
       <div>
@@ -8512,12 +8522,7 @@ let pendingFileName = null;
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    // Only show if they haven't dismissed it recently
-    if (!localStorage.getItem('pwa_dismissed_recently')) {
-      setTimeout(() => {
-        document.getElementById('pwa-install-popup').style.display = 'flex';
-      }, 30000); // Show after 3 seconds so it doesn't block the initial load
-    }
+    // Auto popup is disabled. User can install via Settings.
   });
 
   function installPwa() {
@@ -8528,8 +8533,11 @@ let pendingFileName = null;
           console.log('User installed the app');
         }
         deferredPrompt = null;
-        document.getElementById('pwa-install-popup').style.display = 'none';
+        const popup = document.getElementById('pwa-install-popup');
+        if (popup) popup.style.display = 'none';
       });
+    } else {
+      alert("To install BAPP, tap the browser menu (⋮) and select 'Add to Home screen'.");
     }
   }
 
