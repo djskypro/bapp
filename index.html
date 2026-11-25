@@ -2989,7 +2989,6 @@
   let myBappId = localStorage.getItem('bapp_username');
   if (!myBappId || myBappId.trim() === "" || myBappId === "null") {
       document.getElementById('login-screen').style.display = 'flex';
-      throw new Error("Auth required"); // Stop the rest of the script from running
   }
   document.getElementById('my-id').innerText = "Your ID: @" + myBappId;
 
@@ -3009,11 +3008,8 @@
   socket.onopen = () => {
     console.log("✅ Connected to server.");
     const savedPass = localStorage.getItem('bapp_password');
-            if (savedPass) {
+            if (savedPass && myBappId) {
                 socket.send(JSON.stringify({ type: 'auth_request', username: myBappId, password: savedPass, isLogin: true }));
-            } else {
-                localStorage.removeItem('bapp_username');
-                window.location.reload();
             }
     
     // FLUSH OFFLINE QUEUE
@@ -3060,7 +3056,10 @@
             queue.forEach(payload => socket.send(JSON.stringify(payload)));
             localStorage.removeItem('bapp_offline_queue');
         }
-        socket.send(JSON.stringify({ type: 'register_user', username: myBappId, profile: myProfile }));
+        const savedPass = localStorage.getItem('bapp_password');
+        if (savedPass && myBappId) {
+            socket.send(JSON.stringify({ type: 'auth_request', username: myBappId, password: savedPass, isLogin: true }));
+        }
     };
     
     socket.onclose = () => {
