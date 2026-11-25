@@ -275,7 +275,7 @@ wss.on('connection', (ws) => {
 
         if (data.type === 'send_message') {
             const { to, from, text, isImage, isVoice, msgId, replyData, isWhisper, isVideo, bubbleColor, isGroup, groupMembers } = data;
-            const cleanTo = to ? to.trim() : null;
+            const cleanTo = to ? to.trim().toLowerCase() : null;
             if (!cleanTo) return;
             
             console.log(`📩 Msg from [${from}] to [${cleanTo}] isGroup: ${isGroup} | Members: ${JSON.stringify(groupMembers)}`);
