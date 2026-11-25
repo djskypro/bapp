@@ -2478,30 +2478,6 @@
     border: none; border-radius: 15px; font-size: 16px; cursor: pointer; margin-top: 10px;
   }
 </style>
-
-<style>
-  .btn-loading {
-    pointer-events: none;
-    opacity: 0.8;
-    position: relative;
-    color: transparent !important;
-  }
-  .btn-loading::after {
-    content: "";
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    top: 50%;
-    left: 50%;
-    margin-top: -10px;
-    margin-left: -10px;
-    border: 3px solid rgba(255,255,255,0.3);
-    border-top-color: #fff;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-</style>
 </head>
 
 
@@ -3013,6 +2989,7 @@
   let myBappId = localStorage.getItem('bapp_username');
   if (!myBappId || myBappId.trim() === "" || myBappId === "null") {
       document.getElementById('login-screen').style.display = 'flex';
+      throw new Error("Auth required"); // Stop the rest of the script from running
   }
   document.getElementById('my-id').innerText = "Your ID: @" + myBappId;
 
@@ -3021,32 +2998,6 @@
   let autoLocationInterval = null;
   let activeChatId = null;
   window.replyState = {};
-
-  
-  let isLoginMode = false;
-
-  function toggleAuthMode() {
-      isLoginMode = !isLoginMode;
-      document.getElementById('login-submit-btn').innerText = isLoginMode ? 'Login' : 'Create Account';
-      document.getElementById('toggle-text').innerText = isLoginMode ? "Don't have an account?" : "Already have an account?";
-      document.getElementById('login-username').value = '';
-      document.getElementById('login-password').value = '';
-      checkPasswordStrength();
-  }
-
-  function checkPasswordStrength() {
-      const pass = document.getElementById('login-password').value;
-      const fill = document.getElementById('strength-fill');
-      let score = 0;
-      if (pass.length >= 8) score++;
-      if (/[0-9]/.test(pass)) score++;
-      if (/[^a-zA-Z0-9]/.test(pass)) score++;
-      
-      fill.style.width = (score / 3 * 100) + '%';
-      fill.style.background = score === 1 ? '#e74c3c' : (score === 2 ? '#f1c40f' : '#2ecc71');
-  }
-
-  );
 
   let socket = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host);
   let reconnectTimer = null;
@@ -3058,8 +3009,11 @@
   socket.onopen = () => {
     console.log("✅ Connected to server.");
     const savedPass = localStorage.getItem('bapp_password');
-            if (savedPass && myBappId) {
+            if (savedPass) {
                 socket.send(JSON.stringify({ type: 'auth_request', username: myBappId, password: savedPass, isLogin: true }));
+            } else {
+                localStorage.removeItem('bapp_username');
+                window.location.reload();
             }
     
     // FLUSH OFFLINE QUEUE
@@ -3106,10 +3060,7 @@
             queue.forEach(payload => socket.send(JSON.stringify(payload)));
             localStorage.removeItem('bapp_offline_queue');
         }
-        const savedPass = localStorage.getItem('bapp_password');
-        if (savedPass && myBappId) {
-            socket.send(JSON.stringify({ type: 'auth_request', username: myBappId, password: savedPass, isLogin: true }));
-        }
+        socket.send(JSON.stringify({ type: 'register_user', username: myBappId, profile: myProfile }));
     };
     
     socket.onclose = () => {
@@ -8696,6 +8647,35 @@ let pendingFileName = null;
     else { fill.style.width = '100%'; fill.style.background = '#25D366'; }
   }
 
+  function submitLogin() {
+    const user = document.getElementById('login-username').value.trim().toLowerCase();
+    const pass = document.getElementById('login-password').value;
+    
+    if (!user) { alert("Please enter a username"); return; }
+    if (!window.isLoginMode && (pass.length < 8 || !/[0-9]/.test(pass) || !/[^A-Za-z0-9]/.test(pass))) {
+      alert("Password does not meet requirements."); return;
+    }
+    if (window.isLoginMode && pass.length === 0) {
+      alert("Please enter your password."); return;
+    }
+    
+    // Tell the server to check the password
+    if (typeof socket !== 'undefined' && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ 
+            type: 'auth_request', 
+            username: user, 
+            password: pass, 
+            isLogin: window.isLoginMode 
+        }));
+    } else {
+        alert("Server not connected. Please try again.");
+    }
+  }
+</script>
+
+<script>
+  window.isLoginMode = false;
+
   function toggleAuthMode() {
     window.isLoginMode = !window.isLoginMode;
     
@@ -8725,58 +8705,6 @@ let pendingFileName = null;
       strengthBar.style.display = 'block';
     }
   }
-
-  // --- BULLETPROOF AUTH BUTTONS ---
-  window.isLoginMode = false;
-
-  window.submitLogin = function() {
-      const uname = document.getElementById('login-username').value.trim();
-      const pass = document.getElementById('login-password').value.trim();
-      const btn = document.getElementById('login-submit-btn');
-
-      if (!uname || !pass) {
-          alert("Please fill in both username and password.");
-          return;
-      }
-      if (!window.isLoginMode && pass.length < 8) {
-          alert("Password must be at least 8 characters.");
-          return;
-      }
-
-      // Add loading spinner
-      btn.classList.add('btn-loading');
-      btn.innerText = '';
-
-      const payload = window.isLoginMode 
-          ? { type: 'login_user', username: uname, password: pass }
-          : { type: 'register_user', username: uname, password: pass, profile: { name: uname } };
-
-      if (socket.readyState === WebSocket.OPEN) {
-          socket.send(JSON.stringify(payload));
-      } else {
-          alert("Not connected to server. Please refresh.");
-          btn.classList.remove('btn-loading');
-          btn.innerText = window.isLoginMode ? 'Login' : 'Create Account';
-      }
-  };
-
-  window.toggleAuthMode = function() {
-      window.isLoginMode = !window.isLoginMode;
-      const btn = document.getElementById('login-submit-btn');
-      btn.innerText = window.isLoginMode ? 'Login' : 'Create Account';
-      document.getElementById('toggle-text').innerText = window.isLoginMode ? "Don't have an account?" : "Already have an account?";
-      document.getElementById('login-username').value = '';
-      document.getElementById('login-password').value = '';
-  };
-
-  // Attach listener directly to the button so onclick can't fail
-  setTimeout(() => {
-      const btn = document.getElementById('login-submit-btn');
-      if (btn) {
-          btn.onclick = null; // Remove old inline onclick
-          btn.addEventListener('click', window.submitLogin);
-      }
-  }, 500);
 </script>
 </body>
 
