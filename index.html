@@ -2540,6 +2540,11 @@
     </div>
 
     <button class="login-btn" id="login-submit-btn" onclick="submitLogin()">Create Account</button>
+    
+    <div style="text-align: center; font-size: 13px; color: #aaa; margin-top: 10px;">
+      <span id="toggle-text">Already have an account?</span> 
+      <span onclick="toggleAuthMode()" style="color: var(--primary); font-weight: bold; cursor: pointer;">Login</span>
+    </div>
   </div>
 </div>
 
@@ -3003,7 +3008,13 @@
   // 2. Connect to server when online
   socket.onopen = () => {
     console.log("✅ Connected to server.");
-    socket.send(JSON.stringify({ type: 'register_user', username: myBappId, profile: myProfile }));
+    const savedPass = localStorage.getItem('bapp_password');
+            if (savedPass) {
+                socket.send(JSON.stringify({ type: 'auth_request', username: myBappId, password: savedPass, isLogin: true }));
+            } else {
+                localStorage.removeItem('bapp_username');
+                window.location.reload();
+            }
     
     // FLUSH OFFLINE QUEUE
     let queue = JSON.parse(localStorage.getItem('bapp_offline_queue')) || [];
@@ -4359,7 +4370,20 @@ let pendingFileName = null;
         });
       }
 
-      if (data.type === 'new_message') {
+      if (data.type === 'auth_success') {
+            localStorage.setItem('bapp_username', data.username);
+            if (data.profile) localStorage.setItem('bapp_profile', JSON.stringify(data.profile));
+            window.location.reload();
+            return;
+        } else if (data.type === 'auth_error') {
+            alert(data.message);
+            localStorage.removeItem('bapp_username');
+            localStorage.removeItem('bapp_password');
+            window.location.reload();
+            return;
+        }
+
+        if (data.type === 'new_message') {
 
         // --- TRIGGER POPUP ---
         let popupName = data.from || data.groupId;
@@ -8628,13 +8652,58 @@ let pendingFileName = null;
     const pass = document.getElementById('login-password').value;
     
     if (!user) { alert("Please enter a username"); return; }
-    if (pass.length < 8 || !/[0-9]/.test(pass) || !/[^A-Za-z0-9]/.test(pass)) {
+    if (!window.isLoginMode && (pass.length < 8 || !/[0-9]/.test(pass) || !/[^A-Za-z0-9]/.test(pass))) {
       alert("Password does not meet requirements."); return;
     }
+    if (window.isLoginMode && pass.length === 0) {
+      alert("Please enter your password."); return;
+    }
     
-    localStorage.setItem('bapp_username', user);
-    localStorage.setItem('bapp_password', pass); // Save password for future login
-    window.location.reload(); // Reload to start the app
+    // Tell the server to check the password
+    if (typeof socket !== 'undefined' && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ 
+            type: 'auth_request', 
+            username: user, 
+            password: pass, 
+            isLogin: window.isLoginMode 
+        }));
+    } else {
+        alert("Server not connected. Please try again.");
+    }
+  }
+</script>
+
+<script>
+  window.isLoginMode = false;
+
+  function toggleAuthMode() {
+    window.isLoginMode = !window.isLoginMode;
+    
+    const title = document.querySelector('#login-screen h2');
+    const subtitle = document.querySelector('#login-screen p');
+    const btn = document.getElementById('login-submit-btn');
+    const toggleText = document.getElementById('toggle-text');
+    const toggleLink = toggleText.nextElementSibling;
+    const reqList = document.querySelector('.req-list');
+    const strengthBar = document.querySelector('.strength-bar');
+
+    if (window.isLoginMode) {
+      title.innerText = "Welcome Back";
+      subtitle.innerText = "Login to your account";
+      btn.innerText = "Login";
+      toggleText.innerText = "Don't have an account?";
+      toggleLink.innerText = "Sign Up";
+      reqList.style.display = 'none'; // Hide password rules on login
+      strengthBar.style.display = 'none';
+    } else {
+      title.innerText = "Welcome to BAPP";
+      subtitle.innerText = "Create your secure account";
+      btn.innerText = "Create Account";
+      toggleText.innerText = "Already have an account?";
+      toggleLink.innerText = "Login";
+      reqList.style.display = 'flex';
+      strengthBar.style.display = 'block';
+    }
   }
 </script>
 </body>

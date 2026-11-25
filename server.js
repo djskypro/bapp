@@ -161,21 +161,51 @@ wss.on('connection', (ws) => {
             }
         }
 
-        if (data.type === 'register_user') {
+        if (data.type === 'auth_request') {
             const uname = String(data.username || '').trim().toLowerCase();
-            const prof = data.profile || { name: uname };
-            if (uname) {
-                bappUsers.set(uname, ws);
-                const users = fs.existsSync(USERS_FILE) ? JSON.parse(fs.readFileSync(USERS_FILE) || "{}") : {};
-                users[uname] = prof;
-                allUsers = users;
-                try { fs.writeFileSync(USERS_FILE, JSON.stringify(users)); } catch (e) {}
-                if (supabase) {
-                    supabase.from('user').upsert({ username: uname, profile: prof }, { onConflict: 'username' }).then(({ error }) => {
-                        if (error) console.error("❌ Supabase register_user:", error.message);
-                    });
-                }
+            const pass = String(data.password || '');
+            
+            if (!uname || !pass) return;
+
+            if (supabase) {
+                supabase.from('user').select('username, password, profile').eq('username', uname).then(({ data: rows, error }) => {
+                    if (error) {
+                        console.error("❌ Supabase auth error:", error.message);
+                        ws.send(JSON.stringify({ type: 'auth_error', message: 'Server error.' }));
+                        return;
+                    }
+                    
+                    const user = rows && rows[0];
+                    
+                    if (data.isLogin) {
+                        if (!user) {
+                            ws.send(JSON.stringify({ type: 'auth_error', message: 'User not found.' }));
+                        } else if (user.password !== pass) {
+                            ws.send(JSON.stringify({ type: 'auth_error', message: 'Incorrect password.' }));
+                        } else {
+                            bappUsers.set(uname, ws);
+                            ws.send(JSON.stringify({ type: 'auth_success', username: uname, profile: user.profile || { name: uname } }));
+                        }
+                    } else {
+                        if (user) {
+                            ws.send(JSON.stringify({ type: 'auth_error', message: 'Username already taken.' }));
+                        } else {
+                            const prof = { name: uname };
+                            supabase.from('user').insert([{ username: uname, password: pass, profile: prof }]).then(({ error }) => {
+                                if (error) {
+                                    ws.send(JSON.stringify({ type: 'auth_error', message: 'Database error.' }));
+                                } else {
+                                    bappUsers.set(uname, ws);
+                                    ws.send(JSON.stringify({ type: 'auth_success', username: uname, profile: prof }));
+                                }
+                            });
+                        }
+                    }
+                });
+            } else {
+                ws.send(JSON.stringify({ type: 'auth_error', message: 'Database not connected.' }));
             }
+            return;
         }
 
         if (data.type === 'search_user') {
