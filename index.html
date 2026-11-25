@@ -3015,7 +3015,12 @@
   function getUnreads() { return JSON.parse(localStorage.getItem('bapp_unreads')) || {}; }
   function saveChat(id) {
     let chats = getChats();
-    if (!chats.includes(id)) { chats.unshift(id); localStorage.setItem('bapp_chats', JSON.stringify(chats)); }
+    // Remove the chat from its current position
+    chats = chats.filter(c => c !== id);
+    // Add it to the very top
+    chats.unshift(id);
+    // Save back to localStorage
+    localStorage.setItem('bapp_chats', JSON.stringify(chats));
   }
 
   function loadChatList() {
