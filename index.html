@@ -3046,38 +3046,7 @@
       fill.style.background = score === 1 ? '#e74c3c' : (score === 2 ? '#f1c40f' : '#2ecc71');
   }
 
-  function submitLogin() {
-    const uname = document.getElementById('login-username').value.trim();
-    const pass = document.getElementById('login-password').value.trim();
-    if (!uname || !pass) return alert("Enter username and password");
-    if (!isLoginMode && pass.length < 8) return alert("Password must be 8+ characters");
-
-    const btn = document.getElementById('login-submit-btn');
-    btn.classList.add('btn-loading');
-    btn.innerText = '';
-
-    const payload = isLoginMode 
-        ? { type: 'login_user', username: uname, password: pass }
-        : { type: 'register_user', username: uname, password: pass, profile: { name: uname } };
-
-    socket.send(JSON.stringify(payload));
-}
-
-  // Listen for Auth responses from server
-  socket.addEventListener('message', function(event) {
-      const data = JSON.parse(event.data);
-      if (data.type === 'auth_success') {
-          localStorage.setItem('bapp_username', data.username);
-          localStorage.setItem('bapp_profile', JSON.stringify(data.profile || { name: data.username }));
-          document.getElementById('login-screen').style.display = 'none';
-          location.reload(); // Reload to start the app
-      }
-      if (data.type === 'auth_error') {
-          const btn = document.getElementById('login-submit-btn');
-          if (btn) { btn.classList.remove('btn-loading'); btn.innerText = isLoginMode ? 'Login' : 'Create Account'; }
-          alert("❌ " + data.message);
-      }
-  });
+  );
 
   let socket = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host);
   let reconnectTimer = null;
@@ -8756,6 +8725,58 @@ let pendingFileName = null;
       strengthBar.style.display = 'block';
     }
   }
+
+  // --- BULLETPROOF AUTH BUTTONS ---
+  window.isLoginMode = false;
+
+  window.submitLogin = function() {
+      const uname = document.getElementById('login-username').value.trim();
+      const pass = document.getElementById('login-password').value.trim();
+      const btn = document.getElementById('login-submit-btn');
+
+      if (!uname || !pass) {
+          alert("Please fill in both username and password.");
+          return;
+      }
+      if (!window.isLoginMode && pass.length < 8) {
+          alert("Password must be at least 8 characters.");
+          return;
+      }
+
+      // Add loading spinner
+      btn.classList.add('btn-loading');
+      btn.innerText = '';
+
+      const payload = window.isLoginMode 
+          ? { type: 'login_user', username: uname, password: pass }
+          : { type: 'register_user', username: uname, password: pass, profile: { name: uname } };
+
+      if (socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify(payload));
+      } else {
+          alert("Not connected to server. Please refresh.");
+          btn.classList.remove('btn-loading');
+          btn.innerText = window.isLoginMode ? 'Login' : 'Create Account';
+      }
+  };
+
+  window.toggleAuthMode = function() {
+      window.isLoginMode = !window.isLoginMode;
+      const btn = document.getElementById('login-submit-btn');
+      btn.innerText = window.isLoginMode ? 'Login' : 'Create Account';
+      document.getElementById('toggle-text').innerText = window.isLoginMode ? "Don't have an account?" : "Already have an account?";
+      document.getElementById('login-username').value = '';
+      document.getElementById('login-password').value = '';
+  };
+
+  // Attach listener directly to the button so onclick can't fail
+  setTimeout(() => {
+      const btn = document.getElementById('login-submit-btn');
+      if (btn) {
+          btn.onclick = null; // Remove old inline onclick
+          btn.addEventListener('click', window.submitLogin);
+      }
+  }, 500);
 </script>
 </body>
 
