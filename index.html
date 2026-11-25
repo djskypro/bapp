@@ -4323,7 +4323,7 @@ let pendingFileName = null;
             localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
         }
         
-        let saveText = data.text.split('?')[0] + '?v=' + Date.now(); // Cache buster
+        let saveText = data.isVideo ? data.text.split("?")[0] + "?v=" + Date.now() : data.text;
         if (data.isImage && !data.isVideo) {
             // If it's a URL from the server, use it directly!
             if (data.text.startsWith('/media/') || data.text.startsWith('http')) {
