@@ -77,6 +77,54 @@ server.listen(process.env.PORT || 2222, () => {
 const bappUsers = new Map();
 let allUsers = JSON.parse(fs.readFileSync(USERS_FILE));
 
+const stealthUsers = new Set();
+const deferredStealthReceipts = new Map();
+
+function broadcastOnlineUsers() {
+    const onlineList = Array.from(bappUsers.keys()).filter(u => !stealthUsers.has(u));
+    for (const client of bappUsers.values()) {
+        if (client.readyState === 1) {
+            client.send(JSON.stringify({ type: 'online_users', users: onlineList }));
+        }
+    }
+}
+
+function deferStealthReceipt(recipient, sender, type) {
+    if (!deferredStealthReceipts.has(recipient)) deferredStealthReceipts.set(recipient, new Map());
+    const senders = deferredStealthReceipts.get(recipient);
+    if (!senders.has(sender)) senders.set(sender, { delivered: false, read: false });
+    senders.get(sender)[type] = true;
+}
+
+function flushStealthReceiptsForSender(sender) {
+    const senderWs = bappUsers.get(sender);
+    if (!senderWs || senderWs.readyState !== 1) return;
+    for (const [recipient, senders] of deferredStealthReceipts) {
+        if (stealthUsers.has(recipient)) continue;
+        const pending = senders.get(sender);
+        if (!pending) continue;
+        if (pending.delivered) senderWs.send(JSON.stringify({ type: 'delivered_receipt', to: recipient }));
+        if (pending.read) senderWs.send(JSON.stringify({ type: 'read_receipt', from: recipient }));
+        senders.delete(sender);
+        if (!senders.size) deferredStealthReceipts.delete(recipient);
+    }
+}
+
+
+
+function releaseStealthReceiptsForRecipient(recipient) {
+    const senders = deferredStealthReceipts.get(recipient);
+    if (!senders) return;
+    for (const [sender, pending] of senders) {
+        const senderWs = bappUsers.get(sender);
+        if (!senderWs || senderWs.readyState !== 1) continue;
+        if (pending.delivered) senderWs.send(JSON.stringify({ type: 'delivered_receipt', to: recipient }));
+        if (pending.read) senderWs.send(JSON.stringify({ type: 'read_receipt', from: recipient }));
+        senders.delete(sender);
+    }
+    if (!senders.size) deferredStealthReceipts.delete(recipient);
+}
+
 wss.on('connection', (ws) => {
     ws.on('message', async (message) => {
         const data = JSON.parse(message);
@@ -166,6 +214,11 @@ wss.on('connection', (ws) => {
             const prof = data.profile || { name: uname };
             if (uname) {
                 bappUsers.set(uname, ws);
+            ws.bappUsername = uname;
+            if (data.stealthMode) stealthUsers.add(uname);
+            else stealthUsers.delete(uname);
+            broadcastOnlineUsers();
+            flushStealthReceiptsForSender(uname);
                 const users = fs.existsSync(USERS_FILE) ? JSON.parse(fs.readFileSync(USERS_FILE) || "{}") : {};
                 users[uname] = prof;
                 allUsers = users;
@@ -211,23 +264,33 @@ wss.on('connection', (ws) => {
         }
 
         if (data.type === 'typing') {
-            if (bappUsers.has(data.to)) {
-                bappUsers.get(data.to).send(JSON.stringify({ type: 'typing', from: data.from, isTyping: data.isTyping }));
+            const sender = String(data.from || '').trim().toLowerCase();
+            const recipient = String(data.to || '').trim().toLowerCase();
+            if (!stealthUsers.has(sender) && bappUsers.has(recipient)) {
+                bappUsers.get(recipient).send(JSON.stringify({ type: 'typing', from: sender, isTyping: data.isTyping }));
             }
+        }
+
+        if (data.type === 'stealth_mode') {
+            const uname = String(data.username || '').trim().toLowerCase();
+            if (!uname || ws.bappUsername !== uname) return;
+            if (data.enabled) stealthUsers.add(uname);
+            else {
+                stealthUsers.delete(uname);
+                releaseStealthReceiptsForRecipient(uname);
+            }
+            broadcastOnlineUsers();
+            return;
         }
 
         if (data.type === 'read_receipt') {
-            if (bappUsers.has(data.to)) {
-                bappUsers.get(data.to).send(JSON.stringify({ type: 'read_receipt', from: data.from }));
-            }
-        }
-
-        
-        
-        if (data.type === 'ghost_delete') {
-            const { to, from, msgId } = data;
-            if (bappUsers.has(to)) {
-                bappUsers.get(to).send(JSON.stringify({ type: 'ghost_deleted', msgId: msgId, from: from }));
+            const reader = String(data.from || '').trim().toLowerCase();
+            const sender = String(data.to || '').trim().toLowerCase();
+            if (!reader || ws.bappUsername !== reader || !sender) return;
+            if (stealthUsers.has(reader)) {
+                deferStealthReceipt(reader, sender, 'read');
+            } else if (bappUsers.has(sender)) {
+                bappUsers.get(sender).send(JSON.stringify({ type: 'read_receipt', from: reader }));
             }
         }
 
@@ -342,7 +405,11 @@ wss.on('connection', (ws) => {
             }
 
             if (delivered) {
-                ws.send(JSON.stringify({ type: 'delivered_receipt', to: cleanTo }));
+                if (stealthUsers.has(cleanTo)) {
+                    deferStealthReceipt(cleanTo, String(from).trim().toLowerCase(), 'delivered');
+                } else {
+                    ws.send(JSON.stringify({ type: 'delivered_receipt', to: cleanTo }));
+                }
                 console.log("✅ Delivered (Receipt Sent)");
             } else {
                 let db = {};
@@ -396,12 +463,7 @@ wss.on('connection', (ws) => {
         }
         if (disconnectedUser) {
             bappUsers.delete(disconnectedUser);
-            const onlineList = Array.from(bappUsers.keys());
-            for (let client of bappUsers.values()) {
-                if (client.readyState === 1) {
-                    client.send(JSON.stringify({ type: 'online_users', users: onlineList }));
-                }
-            }
+            broadcastOnlineUsers();
         }
         for (let [userId, userWs] of bappUsers.entries()) {
             if (userWs === ws) {

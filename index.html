@@ -2594,7 +2594,7 @@
     <div class="bapp-greeting-title">Good afternoon 👋</div>
     <div class="bapp-greeting-sub">Stay connected with your friends.</div>
   </div>
-  <div class="bapp-flight">✈</div>
+  <button type="button" class="bapp-flight" id="bapp-stealth-toggle" aria-label="Toggle Stealth Mode" aria-pressed="false">✈</button>
 </div>
 <div class="search-container">
     <div class="search-glow-wrapper">
@@ -2976,6 +2976,32 @@
   window.replyState = {};
 
   let socket = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host);
+  let bappStealthMode = localStorage.getItem('bapp_stealth_mode') === 'true';
+
+  function updateStealthButton() {
+    const plane = document.getElementById('bapp-stealth-toggle');
+    if (!plane) return;
+    plane.classList.toggle('bapp-stealth-active', bappStealthMode);
+    plane.setAttribute('aria-pressed', String(bappStealthMode));
+    plane.title = bappStealthMode ? 'Stealth Mode ON' : 'Stealth Mode OFF';
+  }
+
+  window.toggleBappStealth = function() {
+    bappStealthMode = !bappStealthMode;
+    localStorage.setItem('bapp_stealth_mode', String(bappStealthMode));
+    updateStealthButton();
+    if (socket && socket.readyState === 1) {
+      socket.send(JSON.stringify({
+        type: 'stealth_mode',
+        username: myBappId,
+        enabled: bappStealthMode
+      }));
+    }
+  };
+
+  document.getElementById('bapp-stealth-toggle').addEventListener('click', window.toggleBappStealth);
+  updateStealthButton();
+
   let reconnectTimer = null;
   // 1. Load the UI and chats instantly (works offline)
   loadChatList();
@@ -2984,7 +3010,7 @@
   // 2. Connect to server when online
   socket.onopen = () => {
     console.log("✅ Connected to server.");
-    socket.send(JSON.stringify({ type: 'register_user', username: myBappId, profile: myProfile }));
+    socket.send(JSON.stringify({ type: 'register_user', username: myBappId, profile: myProfile, stealthMode: bappStealthMode }));
     
     // FLUSH OFFLINE QUEUE
     let queue = JSON.parse(localStorage.getItem('bapp_offline_queue')) || [];
@@ -3030,7 +3056,7 @@
             queue.forEach(payload => socket.send(JSON.stringify(payload)));
             localStorage.removeItem('bapp_offline_queue');
         }
-        socket.send(JSON.stringify({ type: 'register_user', username: myBappId, profile: myProfile }));
+        socket.send(JSON.stringify({ type: 'register_user', username: myBappId, profile: myProfile, stealthMode: bappStealthMode }));
     };
     
     socket.onclose = () => {
@@ -3057,7 +3083,7 @@
         if (typeof reconnectWebSocket === 'function') reconnectWebSocket();
       } else if (socket.readyState === WebSocket.OPEN) {
         // If it's still open, ping the server to get any offline messages
-        socket.send(JSON.stringify({ type: 'register_user', username: myBappId, profile: myProfile }));
+        socket.send(JSON.stringify({ type: 'register_user', username: myBappId, profile: myProfile, stealthMode: bappStealthMode }));
       }
     }
   });
@@ -4021,7 +4047,7 @@ let pendingFileName = null;
     let profiles = JSON.parse(localStorage.getItem('bapp_profiles')) || {};
     profiles[myBappId] = myProfile;
     localStorage.setItem('bapp_profiles', JSON.stringify(profiles));
-    socket.send(JSON.stringify({ type: 'register_user', username: myBappId, profile: myProfile }));
+    socket.send(JSON.stringify({ type: 'register_user', username: myBappId, profile: myProfile, stealthMode: bappStealthMode }));
     const btn = document.querySelector('.save-btn');
     const originalText = btn.innerText;
     btn.innerText = 'Saved! ✅'; btn.style.background = '#2ecc71';
@@ -8908,7 +8934,27 @@ function openStatusView() {
 }
 </style>
 \n<style id="bapp-remove-pencil">#bapp-compose{display:none!important}</style>
-</body>
+
+<style id="bapp-stealth-mode-style">
+#bapp-stealth-toggle {
+  appearance:none;
+  -webkit-appearance:none;
+  border:0;
+  background:transparent;
+  cursor:pointer;
+  line-height:1;
+}
+#bapp-stealth-toggle.bapp-stealth-active {
+  color:#ff3030!important;
+  text-shadow:0 0 8px rgba(255,35,35,.9),0 0 22px rgba(255,35,35,.75)!important;
+  animation:bapp-stealth-rotate 1.8s linear infinite;
+}
+@keyframes bapp-stealth-rotate {
+  from { transform:rotate(-15deg); }
+  to { transform:rotate(345deg); }
+}
+</style>
+\n</body>
 
 
 
