@@ -1393,36 +1393,26 @@
 </style>
 
 <style>
-  /* --- STATIC 3D GLASS SLABS --- */
-  
-  /* Give the floating islands a heavy 3D edge */
-  .glass-island {
-    border-top: 2px solid rgba(255, 255, 255, 0.4) !important;
-    border-left: 1px solid rgba(255, 255, 255, 0.2) !important;
-    border-right: 1px solid rgba(0, 0, 0, 0.5) !important;
-    border-bottom: 4px solid rgba(0, 0, 0, 0.8) !important;
-    box-shadow: 
-      0 15px 30px rgba(0, 0, 0, 0.6),
-      inset 0 2px 5px rgba(255, 255, 255, 0.1),
-      inset 0 -2px 5px rgba(0, 0, 0, 0.3) !important;
-    transform: translateY(-2px); /* Lifts it up visually */
-  }
-
-  /* Make the floating input bar look like a 3D pill */
-  .chat-input-area {
-    border-top: 2px solid rgba(255, 255, 255, 0.3) !important;
-    border-bottom: 4px solid rgba(0, 0, 0, 0.8) !important;
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.6), inset 0 1px 3px rgba(255,255,255,0.1) !important;
-    transform: translateY(-2px);
-  }
-
-  /* Make the send and mic buttons look like 3D physical buttons */
-  .send-btn, .mic-btn {
-    border-top: 1px solid rgba(255,255,255,0.5) !important;
-    border-bottom: 3px solid rgba(0,0,0,0.5) !important;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.4) !important;
-    transform: translateY(-1px);
-  }
+  /* --- SUBTLE PREMIUM LIQUID GLASS --- */
+.glass-island {
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  border-top: 1px solid rgba(255,255,255,0.18) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.22),
+              inset 0 1px 0 rgba(255,255,255,0.06) !important;
+  transform: none !important;
+}
+.chat-input-area {
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.22),
+              inset 0 1px 0 rgba(255,255,255,0.06) !important;
+  transform: none !important;
+}
+.send-btn, .mic-btn {
+  border: 1px solid rgba(255,255,255,0.14) !important;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.25) !important;
+  transform: none !important;
+}
 </style>
 
 <style>
@@ -2589,7 +2579,7 @@
   
   <div class="header">
     <div>
-      <h1>Chats</h1>
+      <h1 class="bapp-brand"><span>B</span>APP</h1><div class="bapp-tagline">Chat • Connect • Share</div>
       <div id="my-id" style="font-size:12px; color:var(--text-muted); margin-top:-5px;">ID: ...</div>
     </div>
     <div class="header-icons">
@@ -2598,7 +2588,15 @@
     </div>
   </div>
 
-  <div class="search-container">
+  
+<div id="bapp-greeting">
+  <div class="bapp-greeting-copy">
+    <div class="bapp-greeting-title">Good afternoon 👋</div>
+    <div class="bapp-greeting-sub">Stay connected with your friends.</div>
+  </div>
+  <div class="bapp-flight">✈</div>
+</div>
+<div class="search-container">
     <div class="search-glow-wrapper">
       <div class="search-glow"></div>
       <div class="search-box-inner">
@@ -2609,14 +2607,38 @@
     <div id="search-dropdown"></div>
   </div>
 
-  <div class="chat-list" id="chat-list-container"></div>
+  
+<div id="bapp-home-stories">
+  <div class="bapp-section-heading">
+    <span>Stories</span>
+    <span onclick="openStatusView()">See All →</span>
+  </div>
+  <div class="bapp-story-row">
+    <div class="bapp-story" onclick="postStatus()">
+      <div class="bapp-story-ring add-story">＋</div>
+      <span>My Story</span>
+    </div>
+    <div class="bapp-story" onclick="openStatusView()">
+      <div class="bapp-story-ring">⭕</div>
+      <span>View Stories</span>
+    </div>
+  </div>
+</div>
 
-  <div class="bottom-nav">
+
+<div class="bapp-messages-heading">
+  <span>▣</span> Messages
+</div>
+<div class="chat-list" id="chat-list-container"></div>
+
+  
+<button id="bapp-compose" onclick="document.getElementById('search-input').focus()" aria-label="Start a conversation">✎</button>
+<div class="bottom-nav">
     <div class="nav-item active" onclick="goBack()">
       <span>💬</span>Chats
       <div class="nav-badge" id="global-badge">0</div>
     </div>
-    <div class="nav-item" onclick="openStatusView()"><span>⭕</span>Updates</div>
+    <div class="nav-item" onclick="openStatusView()"><span>◉</span>Stories</div>
     <div class="nav-item"><span>📞</span>Calls</div>
     <div class="nav-item" onclick="openSettings()"><span>⚙️</span>Settings</div>
   </div>
@@ -2664,7 +2686,7 @@
 <!-- STATUS VIEW -->
 <div id="status-view" class="view">
   <div class="header" style="padding-top: 40px;">
-    <h1>Updates</h1>
+    <h1>Stories</h1>
   </div>
   
   <div class="status-list">
@@ -5617,8 +5639,13 @@ let pendingFileName = null;
   let currentViewerTimeout = null;
   let isViewingMyStatus = false;
 
-  function openStatusView() {
-    history.pushState({ view: 'updates' }, '', '#updates');
+  function showHome() {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('main-view').classList.add('active');
+}
+
+function openStatusView() {
+    history.pushState({ view: 'stories' }, '', '#stories');
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById('status-view').classList.add('active');
     if(socket.readyState === WebSocket.OPEN) {
@@ -8555,6 +8582,332 @@ let pendingFileName = null;
     }
   });
 </script>
+
+<style id="bapp-premium-glass">
+.chat-header .glass-island {
+  background: rgba(24, 31, 29, 0.78) !important;
+  backdrop-filter: blur(28px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(160%) !important;
+  border: 1px solid rgba(255,255,255,0.13) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.22) !important;
+  transform: none !important;
+}
+.chat-input-area {
+  background: rgba(24, 31, 29, 0.82) !important;
+  backdrop-filter: blur(28px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(160%) !important;
+  border: 1px solid rgba(255,255,255,0.13) !important;
+  border-radius: 28px !important;
+  padding: 9px 12px !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25) !important;
+  transform: none !important;
+}
+#chat-input {
+  background: rgba(255,255,255,0.07) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-radius: 22px !important;
+}
+.chat-input-area .send-btn {
+  background: #168b65 !important;
+  color: white !important;
+  border: none !important;
+  box-shadow: 0 3px 12px rgba(22,139,101,0.25) !important;
+  transform: none !important;
+}
+.messages { background: transparent !important; }
+</style>
+
+
+<style id="bapp-home-premium">
+.header h1 {
+  font-size: 27px !important;
+  font-weight: 750 !important;
+  letter-spacing: -0.8px !important;
+}
+#bapp-home-stories {
+  padding: 8px 20px 14px;
+  flex-shrink: 0;
+}
+.bapp-section-heading {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:16px;
+  font-weight:700;
+  margin-bottom:13px;
+}
+.bapp-section-heading span:last-child {
+  color:#38b889;
+  font-size:13px;
+  cursor:pointer;
+}
+.bapp-story-row {
+  display:flex;
+  gap:22px;
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+.bapp-story {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:7px;
+  min-width:62px;
+  font-size:11px;
+  color:var(--text-muted);
+  cursor:pointer;
+}
+.bapp-story-ring {
+  width:57px;
+  height:57px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:2px solid #168b65;
+  background:rgba(22,139,101,.12);
+  font-size:23px;
+}
+.bapp-story-ring.add-story {
+  border:1px dashed #38b889;
+  color:#38b889;
+  font-size:29px;
+}
+.search-box-inner {
+  border-radius:20px !important;
+}
+.bottom-nav {
+  background:rgba(20,25,24,.82) !important;
+  backdrop-filter:blur(28px) saturate(160%) !important;
+  -webkit-backdrop-filter:blur(28px) saturate(160%) !important;
+  border:1px solid rgba(255,255,255,.12) !important;
+  box-shadow:0 10px 30px rgba(0,0,0,.25) !important;
+}
+.nav-item.active { color:#38b889 !important; }
+</style>
+
+
+<style id="bapp-home-redesign-v2">
+.header { padding-top:20px !important; padding-bottom:16px !important; }
+.bapp-brand {
+  font-size:27px !important;
+  font-weight:900 !important;
+  letter-spacing:-1px !important;
+  color:#f4fff8 !important;
+  margin:0 !important;
+}
+.bapp-brand span { color:#00e640; }
+.bapp-tagline {
+  color:#84918a;
+  font-size:10px;
+  letter-spacing:1.1px;
+  margin-top:3px;
+}
+#bapp-greeting {
+  position:relative;
+  overflow:hidden;
+  margin:4px 18px 16px;
+  min-height:105px;
+  padding:20px;
+  border-radius:22px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  background:
+    radial-gradient(ellipse at 100% 0%,rgba(0,230,64,.19),transparent 55%),
+    linear-gradient(120deg,#141b17,#1b2520);
+  border:1px solid rgba(0,230,64,.13);
+  box-shadow:0 8px 25px rgba(0,0,0,.16);
+}
+.bapp-greeting-title {
+  color:#f5fff8;
+  font-size:20px;
+  font-weight:750;
+  margin-bottom:7px;
+}
+.bapp-greeting-sub { color:#9ba9a0; font-size:12px; }
+.bapp-flight {
+  color:#00e640;
+  font-size:32px;
+  transform:rotate(-15deg);
+  text-shadow:0 0 20px rgba(0,230,64,.35);
+  padding:10px;
+}
+.bapp-messages-heading {
+  padding:12px 20px 10px;
+  color:#f0f5f1;
+  font-size:16px;
+  font-weight:750;
+}
+.bapp-messages-heading span {
+  color:#00e640;
+  margin-right:8px;
+}
+#bapp-compose {
+  position:fixed;
+  right:24px;
+  bottom:100px;
+  z-index:30;
+  width:56px;
+  height:56px;
+  border:0;
+  border-radius:50%;
+  background:#00df48;
+  color:#061009;
+  font-size:27px;
+  font-weight:bold;
+  box-shadow:0 6px 22px rgba(0,230,64,.25);
+}
+#bapp-greeting, .bapp-brand, .bapp-messages-heading {
+  font-family:inherit;
+}
+</style>
+
+
+<style id="bapp-story-scroll-animation">
+#bapp-home-stories {
+  max-height: 180px;
+  overflow: hidden;
+  opacity: 1;
+  transform: translateY(0) scaleY(1);
+  transform-origin: top center;
+  transition:
+    max-height .4s cubic-bezier(.2,.8,.2,1),
+    padding .4s ease,
+    margin .4s ease,
+    opacity .25s ease,
+    transform .4s cubic-bezier(.2,.8,.2,1);
+  will-change: max-height, opacity, transform;
+}
+
+#main-view.bapp-stories-collapsed #bapp-home-stories {
+  max-height: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  opacity: 0;
+  transform: translateY(-12px) scaleY(.92);
+  pointer-events: none;
+}
+
+#chat-list-container {
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+}
+</style>
+
+<script id="bapp-story-scroll-animation-script">
+(() => {
+  const mainView = document.getElementById('main-view');
+  const chatList = document.getElementById('chat-list-container');
+
+  if (!mainView || !chatList) return;
+
+  let collapsed = false;
+  let pending = false;
+
+  chatList.addEventListener('scroll', () => {
+    if (pending) return;
+    pending = true;
+
+    requestAnimationFrame(() => {
+      const position = chatList.scrollTop;
+
+      if (!collapsed && position > 55) {
+        collapsed = true;
+        mainView.classList.add('bapp-stories-collapsed');
+      } else if (collapsed && position < 12) {
+        collapsed = false;
+        mainView.classList.remove('bapp-stories-collapsed');
+      }
+
+      pending = false;
+    });
+  }, { passive: true });
+})();
+</script>
+\n
+<style id="bapp-compact-layout-v1">
+.header {
+  padding: 10px 18px 8px !important;
+}
+.bapp-brand {
+  font-size: 24px !important;
+}
+.bapp-tagline {
+  font-size: 9px !important;
+}
+#my-id {
+  margin-top: 0 !important;
+}
+#bapp-greeting {
+  min-height: 76px !important;
+  margin: 3px 16px 10px !important;
+  padding: 13px 16px !important;
+  border-radius: 18px !important;
+}
+.bapp-greeting-title {
+  font-size: 17px !important;
+  margin-bottom: 4px !important;
+}
+.bapp-greeting-sub {
+  font-size: 11px !important;
+}
+.search-container {
+  margin: 3px 14px 9px !important;
+}
+.search-box-inner {
+  min-height: 42px !important;
+}
+#bapp-home-stories {
+  padding: 5px 18px 9px !important;
+}
+.bapp-section-heading {
+  margin-bottom: 8px !important;
+  font-size: 15px !important;
+}
+.bapp-story-row {
+  gap: 16px !important;
+}
+.bapp-story {
+  min-width: 54px !important;
+  gap: 4px !important;
+  font-size: 10px !important;
+}
+.bapp-story-ring {
+  width: 47px !important;
+  height: 47px !important;
+  font-size: 20px !important;
+}
+.bapp-messages-heading {
+  padding: 8px 18px !important;
+  font-size: 15px !important;
+}
+.chat-list {
+  padding-bottom: 85px !important;
+  min-height: 0 !important;
+}
+.chat-item {
+  padding: 8px 12px !important;
+  margin-bottom: 6px !important;
+}
+.chat-item .avatar {
+  width: 44px !important;
+  height: 44px !important;
+}
+.chat-name {
+  font-size: 15px !important;
+}
+.chat-msg {
+  font-size: 12px !important;
+}
+.chat-time {
+  font-size: 11px !important;
+}
+</style>
+\n<style id="bapp-remove-pencil">#bapp-compose{display:none!important}</style>
 </body>
 
 
