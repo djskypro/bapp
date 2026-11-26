@@ -1,0 +1,48 @@
+--- 1. LOGIN HTML ---
+2566:    <button class="login-btn" id="login-submit-btn" onclick="submitLogin()">Create Account</button>
+2567-    
+2568-    <div style="text-align: center; font-size: 13px; color: #aaa; margin-top: 10px;">
+2569-      <span id="toggle-text">Already have an account?</span> 
+2570-      <span onclick="toggleAuthMode()" style="color: var(--primary); font-weight: bold; cursor: pointer;">Login</span>
+2571-    </div>
+--
+3030:      document.getElementById('login-submit-btn').innerText = isLoginMode ? 'Login' : 'Create Account';
+3031-      document.getElementById('toggle-text').innerText = isLoginMode ? "Don't have an account?" : "Already have an account?";
+3032-      document.getElementById('login-username').value = '';
+3033-      document.getElementById('login-password').value = '';
+3034-      checkPasswordStrength();
+3035-  }
+--
+3055:    const btn = document.getElementById('login-submit-btn');
+3056-    btn.classList.add('btn-loading');
+3057-    btn.innerText = '';
+3058-
+3059-    const payload = isLoginMode 
+3060-        ? { type: 'login_user', username: uname, password: pass }
+--
+3076:          const btn = document.getElementById('login-submit-btn');
+3077-          if (btn) { btn.classList.remove('btn-loading'); btn.innerText = isLoginMode ? 'Login' : 'Create Account'; }
+3078-          alert("❌ " + data.message);
+3079-      }
+3080-  });
+3081-
+--
+8735:    const btn = document.getElementById('login-submit-btn');
+8736-    const toggleText = document.getElementById('toggle-text');
+8737-    const toggleLink = toggleText.nextElementSibling;
+8738-    const reqList = document.querySelector('.req-list');
+8739-    const strengthBar = document.querySelector('.strength-bar');
+8740-
+
+--- 2. AUTH JS (CURRENT) ---
+3049:  function submitLogin() {
+3050-    const uname = document.getElementById('login-username').value.trim();
+3051-    const pass = document.getElementById('login-password').value.trim();
+3052-    if (!uname || !pass) return alert("Enter username and password");
+3053-    if (!isLoginMode && pass.length < 8) return alert("Password must be 8+ characters");
+3054-
+3055-    const btn = document.getElementById('login-submit-btn');
+3056-    btn.classList.add('btn-loading');
+3057-    btn.innerText = '';
+3058-
+3059-    const payload = isLoginMode 

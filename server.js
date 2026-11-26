@@ -161,6 +161,34 @@ wss.on('connection', (ws) => {
             }
         }
 
+        if (data.type === 'guest_login') {
+            const uname = String(data.username || '').trim().toLowerCase();
+            if (!uname || uname.length > 24) {
+                ws.send(JSON.stringify({ type: 'auth_error', message: 'Enter a valid username (maximum 24 characters).' }));
+                return;
+            }
+
+            let users = {};
+            try {
+                users = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8') || '{}');
+            } catch (e) {}
+
+            const profile = users[uname] || { name: uname };
+            users[uname] = profile;
+            fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+            allUsers = users;
+            bappUsers.set(uname, ws);
+
+            ws.send(JSON.stringify({ type: 'auth_success', username: uname, profile }));
+            const onlineList = Array.from(bappUsers.keys());
+            wss.clients.forEach(client => {
+                if (client.readyState === 1) {
+                    client.send(JSON.stringify({ type: 'online_users', users: onlineList }));
+                }
+            });
+            return;
+        }
+
         if (data.type === 'auth_request') {
             const uname = String(data.username || '').trim().toLowerCase();
             const pass = String(data.password || '');

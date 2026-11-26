@@ -1,0 +1,55 @@
+--- 1. LOGIN BUTTON ---
+2542:    <button class="login-btn" id="login-submit-btn" onclick="submitLogin()">Create Account</button>
+
+--- 2. SUBMIT FUNCTION ---
+8650:  function submitLogin() {
+8651-    const user = document.getElementById('login-username').value.trim().toLowerCase();
+8652-    const pass = document.getElementById('login-password').value;
+8653-    
+8654-    if (!user) { alert("Please enter a username"); return; }
+8655-    if (!window.isLoginMode && (pass.length < 8 || !/[0-9]/.test(pass) || !/[^A-Za-z0-9]/.test(pass))) {
+8656-      alert("Password does not meet requirements."); return;
+8657-    }
+8658-    if (window.isLoginMode && pass.length === 0) {
+8659-      alert("Please enter your password."); return;
+8660-    }
+8661-    
+8662-    // Tell the server to check the password
+8663-    if (typeof socket !== 'undefined' && socket.readyState === WebSocket.OPEN) {
+8664-        socket.send(JSON.stringify({ 
+8665-            type: 'auth_request', 
+
+--- 3. TOGGLE FUNCTION ---
+8679:  function toggleAuthMode() {
+8680-    window.isLoginMode = !window.isLoginMode;
+8681-    
+8682-    const title = document.querySelector('#login-screen h2');
+8683-    const subtitle = document.querySelector('#login-screen p');
+8684-    const btn = document.getElementById('login-submit-btn');
+8685-    const toggleText = document.getElementById('toggle-text');
+8686-    const toggleLink = toggleText.nextElementSibling;
+8687-    const reqList = document.querySelector('.req-list');
+8688-    const strengthBar = document.querySelector('.strength-bar');
+8689-
+
+--- 4. SERVER AUTH BLOCK ---
+164:        if (data.type === 'auth_request') {
+165-            const uname = String(data.username || '').trim().toLowerCase();
+166-            const pass = String(data.password || '');
+167-            
+168-            if (!uname || !pass) return;
+169-
+170-            if (supabase) {
+171-                supabase.from('user').select('username, password, profile').eq('username', uname).then(({ data: rows, error }) => {
+172-                    if (error) {
+173-                        console.error("❌ Supabase auth error:", error.message);
+174-                        ws.send(JSON.stringify({ type: 'auth_error', message: 'Server error.' }));
+175-                        return;
+176-                    }
+177-                    
+178-                    const user = rows && rows[0];
+179-                    
+--
+212:        if (data.type === 'register_user') {
+213-            const uname = String(data.username || '').trim().toLowerCase();
+214-            const pass = String(data.password || '').trim();
