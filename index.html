@@ -8778,11 +8778,11 @@ function openStatusView() {
   transform: translateY(0) scaleY(1);
   transform-origin: top center;
   transition:
-    max-height .4s cubic-bezier(.2,.8,.2,1),
-    padding .4s ease,
-    margin .4s ease,
-    opacity .25s ease,
-    transform .4s cubic-bezier(.2,.8,.2,1);
+    max-height .35s ease,
+    padding .35s ease,
+    margin .35s ease,
+    opacity .3s ease,
+    transform .35s ease;
   will-change: max-height, opacity, transform;
 }
 
@@ -8793,7 +8793,7 @@ function openStatusView() {
   margin-top: 0 !important;
   margin-bottom: 0 !important;
   opacity: 0;
-  transform: translateY(-12px) scaleY(.92);
+  transform: translateX(14px);
   pointer-events: none;
 }
 
@@ -8807,29 +8807,45 @@ function openStatusView() {
 (() => {
   const mainView = document.getElementById('main-view');
   const chatList = document.getElementById('chat-list-container');
-
   if (!mainView || !chatList) return;
 
   let collapsed = false;
   let pending = false;
+  let touchStartY = null;
 
   chatList.addEventListener('scroll', () => {
     if (pending) return;
     pending = true;
 
     requestAnimationFrame(() => {
-      const position = chatList.scrollTop;
-
-      if (!collapsed && position > 55) {
+      if (!collapsed && chatList.scrollTop > 55) {
         collapsed = true;
         mainView.classList.add('bapp-stories-collapsed');
-      } else if (collapsed && position < 12) {
-        collapsed = false;
-        mainView.classList.remove('bapp-stories-collapsed');
       }
-
       pending = false;
     });
+  }, { passive: true });
+
+  chatList.addEventListener('touchstart', (event) => {
+    if (collapsed && chatList.scrollTop <= 12) {
+      touchStartY = event.touches[0].clientY;
+    }
+  }, { passive: true });
+
+  chatList.addEventListener('touchend', (event) => {
+    if (touchStartY === null) return;
+
+    const distance = event.changedTouches[0].clientY - touchStartY;
+    touchStartY = null;
+
+    if (collapsed && chatList.scrollTop <= 12 && distance >= 60) {
+      collapsed = false;
+      mainView.classList.remove('bapp-stories-collapsed');
+    }
+  }, { passive: true });
+
+  chatList.addEventListener('touchcancel', () => {
+    touchStartY = null;
   }, { passive: true });
 })();
 </script>
